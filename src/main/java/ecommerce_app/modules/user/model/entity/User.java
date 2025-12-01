@@ -1,0 +1,103 @@
+package ecommerce_app.modules.user.model.entity;
+
+import ecommerce_app.infrastructure.model.entity.BaseAuditingEntity;
+import ecommerce_app.modules.address.model.entity.Address;
+import ecommerce_app.modules.cart.model.entity.Cart;
+import ecommerce_app.modules.order.model.entity.Order;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.Table;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.UUID;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
+@Table(
+    name = "users",
+    indexes = {
+      @Index(columnList = "firstName", name = "first_name_index"),
+      @Index(columnList = "lastName", name = "last_name_index"),
+      @Index(columnList = "uuid", name = "uuid_index"),
+    })
+@Getter
+@Setter
+@Entity
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class User extends BaseAuditingEntity {
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
+
+  @Column( name = "uid", length = 75, unique = true)
+  private String uid;
+
+  @Column(name = "password", length = 250)
+  private String password;
+
+  @Column(nullable = false, name = "email", unique = true, length = 100)
+  private String email;
+
+  @Column(name = "phone", unique = true, length = 25)
+  private String phone;
+
+  @Column(name = "first_name", length = 50, nullable = true)
+  private String firstName;
+
+  @Column(length = 50, name = "last_name", nullable = true)
+  private String lastName;
+
+  @Column(name = "avatar")
+  private String avatar;
+
+  @Column(name = "provider")
+  private String provider;
+
+  @Column(name = "is_active", nullable = false)
+  private Boolean isActive = true;
+
+  @Column(name = "last_login_at")
+  private LocalDateTime lastLoginAt;
+
+  @Column(name = "email_verified_at")
+  private LocalDateTime emailVerifiedAt;
+
+  @Column(name = "remember_me", nullable = false)
+  private Boolean rememberMe = false;
+
+  @Column(name = "uuid", nullable = false)
+  private UUID uuid = UUID.randomUUID();
+
+  @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
+  private Cart cart;
+
+  @OneToMany(
+      cascade = CascadeType.ALL,
+      fetch = FetchType.LAZY,
+      targetEntity = Address.class,
+      mappedBy = "user")
+  @OnDelete(action = OnDeleteAction.CASCADE)
+  private List<Address> addresses;
+
+  @OneToMany(
+      mappedBy = "user",
+      cascade = CascadeType.ALL,
+      fetch = FetchType.LAZY,
+      targetEntity = Order.class)
+  private List<Order> orders;
+}

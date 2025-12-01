@@ -1,0 +1,61 @@
+package ecommerce_app.modules.product.model.dto;
+
+import com.fasterxml.jackson.annotation.JsonFormat;
+import io.swagger.v3.oas.annotations.media.Schema;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+@Schema(name = "ProductResponse", description = "Response object for product creation or update")
+public class ProductResponse {
+  @Schema(description = "Id of the product", example = "1")
+  private Long id;
+
+  @Schema(description = "Name of the product", example = "iPhone 15 Pro")
+  private String name;
+
+  @Schema(
+      description = "Description of the product",
+      example = "Latest Apple smartphone with A17 chip")
+  private String description;
+
+  @Schema(description = "Price of the product", example = "1299.99")
+  private BigDecimal price;
+
+  @Schema(description = "Image file for the product", type = "string")
+  private String image;
+
+  @Schema(description = "Category id of the product belongs to", example = "1")
+  private Long categoryId;
+
+  @Schema(description = "Category name of the product belongs to", example = "Electronic")
+  private String categoryName;
+
+  @Schema(description = "Indicates whether the product is featured", example = "true")
+  private Boolean isFeature;
+
+  @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd-MM-yyyy HH:mm:ss")
+  @Schema(description = "Timestamp when the product was created", example = "2025-06-01T12:34:56")
+  private LocalDateTime createdAt;
+
+  @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd-MM-yyyy HH:mm:ss")
+  @Schema(
+      description = "Timestamp when the product was last updated",
+      example = "2025-06-04T15:00:00")
+  private LocalDateTime updatedAt;
+
+  @Schema(description = "ID of the user who created the product", example = "101")
+  private Long createdBy;
+
+  @Schema(description = "ID of the user who last updated the product", example = "102")
+  private Long updatedBy;
+}
