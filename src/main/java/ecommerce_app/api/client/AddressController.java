@@ -1,4 +1,4 @@
-package ecommerce_app.modules.address.controller;
+package ecommerce_app.api.client;
 
 import ecommerce_app.infrastructure.model.response.body.BaseBodyResponse;
 import ecommerce_app.modules.address.model.dto.AddressRequest;
@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/v1/addresses")
+@RequestMapping("/api/client/v1/addresses")
 @Tag(name = "Address Controller", description = "Address Management")
 @RequiredArgsConstructor
 public class AddressController {

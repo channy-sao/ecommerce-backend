@@ -4,6 +4,7 @@ import ecommerce_app.infrastructure.exception.BadRequestException;
 import ecommerce_app.infrastructure.exception.ResourceNotFoundException;
 import ecommerce_app.infrastructure.io.service.FileManagerService;
 import ecommerce_app.infrastructure.property.StorageConfigProperty;
+import ecommerce_app.modules.user.model.dto.UpdatePasswordRequest;
 import ecommerce_app.modules.user.model.dto.UpdateUserRequest;
 import ecommerce_app.modules.user.model.dto.UserRequest;
 import ecommerce_app.modules.user.model.entity.User;
@@ -235,5 +236,40 @@ public class UserServiceImpl implements UserService {
     PageRequest pageRequest = PageRequest.of(page - 1, pageSize, sort);
 
     return userRepository.findAll(userSpecification, pageRequest);
+  }
+
+  @Transactional(rollbackFor = Exception.class)
+  @Override
+  public void changePassword(UpdatePasswordRequest changePasswordRequest) {
+    log.info("Changing password for user: {}", changePasswordRequest.getEmail());
+    final var user =
+        userRepository
+            .findByEmail(changePasswordRequest.getEmail())
+            .orElseThrow(
+                () -> new ResourceNotFoundException("User", changePasswordRequest.getEmail()));
+
+    // verify user password
+    if (!passwordEncoder.matches(changePasswordRequest.getOldPassword(), user.getPassword())) {
+      log.error("Current password is not correct");
+      throw new BadRequestException("Current password is not correct");
+    }
+
+    // verify password is difference
+    if (changePasswordRequest.getNewPassword().equals(changePasswordRequest.getOldPassword())) {
+      log.error("New Password must be different from current password");
+      throw new BadRequestException("New Password must be different from current password");
+    }
+
+    // 4. Validate password confirmation
+    if (!changePasswordRequest
+        .getNewPassword()
+        .equals(changePasswordRequest.getConfirmNewPassword())) {
+      log.error("Confirm Password is not match");
+      throw new BadRequestException("Confirm Password is not match");
+    }
+
+    user.setPassword(passwordEncoder.encode(changePasswordRequest.getNewPassword()));
+    userRepository.save(user);
+    log.info("Password changed successfully");
   }
 }

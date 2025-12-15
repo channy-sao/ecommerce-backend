@@ -1,6 +1,5 @@
 package ecommerce_app.modules.auth.dto.response;
 
-import ecommerce_app.modules.user.model.dto.UserResponse;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -12,6 +11,10 @@ import lombok.experimental.SuperBuilder;
 @SuperBuilder
 @AllArgsConstructor
 @NoArgsConstructor
-public class LoginResponse extends BaseAuthResponse {
-  private UserResponse userInfo;
+public class BaseAuthResponse {
+  private String accessToken;
+  private String refreshToken;
+  private String tokenType;
+  private long accessTokenExpireInMs;
+  private long refreshTokenExpireInMs;
 }

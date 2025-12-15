@@ -12,11 +12,16 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -44,7 +49,7 @@ public class User extends BaseAuditingEntity {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
-  @Column( name = "uid", length = 75, unique = true)
+  @Column(name = "uid", length = 75, unique = true)
   private String uid;
 
   @Column(name = "password", length = 250)
@@ -100,4 +105,11 @@ public class User extends BaseAuditingEntity {
       fetch = FetchType.LAZY,
       targetEntity = Order.class)
   private List<Order> orders;
+
+  @ManyToMany(fetch = FetchType.EAGER)
+  @JoinTable(
+      name = "user_roles",
+      joinColumns = @JoinColumn(name = "user_id"),
+      inverseJoinColumns = @JoinColumn(name = "role_id"))
+  private Set<Role> roles = new HashSet<>();
 }

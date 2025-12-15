@@ -1,4 +1,4 @@
-package ecommerce_app.modules.order.controller;
+package ecommerce_app.api.client;
 
 import ecommerce_app.infrastructure.model.response.body.BaseBodyResponse;
 import ecommerce_app.modules.order.model.dto.CheckoutRequest;
@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/v1/orders")
+@RequestMapping("/api/client/v1/orders")
 @RequiredArgsConstructor
 @Tag(name = "Order Controller", description = "Management Order process")
 public class OrderController {

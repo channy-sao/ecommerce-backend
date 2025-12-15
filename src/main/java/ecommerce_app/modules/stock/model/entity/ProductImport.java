@@ -49,6 +49,15 @@ public class ProductImport extends AuditingEntity {
   @Column(nullable = false, name = "total_amount")
   private BigDecimal totalAmount;
 
+  @Column(name = "supplier_name")
+  private String supplierName;
+
+  @Column(name = "supplier_address")
+  private String supplierAddress;
+
+  @Column(name = "supplier phone")
+  private String supplierPhone;
+
   @Column(name = "remark")
   private String remark;
 }

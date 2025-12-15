@@ -1,10 +1,13 @@
 package ecommerce_app.modules.auth.custom;
 
+import ecommerce_app.modules.user.model.entity.Role;
 import ecommerce_app.modules.user.model.entity.User;
 import java.util.Collection;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 import lombok.Builder;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 @Builder
@@ -13,8 +16,13 @@ public record CustomUserDetails(User user) implements UserDetails {
   @Override
   public Collection<? extends GrantedAuthority> getAuthorities() {
 
-    // Now Not have Role Implement
-    return List.of();
+    Set<GrantedAuthority> authorities = new HashSet<>();
+    for (Role role : user.getRoles()) {
+      authorities.add(new SimpleGrantedAuthority(role.getName()));
+      role.getPermissions()
+          .forEach(permission -> authorities.add(new SimpleGrantedAuthority(permission.getName())));
+    }
+    return authorities;
   }
 
   @Override

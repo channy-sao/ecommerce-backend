@@ -1,5 +1,6 @@
 package ecommerce_app.modules.user.service;
 
+import ecommerce_app.modules.user.model.dto.UpdatePasswordRequest;
 import ecommerce_app.modules.user.model.dto.UpdateUserRequest;
 import ecommerce_app.modules.user.model.dto.UserRequest;
 import ecommerce_app.modules.user.model.entity.User;
@@ -28,4 +29,6 @@ public interface UserService {
       String sortBy,
       Sort.Direction direction,
       String filter);
+
+  void changePassword(UpdatePasswordRequest changePasswordRequest);
 }

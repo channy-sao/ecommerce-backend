@@ -44,6 +44,16 @@ public class ProductImportServiceImpl implements ProductImportService {
                     new ResourceNotFoundException("Product", productImportRequest.getProductId()));
 
     // 1. Save history
+    ProductImport importRecord = getPrepareProductImport(productImportRequest, product);
+    productImportRepository.save(importRecord);
+
+    // 2. Update stock
+    stockService.increaseStock(
+        productImportRequest.getProductId(), productImportRequest.getQuantity());
+  }
+
+  private static ProductImport getPrepareProductImport(
+      ProductImportRequest productImportRequest, Product product) {
     ProductImport importRecord = new ProductImport();
     importRecord.setProduct(product);
     importRecord.setQuantity(productImportRequest.getQuantity());
@@ -52,11 +62,10 @@ public class ProductImportServiceImpl implements ProductImportService {
         productImportRequest
             .getUnitPrice()
             .multiply(BigDecimal.valueOf(productImportRequest.getQuantity())));
-    productImportRepository.save(importRecord);
-
-    // 2. Update stock
-    stockService.increaseStock(
-        productImportRequest.getProductId(), productImportRequest.getQuantity());
+    importRecord.setSupplierName(productImportRequest.getSupplierName());
+    importRecord.setSupplierAddress(productImportRequest.getSupplierAddress());
+    importRecord.setSupplierPhone(productImportRequest.getSupplierPhone());
+    return importRecord;
   }
 
   @LogExecutionTime

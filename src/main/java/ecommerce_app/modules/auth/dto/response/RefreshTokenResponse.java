@@ -1,17 +1,10 @@
 package ecommerce_app.modules.auth.dto.response;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.experimental.SuperBuilder;
 
 @Getter
 @Setter
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class RefreshTokenResponse {
-    private String accessToken;
-    private String refreshToken;
-}
+@SuperBuilder
+public class RefreshTokenResponse extends BaseAuthResponse {}

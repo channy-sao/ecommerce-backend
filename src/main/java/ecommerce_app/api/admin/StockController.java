@@ -1,9 +1,8 @@
-package ecommerce_app.modules.stock.controller;
+package ecommerce_app.api.admin;
 
 import ecommerce_app.infrastructure.model.response.body.BaseBodyResponse;
 import ecommerce_app.modules.stock.model.dto.ProductImportRequest;
 import ecommerce_app.modules.stock.model.dto.ProductImportResponse;
-import ecommerce_app.modules.stock.model.dto.StockResponse;
 import ecommerce_app.modules.stock.model.dto.UpdateStockRequest;
 import ecommerce_app.modules.stock.service.ProductImportService;
 import ecommerce_app.modules.stock.service.StockService;
@@ -15,7 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/v1/stocks")
+@RequestMapping("/api/admin/v1/stocks")
 @RequiredArgsConstructor
 @Tag(name = "Stock Controller", description = "Management Stock of Product")
 public class StockController {

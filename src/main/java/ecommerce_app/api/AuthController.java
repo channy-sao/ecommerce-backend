@@ -1,4 +1,4 @@
-package ecommerce_app.modules.auth.controller;
+package ecommerce_app.api;
 
 import ecommerce_app.infrastructure.model.response.body.BaseBodyResponse;
 import ecommerce_app.modules.auth.dto.request.LoginRequest;
@@ -54,7 +54,7 @@ public class AuthController {
   @PostMapping("/logout")
   public ResponseEntity<BaseBodyResponse> logout() {
     this.authenticationService.logout();
-    return BaseBodyResponse.success(null, "Refresh Token successful");
+    return BaseBodyResponse.success(null, "Logout successful");
   }
 
   @GetMapping("/me")

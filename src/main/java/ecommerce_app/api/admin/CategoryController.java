@@ -1,4 +1,4 @@
-package ecommerce_app.modules.category.controller;
+package ecommerce_app.api.admin;
 
 import ecommerce_app.constant.message.ResponseMessageConstant;
 import ecommerce_app.infrastructure.model.response.body.BaseBodyResponse;
@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/v1/categories")
+@RequestMapping("/api/admin/v1/categories")
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "Category Management", description = "For admin manage category")

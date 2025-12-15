@@ -1,4 +1,4 @@
-package ecommerce_app.modules.cart.controller;
+package ecommerce_app.api.client;
 
 import ecommerce_app.infrastructure.model.response.body.BaseBodyResponse;
 import ecommerce_app.modules.cart.service.CartService;
@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/v1/carts")
+@RequestMapping("/api/client/v1/carts")
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "Cart Controller", description = "Cart Management")

@@ -1,4 +1,4 @@
-package ecommerce_app.modules.product.controller;
+package ecommerce_app.api.admin;
 
 import ecommerce_app.constant.message.ResponseMessageConstant;
 import ecommerce_app.infrastructure.model.response.body.BaseBodyResponse;
@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/v1/products")
+@RequestMapping("/api/admin/v1/products")
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "Product Management", description = "For admin manage product")

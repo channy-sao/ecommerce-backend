@@ -2,6 +2,7 @@ package ecommerce_app.modules.auth.service.impl;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseToken;
+import ecommerce_app.constant.TokenTypeConstant;
 import ecommerce_app.infrastructure.exception.UnauthorizedException;
 import ecommerce_app.modules.auth.custom.CustomUserDetails;
 import ecommerce_app.modules.auth.dto.request.LoginRequest;
@@ -86,7 +87,12 @@ public class AuthenticationServiceImpl implements AuthenticationService {
       // generate access and refresh token
       LoginResponse loginResponse = new LoginResponse();
       loginResponse.setAccessToken(jwtService.generateAccessToken(user.getEmail()));
-      loginResponse.setRefreshToken(jwtService.generateRefreshToken(user.getEmail()));
+      loginResponse.setRefreshToken(jwtService.generateRefreshToken(user.getEmail(), false));
+      loginResponse.setTokenType(TokenTypeConstant.BEARER);
+      loginResponse.setAccessTokenExpireInMs(JwtService.ACCESS_TOKEN_VALIDITY_MINUTES * 60 * 1000);
+      loginResponse.setRefreshTokenExpireInMs(
+          (long) JwtService.REFRESH_TOKEN_VALIDITY_DAYS * 86400 * 1000);
+      loginResponse.setTokenType("Bearer");
       log.info("Login response: {}", loginResponse);
       return loginResponse;
     } catch (Exception e) {
@@ -112,28 +118,34 @@ public class AuthenticationServiceImpl implements AuthenticationService {
       log.info("Authentication is authenticated");
       CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
       SecurityContextHolder.getContext().setAuthentication(authentication);
-      String refreshToken = jwtService.generateRefreshToken(userDetails.getUsername());
+      String refreshToken =
+          jwtService.generateRefreshToken(userDetails.getUsername(), loginRequest.isRememberMe());
       String accessToken = jwtService.generateAccessToken(userDetails.getUsername());
-      return new LoginResponse(accessToken, refreshToken);
+      var loggedInUser = this.getCurrentUser();
+      return getLoginResponse(loggedInUser, accessToken, refreshToken);
     }
     throw new UnauthorizedException("Username or Password incorrect");
   }
 
   @Override
   public RefreshTokenResponse refreshToken(String refreshToken) {
+    log.info("Refresh Token Calling");
     String subject = jwtService.getSubject(refreshToken);
     final String accessToken = jwtService.generateAccessToken(subject);
-    final String generatedRefreshToken = jwtService.generateRefreshToken(subject);
+    final String generatedRefreshToken = jwtService.generateRefreshToken(subject, false);
     log.info("Refresh token: {}", generatedRefreshToken);
     return RefreshTokenResponse.builder()
         .accessToken(accessToken)
         .refreshToken(generatedRefreshToken)
+        .tokenType(TokenTypeConstant.BEARER)
+        .accessTokenExpireInMs(JwtService.ACCESS_TOKEN_VALIDITY_MINUTES * 60 * 1000)
+        .refreshTokenExpireInMs((long) JwtService.REFRESH_TOKEN_VALIDITY_DAYS * 86400 * 1000)
         .build();
   }
 
   @Override
   public UserResponse getCurrentUser() {
-    log.info("Start Fetch Current User");
+    log.info("Start Fetch Current User  {'/me'}");
     final var authentication = SecurityContextHolder.getContext().getAuthentication();
     if (!authentication.isAuthenticated()) {
       throw new UnauthorizedException("Unauthorized");
@@ -154,5 +166,19 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
   public User createOrDefault(User user) {
     return userRepository.findByEmail(user.getEmail()).orElseGet(() -> userRepository.save(user));
+  }
+
+  private LoginResponse getLoginResponse(
+      UserResponse user, String accessToken, String refreshToken) {
+    LoginResponse loginResponse = new LoginResponse();
+    loginResponse.setAccessToken(accessToken);
+    loginResponse.setRefreshToken(refreshToken);
+    loginResponse.setTokenType(TokenTypeConstant.BEARER);
+    loginResponse.setRefreshTokenExpireInMs(
+        (long) JwtService.REFRESH_TOKEN_VALIDITY_DAYS * 86400 * 1000);
+    loginResponse.setAccessTokenExpireInMs(
+        (long) JwtService.ACCESS_TOKEN_VALIDITY_MINUTES * 60 * 1000);
+    loginResponse.setUserInfo(user);
+    return loginResponse;
   }
 }

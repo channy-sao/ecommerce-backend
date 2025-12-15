@@ -16,8 +16,8 @@ public class JwtService {
 
   private static final String SECRET_KEY = "cuQMzcVqFdJ2nmAkskDlCzuv21mqGUcZ";
   private static final String ISSUER = "ecommerce_app";
-  private static final int ACCESS_TOKEN_VALIDITY_MINUTES = 60;
-  private static final int REFRESH_TOKEN_VALIDITY_DAYS = 90;
+  public static final int ACCESS_TOKEN_VALIDITY_MINUTES = 1;
+  public static final int REFRESH_TOKEN_VALIDITY_DAYS = 90;
 
   public String generateAccessToken(String subject) {
     return Jwts.builder()
@@ -30,12 +30,13 @@ public class JwtService {
         .compact();
   }
 
-  public String generateRefreshToken(String subject) {
+  public String generateRefreshToken(String subject, boolean rememberMe) {
+      var expirationAt = rememberMe? Date.from(Instant.now().plus(30, ChronoUnit.DAYS)):  Date.from(Instant.now().plus(REFRESH_TOKEN_VALIDITY_DAYS, ChronoUnit.DAYS));
     return Jwts.builder()
         .setIssuer(ISSUER)
         .setSubject(subject)
         .setIssuedAt(new Date())
-        .setExpiration(Date.from(Instant.now().plus(REFRESH_TOKEN_VALIDITY_DAYS, ChronoUnit.DAYS)))
+        .setExpiration(expirationAt)
         .signWith(getKey(), SignatureAlgorithm.HS256)
         .compact();
   }
