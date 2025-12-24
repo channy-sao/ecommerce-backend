@@ -13,8 +13,8 @@ import org.springframework.web.multipart.MultipartFile;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Schema(name = "UserRequest", description = "Request object for user registration or update")
-public class UserRequest {
+@Schema(name = "CreateUserRequest", description = "Request object for user registration or update")
+public class CreateUserRequest {
 
   @Schema(description = "User email address", example = "user@example.com")
   private String email;
@@ -32,5 +32,5 @@ public class UserRequest {
   private String phone;
 
   @Schema(description = "MultipartFile")
-  private MultipartFile multipartFile;
+  private MultipartFile profile;
 }

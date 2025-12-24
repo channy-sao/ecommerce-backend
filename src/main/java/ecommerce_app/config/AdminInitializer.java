@@ -1,16 +1,19 @@
 package ecommerce_app.config;
 
+import ecommerce_app.infrastructure.exception.ResourceNotFoundException;
+import ecommerce_app.modules.user.model.entity.Role;
 import ecommerce_app.modules.user.model.entity.User;
+import ecommerce_app.modules.user.repository.RoleRepository;
 import ecommerce_app.modules.user.repository.UserRepository;
+import java.time.LocalDateTime;
+import java.util.Set;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
-
-import java.time.LocalDateTime;
-import java.util.UUID;
 
 @Component
 @Slf4j
@@ -19,6 +22,7 @@ public class AdminInitializer {
 
   private final UserRepository userRepository;
   private final PasswordEncoder passwordEncoder;
+  private final RoleRepository roleRepository;
 
   @EventListener(ApplicationReadyEvent.class)
   public void initSuperAdmin() {
@@ -32,6 +36,11 @@ public class AdminInitializer {
               return;
             },
             () -> {
+              Role role =
+                  roleRepository
+                      .findByName(DataInitializer.SUPER_ADMIN_ROLE)
+                      .orElseThrow(
+                          () -> new ResourceNotFoundException("Super admin role is not found"));
               // Create super admin user
               User admin =
                   User.builder()
@@ -46,6 +55,7 @@ public class AdminInitializer {
                       .provider("LOCAL")
                       .rememberMe(true)
                       .emailVerifiedAt(LocalDateTime.now())
+                      .roles(Set.of(role))
                       .build();
 
               userRepository.save(admin);

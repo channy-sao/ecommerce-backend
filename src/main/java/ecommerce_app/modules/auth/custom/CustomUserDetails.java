@@ -18,9 +18,9 @@ public record CustomUserDetails(User user) implements UserDetails {
 
     Set<GrantedAuthority> authorities = new HashSet<>();
     for (Role role : user.getRoles()) {
-      authorities.add(new SimpleGrantedAuthority(role.getName()));
+      authorities.add(new SimpleGrantedAuthority("ROLE_"+role.getName()));
       role.getPermissions()
-          .forEach(permission -> authorities.add(new SimpleGrantedAuthority(permission.getName())));
+          .forEach(permission -> authorities.add(new SimpleGrantedAuthority("PERMISSION_" + permission.getName())));
     }
     return authorities;
   }

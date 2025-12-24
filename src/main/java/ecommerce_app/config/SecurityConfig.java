@@ -68,7 +68,7 @@ public class SecurityConfig {
                         "/v3/api-docs.yaml",
                         "/swagger-resources/**")
                     .permitAll()
-                    .requestMatchers("/api/v1/auth/me")
+                    .requestMatchers("/api/v1/auth/me", "/api/admin/v1/**")
                     .authenticated()
                     .anyRequest()
                     .permitAll())

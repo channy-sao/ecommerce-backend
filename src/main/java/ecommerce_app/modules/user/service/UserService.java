@@ -1,28 +1,29 @@
 package ecommerce_app.modules.user.service;
 
+import ecommerce_app.modules.user.model.dto.CreateUserRequest;
 import ecommerce_app.modules.user.model.dto.UpdatePasswordRequest;
 import ecommerce_app.modules.user.model.dto.UpdateUserRequest;
-import ecommerce_app.modules.user.model.dto.UserRequest;
-import ecommerce_app.modules.user.model.entity.User;
+import ecommerce_app.modules.user.model.dto.UserResponse;
+import java.util.Set;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Sort;
 
 public interface UserService {
-  User findById(Long userId);
+  UserResponse findById(Long userId);
 
-  User findByEmail(String email);
+  UserResponse findByEmail(String email);
 
-  User findByPhone(String phone);
+  UserResponse findByPhone(String phone);
 
-  User updateUser(UpdateUserRequest updateRequest, Long userId);
+  UserResponse updateUser(UpdateUserRequest updateRequest, Long userId);
 
-  User create(UserRequest userRequest);
+  UserResponse create(CreateUserRequest createUserRequest);
 
   void deleteUser(Long userId);
 
   void updateStatus(Long userId, Boolean status);
 
-  Page<User> filter(
+  Page<UserResponse> filter(
       boolean isPage,
       int page,
       int pageSize,
@@ -31,4 +32,6 @@ public interface UserService {
       String filter);
 
   void changePassword(UpdatePasswordRequest changePasswordRequest);
+
+  void assignRoles(Long userId, Set<Long> roleIds);
 }

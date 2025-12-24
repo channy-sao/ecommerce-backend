@@ -31,9 +31,6 @@ public class UpdateUserRequest {
   @Schema(description = "Phone number", example = "+85512345678")
   private String phone;
 
-  @Schema(description = "Is Active", example = "true")
-  private Boolean isActive;
-
   @Schema(description = "MultipartFile")
-  private MultipartFile multipartFile;
+  private MultipartFile profile;
 }

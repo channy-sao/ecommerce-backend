@@ -24,18 +24,18 @@ public class AuditorAwareImpl implements AuditorAware<Long> {
   @Override
   public Optional<Long> getCurrentAuditor() {
     final SecurityContext securityContext = SecurityContextHolder.getContext();
-    return Optional.of(1L);
-//    if (securityContext.getAuthentication() == null
-//        || !securityContext.getAuthentication().isAuthenticated()) {
-//      return Optional.empty();
-//    }
-//
-//    Object principal = securityContext.getAuthentication().getPrincipal();
-//
-//    if (principal instanceof UserDetails userDetails) {
-//      return Optional.ofNullable(userRepository.findByEmail(userDetails.getUsername()).getId());
-//    }
-//
-//    return Optional.empty();
+    if (securityContext.getAuthentication() == null
+        || !securityContext.getAuthentication().isAuthenticated()) {
+      return Optional.empty();
+    }
+
+    Object principal = securityContext.getAuthentication().getPrincipal();
+
+    if (principal instanceof UserDetails userDetails) {
+      var user = userRepository.findByEmail(userDetails.getUsername()).orElse(null);
+      return user == null ? Optional.empty() : Optional.of(user.getId());
+    }
+
+    return Optional.empty();
   }
 }

@@ -4,6 +4,7 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseToken;
 import ecommerce_app.constant.TokenTypeConstant;
 import ecommerce_app.infrastructure.exception.UnauthorizedException;
+import ecommerce_app.infrastructure.mapper.UserMapper;
 import ecommerce_app.modules.auth.custom.CustomUserDetails;
 import ecommerce_app.modules.auth.dto.request.LoginRequest;
 import ecommerce_app.modules.auth.dto.request.SignupRequest;
@@ -37,6 +38,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
   private final JwtService jwtService;
   private final AuthenticationManager authenticationManager;
   private final ModelMapper mapper;
+  private final UserMapper userMapper;
 
   @Transactional(rollbackFor = Exception.class)
   @Override
@@ -84,15 +86,19 @@ public class AuthenticationServiceImpl implements AuthenticationService {
       // create user if not exist
       User user = this.createOrDefault(userBuilder);
       log.info("User created or default : {}", user);
+
+      var userResponse = userMapper.toUserResponse(user);
       // generate access and refresh token
       LoginResponse loginResponse = new LoginResponse();
-      loginResponse.setAccessToken(jwtService.generateAccessToken(user.getEmail()));
+      loginResponse.setAccessToken(jwtService.generateAccessToken(user));
       loginResponse.setRefreshToken(jwtService.generateRefreshToken(user.getEmail(), false));
       loginResponse.setTokenType(TokenTypeConstant.BEARER);
       loginResponse.setAccessTokenExpireInMs(JwtService.ACCESS_TOKEN_VALIDITY_MINUTES * 60 * 1000);
       loginResponse.setRefreshTokenExpireInMs(
           (long) JwtService.REFRESH_TOKEN_VALIDITY_DAYS * 86400 * 1000);
       loginResponse.setTokenType("Bearer");
+      loginResponse.setUserInfo(userResponse);
+
       log.info("Login response: {}", loginResponse);
       return loginResponse;
     } catch (Exception e) {
@@ -107,6 +113,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         signupRequest.getIdToken(), signupRequest.getFirstName(), signupRequest.getLastName());
   }
 
+  @Transactional(rollbackFor = Exception.class)
   @Override
   public LoginResponse loginLocal(LoginRequest loginRequest) {
     log.info("Login local with email: {}", loginRequest.getEmail());
@@ -118,9 +125,14 @@ public class AuthenticationServiceImpl implements AuthenticationService {
       log.info("Authentication is authenticated");
       CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
       SecurityContextHolder.getContext().setAuthentication(authentication);
+      final var user =
+          userRepository
+              .findByEmail(loginRequest.getEmail())
+              .orElseThrow(() -> new UsernameNotFoundException(loginRequest.getEmail()));
+
       String refreshToken =
           jwtService.generateRefreshToken(userDetails.getUsername(), loginRequest.isRememberMe());
-      String accessToken = jwtService.generateAccessToken(userDetails.getUsername());
+      String accessToken = jwtService.generateAccessToken(user);
       var loggedInUser = this.getCurrentUser();
       return getLoginResponse(loggedInUser, accessToken, refreshToken);
     }
@@ -131,7 +143,11 @@ public class AuthenticationServiceImpl implements AuthenticationService {
   public RefreshTokenResponse refreshToken(String refreshToken) {
     log.info("Refresh Token Calling");
     String subject = jwtService.getSubject(refreshToken);
-    final String accessToken = jwtService.generateAccessToken(subject);
+    final var user =
+        userRepository
+            .findByEmail(subject)
+            .orElseThrow(() -> new UsernameNotFoundException(subject));
+    final String accessToken = jwtService.generateAccessToken(user);
     final String generatedRefreshToken = jwtService.generateRefreshToken(subject, false);
     log.info("Refresh token: {}", generatedRefreshToken);
     return RefreshTokenResponse.builder()
@@ -155,7 +171,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         userRepository
             .findByEmail(userDetails.getUsername())
             .orElseThrow(() -> new UsernameNotFoundException("User not found"));
-    return mapper.map(currentUser, UserResponse.class);
+
+    return userMapper.toUserResponse(currentUser);
   }
 
   @Override

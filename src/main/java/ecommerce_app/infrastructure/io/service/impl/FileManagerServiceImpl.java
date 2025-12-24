@@ -2,15 +2,12 @@ package ecommerce_app.infrastructure.io.service.impl;
 
 import ecommerce_app.infrastructure.exception.BadRequestException;
 import ecommerce_app.infrastructure.io.service.FileManagerService;
+import ecommerce_app.infrastructure.property.AppProperty;
 import java.io.IOException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-
-import ecommerce_app.infrastructure.property.AppProperty;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -76,14 +73,25 @@ public class FileManagerServiceImpl implements FileManagerService {
    */
   @Override
   public void deleteFile(String uploadDir, String fileName) {
+    // 1️⃣ Nothing to delete
+    if (fileName == null || fileName.isBlank()) {
+      log.warn("deleteFile called with null or empty fileName");
+      return;
+    }
+
     try {
       Path uploadPath = Paths.get(uploadDir);
       if (Files.notExists(uploadPath)) {
-        throw new IllegalArgumentException("Upload path does not exist.");
+        log.warn("Upload path does not exist: {}", uploadDir);
+        return;
       }
-      Path filePath = uploadPath.resolve(fileName).toAbsolutePath();
-      // delete file by file path
-      Files.deleteIfExists(filePath);
+      Path filePath = uploadPath.resolve(fileName).normalize();
+      // Delete safely
+      boolean deleted = Files.deleteIfExists(filePath);
+
+      if (!deleted) {
+        log.warn("File not found, nothing deleted: {}", filePath);
+      }
     } catch (IOException e) {
       log.error("Error deleting file", e);
       throw new BadRequestException("Failed to delete file");
@@ -100,7 +108,7 @@ public class FileManagerServiceImpl implements FileManagerService {
    */
   @Override
   public String getResourceUrl(String uploadDir, String fileName) {
-    if(uploadDir.startsWith(".")){
+    if (uploadDir.startsWith(".")) {
       uploadDir = uploadDir.substring(1);
     }
     return appProperty.getBaseUrl() + uploadDir + "/" + fileName;

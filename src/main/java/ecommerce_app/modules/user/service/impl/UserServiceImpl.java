@@ -1,17 +1,25 @@
 package ecommerce_app.modules.user.service.impl;
 
+import ecommerce_app.config.DataInitializer;
 import ecommerce_app.infrastructure.exception.BadRequestException;
+import ecommerce_app.infrastructure.exception.ForbiddenException;
 import ecommerce_app.infrastructure.exception.ResourceNotFoundException;
 import ecommerce_app.infrastructure.io.service.FileManagerService;
+import ecommerce_app.infrastructure.mapper.UserMapper;
 import ecommerce_app.infrastructure.property.StorageConfigProperty;
+import ecommerce_app.modules.user.model.dto.CreateUserRequest;
 import ecommerce_app.modules.user.model.dto.UpdatePasswordRequest;
 import ecommerce_app.modules.user.model.dto.UpdateUserRequest;
-import ecommerce_app.modules.user.model.dto.UserRequest;
+import ecommerce_app.modules.user.model.dto.UserResponse;
+import ecommerce_app.modules.user.model.entity.Role;
 import ecommerce_app.modules.user.model.entity.User;
+import ecommerce_app.modules.user.repository.RoleRepository;
 import ecommerce_app.modules.user.repository.UserRepository;
 import ecommerce_app.modules.user.service.UserService;
 import ecommerce_app.modules.user.specification.UserSpecification;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
@@ -24,6 +32,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 
 /**
  * Implementation of {@link UserService} that handles user-related business logic, including
@@ -34,14 +43,16 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class UserServiceImpl implements UserService {
   private final UserRepository userRepository;
+  private final RoleRepository roleRepository;
   private final ModelMapper modelMapper;
   private final PasswordEncoder passwordEncoder;
   private final StorageConfigProperty storageConfigProperty;
   private final FileManagerService fileManagerService;
+  private final UserMapper userMapper;
 
   @Transactional(readOnly = true)
   @Override
-  public User findById(Long userId) {
+  public UserResponse findById(Long userId) {
     log.info("Find User by id: {}", userId);
     return getUserById(userId);
   }
@@ -53,12 +64,14 @@ public class UserServiceImpl implements UserService {
    * @return the {@link User} if found, otherwise null
    */
   @Override
-  public User findByEmail(String email) {
+  public UserResponse findByEmail(String email) {
     log.info("Find User by email: {}", email);
-    return userRepository
-        .findByEmail(email)
-        .orElseThrow(
-            () -> new ResourceNotFoundException("User with email " + email + " not found"));
+    final var user =
+        userRepository
+            .findByEmail(email)
+            .orElseThrow(
+                () -> new ResourceNotFoundException("User with email " + email + " not found"));
+    return userMapper.toUserResponse(user);
   }
 
   /**
@@ -68,9 +81,14 @@ public class UserServiceImpl implements UserService {
    * @return the {@link User} if found, otherwise null
    */
   @Override
-  public User findByPhone(String phone) {
+  public UserResponse findByPhone(String phone) {
     log.info("Find User by phone: {}", phone);
-    return userRepository.findByPhone(phone);
+    final var user =
+        userRepository
+            .findByPhone(phone)
+            .orElseThrow(
+                () -> new ResourceNotFoundException("User with phone " + phone + " not found"));
+    return userMapper.toUserResponse(user);
   }
 
   /**
@@ -82,32 +100,30 @@ public class UserServiceImpl implements UserService {
    */
   @Transactional(rollbackFor = Exception.class)
   @Override
-  public User updateUser(UpdateUserRequest updateUserRequest, Long userId) {
+  public UserResponse updateUser(UpdateUserRequest updateUserRequest, Long userId) {
     log.info("Update User by id: {}", userId);
     try {
-      final User existing = getUserById(userId);
+      final User existing = findUserById(userId);
       final String existingAvatar = existing.getAvatar();
       // update user in DB
       modelMapper.map(updateUserRequest, existing);
+      if (updateUserRequest.getPassword() != null) {
+        existing.setPassword(passwordEncoder.encode(updateUserRequest.getPassword()));
+      }
       User saved = userRepository.save(existing);
 
       // update avatar file
-      if (updateUserRequest.getMultipartFile() != null) {
+      if (updateUserRequest.getProfile() != null && !updateUserRequest.getProfile().isEmpty()) {
         // remove an exiting file and upload new
         this.fileManagerService.deleteFile(storageConfigProperty.getAvatar(), existingAvatar);
         String savedAvatar =
             fileManagerService.saveFile(
-                updateUserRequest.getMultipartFile(), storageConfigProperty.getAvatar());
+                updateUserRequest.getProfile(), storageConfigProperty.getAvatar());
         saved.setAvatar(savedAvatar);
 
-      } else {
-        // remove avatar file
-        this.fileManagerService.deleteFile(storageConfigProperty.getAvatar(), existingAvatar);
-        // remove from db
-        saved.setAvatar(null);
       }
 
-      return userRepository.save(saved);
+      return userMapper.toUserResponse(userRepository.save(saved));
     } catch (DataIntegrityViolationException e) {
       log.error(e.getMessage(), e);
       throw new BadRequestException(e.getMessage());
@@ -117,34 +133,34 @@ public class UserServiceImpl implements UserService {
   /**
    * Creates a new user with encrypted password and optional avatar image upload.
    *
-   * @param userRequest the user request data
+   * @param createUserRequest the user request data
    * @return the created {@link User} entity
    */
   @Transactional(rollbackFor = Exception.class)
   @Override
-  public User create(UserRequest userRequest) {
+  public UserResponse create(CreateUserRequest createUserRequest) {
     try {
-      log.info("Creating user: {}", userRequest);
+      log.info("Creating user: {}", createUserRequest);
       // save user to a database
-      User user = modelMapper.map(userRequest, User.class);
+      User user = modelMapper.map(createUserRequest, User.class);
       user.setProvider("LOCAL");
       // encrypt password
-      user.setPassword(passwordEncoder.encode(userRequest.getPassword()));
+      user.setPassword(passwordEncoder.encode(createUserRequest.getPassword()));
       User savedUser = userRepository.save(user);
 
       // save image avatar of user to storage
-      if (userRequest.getMultipartFile() != null) {
-        log.info("Uploading file: {}", userRequest.getMultipartFile().getOriginalFilename());
+      if (createUserRequest.getProfile() != null) {
+        log.info("Uploading file: {}", createUserRequest.getProfile().getOriginalFilename());
         String avatarPath =
             fileManagerService.saveFile(
-                userRequest.getMultipartFile(), storageConfigProperty.getAvatar());
+                createUserRequest.getProfile(), storageConfigProperty.getAvatar());
         if (avatarPath != null) {
           log.info("Uploading avatar: {}", avatarPath);
           savedUser.setAvatar(avatarPath);
-          return userRepository.save(savedUser);
+          return userMapper.toUserResponse(userRepository.save(savedUser));
         }
       }
-      return savedUser;
+      return userMapper.toUserResponse(savedUser);
     } catch (DataIntegrityViolationException exception) {
       log.error(exception.getMessage(), exception);
       throw new BadRequestException(exception.getMessage());
@@ -160,7 +176,15 @@ public class UserServiceImpl implements UserService {
   @Override
   public void deleteUser(Long userId) {
     log.info("Deleting user: {}", userId);
-    final User user = getUserById(userId);
+    final User user = findUserById(userId);
+
+    // prevent if user is super admin
+    if (user.getRoles().stream()
+        .anyMatch(role -> role.getName().equals(DataInitializer.SUPER_ADMIN_ROLE))) {
+      throw new ForbiddenException(
+          String.format("Could not delete user %s", DataInitializer.SUPER_ADMIN_ROLE));
+    }
+
     // delete from database
     this.userRepository.deleteById(userId);
 
@@ -177,7 +201,12 @@ public class UserServiceImpl implements UserService {
    * @return the {@link User} entity if found
    * @throws ResourceNotFoundException if no user with the specified ID exists
    */
-  public User getUserById(Long userId) {
+  public UserResponse getUserById(Long userId) {
+    log.info("Get user by id: {}", userId);
+    return userMapper.toUserResponse(findUserById(userId));
+  }
+
+  private User findUserById(Long userId) {
     return userRepository
         .findById(userId)
         .orElseThrow(() -> new ResourceNotFoundException("User", userId));
@@ -193,14 +222,19 @@ public class UserServiceImpl implements UserService {
   @Override
   public void updateStatus(Long userId, Boolean status) {
     log.info("Updating status of user {}", userId);
-    this.userRepository
-        .findById(userId)
-        .ifPresent(
-            user -> {
-              user.setIsActive(status);
-              userRepository.save(user);
-            });
-    log.info("Updated status of user {}", userId);
+    var user = findUserById(userId);
+
+    // prevent disable user super admin
+    if (Boolean.TRUE.equals(status)
+        || user.getRoles().stream()
+            .noneMatch(role -> role.getName().equals(DataInitializer.SUPER_ADMIN_ROLE))) {
+      user.setIsActive(status);
+      userRepository.save(user);
+
+      log.info("Updated status of user {}", userId);
+    } else {
+      throw new BadRequestException("Could not disable super administrator");
+    }
   }
 
   /**
@@ -219,7 +253,7 @@ public class UserServiceImpl implements UserService {
    */
   @Transactional(readOnly = true)
   @Override
-  public Page<User> filter(
+  public Page<UserResponse> filter(
       boolean isPage,
       int page,
       int pageSize,
@@ -230,12 +264,12 @@ public class UserServiceImpl implements UserService {
     Sort sort = Sort.by(direction, sortBy);
     if (!isPage) {
       List<User> users = userRepository.findAll(userSpecification, sort);
-      return new PageImpl<>(users);
+      return new PageImpl<>(users.stream().map(userMapper::toUserResponse).toList());
     }
     // default it starts from zero
     PageRequest pageRequest = PageRequest.of(page - 1, pageSize, sort);
 
-    return userRepository.findAll(userSpecification, pageRequest);
+    return userRepository.findAll(userSpecification, pageRequest).map(userMapper::toUserResponse);
   }
 
   @Transactional(rollbackFor = Exception.class)
@@ -271,5 +305,26 @@ public class UserServiceImpl implements UserService {
     user.setPassword(passwordEncoder.encode(changePasswordRequest.getNewPassword()));
     userRepository.save(user);
     log.info("Password changed successfully");
+  }
+
+  @Transactional
+  @Override
+  public void assignRoles(Long userId, Set<Long> roleIds) {
+    log.info("Assigning roles for user {}", userId);
+    User user =
+        userRepository
+            .findById(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("User", userId));
+
+    Set<Role> roles = new HashSet<>(roleRepository.findAllById(roleIds));
+
+    if (CollectionUtils.isEmpty(roleIds)
+        && user.getRoles().stream().anyMatch(role -> role.getName().equals("ADMIN"))) {
+      throw new BadRequestException("User must have at least one role");
+    }
+
+    user.setRoles(roles);
+    userRepository.save(user);
+    log.info("Roles assigned successfully");
   }
 }

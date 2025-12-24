@@ -1,5 +1,6 @@
 package ecommerce_app.modules.user.model.entity;
 
+import ecommerce_app.infrastructure.model.entity.BaseSoftDeleteEntity;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -27,7 +28,7 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Role {
+public class Role extends BaseSoftDeleteEntity {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;

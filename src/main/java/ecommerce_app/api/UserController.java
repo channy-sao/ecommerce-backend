@@ -2,9 +2,11 @@ package ecommerce_app.api;
 
 import ecommerce_app.constant.message.ResponseMessageConstant;
 import ecommerce_app.infrastructure.model.response.body.BaseBodyResponse;
+import ecommerce_app.modules.user.model.dto.AssignRoleToUserRequest;
 import ecommerce_app.modules.user.model.dto.UpdatePasswordRequest;
 import ecommerce_app.modules.user.model.dto.UpdateUserRequest;
-import ecommerce_app.modules.user.model.dto.UserRequest;
+import ecommerce_app.modules.user.model.dto.CreateUserRequest;
+import ecommerce_app.modules.user.model.dto.UpdateUserStatus;
 import ecommerce_app.modules.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -15,7 +17,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -40,14 +41,15 @@ public class UserController {
   /**
    * Creates a new user based on the provided user data.
    *
-   * @param userRequest The request object containing user information including optional multipart
-   *     file.
+   * @param createUserRequest The request object containing user information including optional
+   *     multipart file.
    * @return A {@link ResponseEntity} containing a success message and created user data.
    */
   @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-  public ResponseEntity<BaseBodyResponse> createUser(@ModelAttribute UserRequest userRequest) {
+  public ResponseEntity<BaseBodyResponse> createUser(
+      @ModelAttribute CreateUserRequest createUserRequest) {
     return BaseBodyResponse.success(
-        this.userService.create(userRequest), ResponseMessageConstant.CREATE_SUCCESSFULLY);
+        this.userService.create(createUserRequest), ResponseMessageConstant.CREATE_SUCCESSFULLY);
   }
 
   @Operation(summary = "Change user password")
@@ -65,7 +67,7 @@ public class UserController {
    * @param status The new status to be set for the user (true for active, false for inactive).
    * @return A {@link ResponseEntity} indicating the operation was successful.
    */
-  @PatchMapping("/{id}")
+  @PatchMapping("/{id}/status")
   public ResponseEntity<BaseBodyResponse> updateStatus(
       @PathVariable(value = "id") Long userId,
       @RequestParam @Parameter(name = "status") Boolean status) {
@@ -160,5 +162,13 @@ public class UserController {
     return BaseBodyResponse.pageSuccess(
         userService.filter(isPaged, page, pageSize, sortBy, sortDirection, filter),
         ResponseMessageConstant.FIND_ALL_SUCCESSFULLY);
+  }
+
+  @PutMapping("/{userId}/roles")
+  public ResponseEntity<BaseBodyResponse> updateUserRoles(
+      @PathVariable(value = "userId") Long userId, @RequestBody AssignRoleToUserRequest request) {
+
+    userService.assignRoles(userId, request.getRoleIds());
+    return BaseBodyResponse.success(null, "Roles updated successfully");
   }
 }

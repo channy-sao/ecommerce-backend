@@ -1,11 +1,12 @@
 package ecommerce_app.config;
 
+import ecommerce_app.constant.enums.PermissionEnum;
 import ecommerce_app.modules.user.model.entity.Permission;
 import ecommerce_app.modules.user.model.entity.Role;
 import ecommerce_app.modules.user.repository.PermissionRepository;
 import ecommerce_app.modules.user.repository.RoleRepository;
-import java.util.List;
-import java.util.Set;
+import java.util.HashSet;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
@@ -20,62 +21,48 @@ import org.springframework.stereotype.Component;
 public class DataInitializer implements ApplicationRunner {
   private final RoleRepository roleRepository;
   private final PermissionRepository permissionRepository;
+  public static final String SUPER_ADMIN_ROLE = "SUPER_ADMIN";
+  public static final String ADMIN_ROLE = "ADMIN";
 
   @Override
   public void run(ApplicationArguments args) throws Exception {
     seedPermissions();
-    seedRoles();
+    seedSuperAdminRole();
   }
 
   private void seedPermissions() {
-    List<String> permissions =
-        List.of(
-            "USER_READ",
-            "USER_CREATE",
-            "USER_UPDATE",
-            "PRODUCT_READ",
-            "PRODUCT_CREATE",
-            "ORDER_CANCEL");
 
     try {
-      permissions.forEach(
-          p ->
-              permissionRepository
-                  .findByName(p)
-                  .orElseGet(
-                      () -> permissionRepository.save(Permission.builder().name(p).build())));
-      log.info("Permissions created");
+      for (var permissionEnum : PermissionEnum.values()) {
+        permissionRepository
+            .findByName(permissionEnum)
+            .orElseGet(
+                () ->
+                    permissionRepository.save(
+                        Permission.builder()
+                            .name(permissionEnum)
+                            .category(permissionEnum.getCategory())
+                            .description(permissionEnum.getDescription())
+                            .build()));
+        log.info("Permission {} has been created", permissionEnum.name());
+      }
     } catch (Exception e) {
       log.info("Permissions not created");
     }
   }
 
-  private void seedRoles() {
+  private void seedSuperAdminRole() {
     try {
-
-      Permission userRead = permissionRepository.findByName("USER_READ").orElseThrow();
-      Permission userCreate = permissionRepository.findByName("USER_CREATE").orElseThrow();
-      Permission productRead = permissionRepository.findByName("PRODUCT_READ").orElseThrow();
-      Permission productCreate = permissionRepository.findByName("PRODUCT_CREATE").orElseThrow();
-
       roleRepository
-          .findByName("ROLE_SUPER_ADMIN")
-          .orElseGet(
+          .findByName(SUPER_ADMIN_ROLE)
+          .ifPresentOrElse(
+              d -> log.info("Role {} has been created", SUPER_ADMIN_ROLE),
               () ->
                   roleRepository.save(
                       Role.builder()
-                          .name("ROLE_SUPER_ADMIN")
-                          .permissions(Set.of(userRead, userCreate, productRead, productCreate))
-                          .build()));
-
-      roleRepository
-          .findByName("ROLE_ADMIN")
-          .orElseGet(
-              () ->
-                  roleRepository.save(
-                      Role.builder()
-                          .name("ROLE_ADMIN")
-                          .permissions(Set.of(userRead, productRead, productCreate))
+                          .name(SUPER_ADMIN_ROLE)
+                          .permissions(new HashSet<>(permissionRepository.findAll()))
+                          .uid(UUID.randomUUID().toString())
                           .build()));
     } catch (Exception e) {
       log.info("Roles not created");
