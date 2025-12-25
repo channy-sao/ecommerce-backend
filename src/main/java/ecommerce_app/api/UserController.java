@@ -159,7 +159,7 @@ public class UserController {
    * @param filter the keyword to filter users by (optional)
    * @return a {@link ResponseEntity} containing a {@link BaseBodyResponse} with paginated user data
    */
-  @PreAuthorize("hasAuthority('USER_READER')")
+  @PreAuthorize("hasAuthority('USER_READ')")
   @GetMapping
   public ResponseEntity<BaseBodyResponse> filter(
       @RequestParam(value = "isPaged", defaultValue = "true") boolean isPaged,
