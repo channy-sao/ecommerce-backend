@@ -7,6 +7,7 @@ import ecommerce_app.modules.category.model.entity.Category;
 import ecommerce_app.modules.category.repository.CategoryRepository;
 import ecommerce_app.modules.category.service.CategoryService;
 import ecommerce_app.modules.category.specification.CategorySpecification;
+import ecommerce_app.util.AuditUserResolver;
 import ecommerce_app.util.ProductMapper;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,7 @@ import org.springframework.util.CollectionUtils;
 public class CategoryServiceImpl implements CategoryService {
   private final CategoryRepository categoryRepository;
   private final ModelMapper modelMapper;
+  private final AuditUserResolver auditUserResolver;
 
   @Transactional(readOnly = true)
   @Override
@@ -101,7 +103,15 @@ public class CategoryServiceImpl implements CategoryService {
 
   private CategoryResponse toCategoryResponse(Category category) {
     final CategoryResponse categoryResponse = modelMapper.map(category, CategoryResponse.class);
-    if (!CollectionUtils.isEmpty(category.getProducts())) {
+      // Enrich audit fields
+      categoryResponse.setCreatedBy(
+              auditUserResolver.resolve(category.getCreatedBy())
+      );
+      categoryResponse.setUpdatedBy(
+              auditUserResolver.resolve(category.getUpdatedBy())
+      );
+
+      if (!CollectionUtils.isEmpty(category.getProducts())) {
       var products =
           category.getProducts().stream()
               .map(ProductMapper::toProductResponse)

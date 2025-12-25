@@ -13,14 +13,16 @@ public class ProductMapper {
   private static ModelMapper modelMapper;
   private static FileManagerService fileManagerService;
   private static StorageConfigProperty storageConfigProperty;
+  private static AuditUserResolver auditUserResolver;
 
   public static void setProperties(
       ModelMapper modelMapper,
       FileManagerService fileManagerService,
-      StorageConfigProperty storageConfigProperty) {
+      StorageConfigProperty storageConfigProperty, AuditUserResolver auditUserResolver) {
     ProductMapper.modelMapper = modelMapper;
     ProductMapper.fileManagerService = fileManagerService;
     ProductMapper.storageConfigProperty = storageConfigProperty;
+    ProductMapper.auditUserResolver = auditUserResolver;
   }
 
   public static ProductResponse toProductResponse(Product product) {
@@ -33,6 +35,8 @@ public class ProductMapper {
     response.setImage(image);
     response.setCategoryId(product.getCategory().getId());
     response.setCategoryName(product.getCategory().getName());
+    response.setCreatedBy(auditUserResolver.resolve(product.getCreatedBy()));
+    response.setUpdatedBy(auditUserResolver.resolve(product.getUpdatedBy()));
     return response;
   }
 }

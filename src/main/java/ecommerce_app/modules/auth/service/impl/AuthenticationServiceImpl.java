@@ -5,6 +5,7 @@ import com.google.firebase.auth.FirebaseToken;
 import ecommerce_app.constant.TokenTypeConstant;
 import ecommerce_app.infrastructure.exception.UnauthorizedException;
 import ecommerce_app.infrastructure.mapper.UserMapper;
+import ecommerce_app.modules.auth.custom.AuthUserLoader;
 import ecommerce_app.modules.auth.custom.CustomUserDetails;
 import ecommerce_app.modules.auth.dto.request.LoginRequest;
 import ecommerce_app.modules.auth.dto.request.SignupRequest;
@@ -21,7 +22,6 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.modelmapper.ModelMapper;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -37,8 +37,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
   private final UserRepository userRepository;
   private final JwtService jwtService;
   private final AuthenticationManager authenticationManager;
-  private final ModelMapper mapper;
   private final UserMapper userMapper;
+  private final AuthUserLoader authUserLoader;
 
   @Transactional(rollbackFor = Exception.class)
   @Override
@@ -90,12 +90,13 @@ public class AuthenticationServiceImpl implements AuthenticationService {
       var userResponse = userMapper.toUserResponse(user);
       // generate access and refresh token
       LoginResponse loginResponse = new LoginResponse();
-      loginResponse.setAccessToken(jwtService.generateAccessToken(user));
+      CustomUserDetails userDetails = authUserLoader.loadByEmail(user.getEmail());
+
+      loginResponse.setAccessToken(jwtService.generateAccessToken(userDetails));
       loginResponse.setRefreshToken(jwtService.generateRefreshToken(user.getEmail(), false));
       loginResponse.setTokenType(TokenTypeConstant.BEARER);
-      loginResponse.setAccessTokenExpireInMs(JwtService.ACCESS_TOKEN_VALIDITY_MINUTES * 60 * 1000);
-      loginResponse.setRefreshTokenExpireInMs(
-          (long) JwtService.REFRESH_TOKEN_VALIDITY_DAYS * 86400 * 1000);
+      loginResponse.setAccessTokenExpireInMs(jwtService.getAccessExpirationMs());
+      loginResponse.setRefreshTokenExpireInMs(jwtService.getRefreshExpirationMs());
       loginResponse.setTokenType("Bearer");
       loginResponse.setUserInfo(userResponse);
 
@@ -125,14 +126,11 @@ public class AuthenticationServiceImpl implements AuthenticationService {
       log.info("Authentication is authenticated");
       CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
       SecurityContextHolder.getContext().setAuthentication(authentication);
-      final var user =
-          userRepository
-              .findByEmail(loginRequest.getEmail())
-              .orElseThrow(() -> new UsernameNotFoundException(loginRequest.getEmail()));
 
       String refreshToken =
           jwtService.generateRefreshToken(userDetails.getUsername(), loginRequest.isRememberMe());
-      String accessToken = jwtService.generateAccessToken(user);
+
+      String accessToken = jwtService.generateAccessToken(userDetails);
       var loggedInUser = this.getCurrentUser();
       return getLoginResponse(loggedInUser, accessToken, refreshToken);
     }
@@ -143,19 +141,17 @@ public class AuthenticationServiceImpl implements AuthenticationService {
   public RefreshTokenResponse refreshToken(String refreshToken) {
     log.info("Refresh Token Calling");
     String subject = jwtService.getSubject(refreshToken);
-    final var user =
-        userRepository
-            .findByEmail(subject)
-            .orElseThrow(() -> new UsernameNotFoundException(subject));
-    final String accessToken = jwtService.generateAccessToken(user);
+    CustomUserDetails userDetails = authUserLoader.loadByEmail(subject);
+
+    final String accessToken = jwtService.generateAccessToken(userDetails);
     final String generatedRefreshToken = jwtService.generateRefreshToken(subject, false);
     log.info("Refresh token: {}", generatedRefreshToken);
     return RefreshTokenResponse.builder()
         .accessToken(accessToken)
         .refreshToken(generatedRefreshToken)
         .tokenType(TokenTypeConstant.BEARER)
-        .accessTokenExpireInMs(JwtService.ACCESS_TOKEN_VALIDITY_MINUTES * 60 * 1000)
-        .refreshTokenExpireInMs((long) JwtService.REFRESH_TOKEN_VALIDITY_DAYS * 86400 * 1000)
+        .accessTokenExpireInMs(jwtService.getAccessExpirationMs())
+        .refreshTokenExpireInMs(jwtService.getRefreshExpirationMs())
         .build();
   }
 
@@ -191,10 +187,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     loginResponse.setAccessToken(accessToken);
     loginResponse.setRefreshToken(refreshToken);
     loginResponse.setTokenType(TokenTypeConstant.BEARER);
-    loginResponse.setRefreshTokenExpireInMs(
-        (long) JwtService.REFRESH_TOKEN_VALIDITY_DAYS * 86400 * 1000);
-    loginResponse.setAccessTokenExpireInMs(
-        (long) JwtService.ACCESS_TOKEN_VALIDITY_MINUTES * 60 * 1000);
+    loginResponse.setRefreshTokenExpireInMs(jwtService.getRefreshExpirationMs());
+    loginResponse.setAccessTokenExpireInMs(jwtService.getAccessExpirationMs());
     loginResponse.setUserInfo(user);
     return loginResponse;
   }

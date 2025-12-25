@@ -18,4 +18,14 @@ public class AppProperty {
   private String appVersion;
   private String appOriginUrl;
   private String secretKey;
+  private Jwt jwt;
+
+
+  @Getter
+  @Setter
+  public static class Jwt{
+      private String secretKey;
+      private Long accessExpiredInMinute;
+      private Long refreshExpiredInMinute;
+  }
 }

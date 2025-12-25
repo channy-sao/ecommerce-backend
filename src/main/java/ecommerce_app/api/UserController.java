@@ -3,10 +3,9 @@ package ecommerce_app.api;
 import ecommerce_app.constant.message.ResponseMessageConstant;
 import ecommerce_app.infrastructure.model.response.body.BaseBodyResponse;
 import ecommerce_app.modules.user.model.dto.AssignRoleToUserRequest;
+import ecommerce_app.modules.user.model.dto.CreateUserRequest;
 import ecommerce_app.modules.user.model.dto.UpdatePasswordRequest;
 import ecommerce_app.modules.user.model.dto.UpdateUserRequest;
-import ecommerce_app.modules.user.model.dto.CreateUserRequest;
-import ecommerce_app.modules.user.model.dto.UpdateUserStatus;
 import ecommerce_app.modules.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -17,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -45,6 +45,7 @@ public class UserController {
    *     multipart file.
    * @return A {@link ResponseEntity} containing a success message and created user data.
    */
+  @PreAuthorize("hasAuthority('USER_CREATE')")
   @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   public ResponseEntity<BaseBodyResponse> createUser(
       @ModelAttribute CreateUserRequest createUserRequest) {
@@ -53,6 +54,7 @@ public class UserController {
   }
 
   @Operation(summary = "Change user password")
+  @PreAuthorize("hasAuthority('USER_UPDATE')")
   @PutMapping("change-password")
   public ResponseEntity<BaseBodyResponse> changePassword(
       @Valid @RequestBody UpdatePasswordRequest updateRequest) {
@@ -67,6 +69,7 @@ public class UserController {
    * @param status The new status to be set for the user (true for active, false for inactive).
    * @return A {@link ResponseEntity} indicating the operation was successful.
    */
+  @PreAuthorize("hasAuthority('USER_UPDATE')")
   @PatchMapping("/{id}/status")
   public ResponseEntity<BaseBodyResponse> updateStatus(
       @PathVariable(value = "id") Long userId,
@@ -81,6 +84,7 @@ public class UserController {
    * @param userId the ID of the user to delete
    * @return a success response if the user is deleted successfully
    */
+  @PreAuthorize("hasAuthority('USER_DELETE')")
   @DeleteMapping("/{id}")
   public ResponseEntity<BaseBodyResponse> deleteUser(@PathVariable(value = "id") Long userId) {
     this.userService.deleteUser(userId);
@@ -93,6 +97,7 @@ public class UserController {
    * @param userId the ID of the user to retrieve
    * @return the user data in a success response
    */
+  @PreAuthorize("hasAuthority('USER_READ')")
   @GetMapping("/{id}")
   public ResponseEntity<BaseBodyResponse> getById(@PathVariable(value = "id") Long userId) {
     return BaseBodyResponse.success(
@@ -105,6 +110,7 @@ public class UserController {
    * @param phone the phone number to search by
    * @return the user data in a success response
    */
+  @PreAuthorize("hasAuthority('USER_READ')")
   @GetMapping("/phone/{phone}")
   public ResponseEntity<BaseBodyResponse> getByPhone(@PathVariable(value = "phone") String phone) {
     return BaseBodyResponse.success(
@@ -117,6 +123,7 @@ public class UserController {
    * @param email the email address to search by
    * @return the user data in a success response
    */
+  @PreAuthorize("hasAuthority('USER_READ')")
   @GetMapping("/email/{email}")
   public ResponseEntity<BaseBodyResponse> getByEmail(@PathVariable(value = "email") String email) {
     return BaseBodyResponse.success(
@@ -130,6 +137,7 @@ public class UserController {
    * @param userId the ID of the user to update
    * @return the updated user data in a success response
    */
+  @PreAuthorize("hasAuthority('USER_UPDATE')")
   @PutMapping("/{id}")
   public ResponseEntity<BaseBodyResponse> updateUser(
       @ModelAttribute UpdateUserRequest updateUserRequest,
@@ -151,6 +159,7 @@ public class UserController {
    * @param filter the keyword to filter users by (optional)
    * @return a {@link ResponseEntity} containing a {@link BaseBodyResponse} with paginated user data
    */
+  @PreAuthorize("hasAuthority('USER_READER')")
   @GetMapping
   public ResponseEntity<BaseBodyResponse> filter(
       @RequestParam(value = "isPaged", defaultValue = "true") boolean isPaged,
@@ -164,6 +173,7 @@ public class UserController {
         ResponseMessageConstant.FIND_ALL_SUCCESSFULLY);
   }
 
+  @PreAuthorize("hasAuthority('USER_UPDATE')")
   @PutMapping("/{userId}/roles")
   public ResponseEntity<BaseBodyResponse> updateUserRoles(
       @PathVariable(value = "userId") Long userId, @RequestBody AssignRoleToUserRequest request) {

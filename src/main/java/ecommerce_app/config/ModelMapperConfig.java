@@ -6,6 +6,7 @@ import ecommerce_app.modules.product.model.dto.ProductRequest;
 import ecommerce_app.modules.product.model.entity.Product;
 import ecommerce_app.modules.user.model.dto.UserResponse;
 import ecommerce_app.modules.user.model.entity.User;
+import ecommerce_app.util.AuditUserResolver;
 import ecommerce_app.util.ProductMapper;
 import org.modelmapper.Converter;
 import org.modelmapper.ModelMapper;
@@ -16,9 +17,12 @@ import org.springframework.context.annotation.Configuration;
 public class ModelMapperConfig {
   @Bean
   public ModelMapper modelMapper(
-      FileManagerService fileManagerService, StorageConfigProperty storageConfigProperty) {
+      FileManagerService fileManagerService,
+      StorageConfigProperty storageConfigProperty,
+      AuditUserResolver auditUserResolver) {
     ModelMapper modelMapper = new ModelMapper();
-    ProductMapper.setProperties(modelMapper, fileManagerService, storageConfigProperty);
+    ProductMapper.setProperties(
+        modelMapper, fileManagerService, storageConfigProperty, auditUserResolver);
 
     // Converter to prepend full path
     Converter<String, String> avatarPathConverter =

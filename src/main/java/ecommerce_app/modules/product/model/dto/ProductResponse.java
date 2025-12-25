@@ -1,8 +1,10 @@
 package ecommerce_app.modules.product.model.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import ecommerce_app.infrastructure.model.response.AuditUserDto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -45,17 +47,17 @@ public class ProductResponse {
 
   @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd-MM-yyyy HH:mm:ss")
   @Schema(description = "Timestamp when the product was created", example = "2025-06-01T12:34:56")
-  private LocalDateTime createdAt;
+  private Instant createdAt;
 
   @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd-MM-yyyy HH:mm:ss")
   @Schema(
       description = "Timestamp when the product was last updated",
       example = "2025-06-04T15:00:00")
-  private LocalDateTime updatedAt;
+  private Instant updatedAt;
 
-  @Schema(description = "ID of the user who created the product", example = "101")
-  private Long createdBy;
+  @Schema(description = "ID of the user who created the product")
+  private AuditUserDto createdBy;
 
-  @Schema(description = "ID of the user who last updated the product", example = "102")
-  private Long updatedBy;
+  @Schema(description = "ID of the user who last updated the product")
+  private AuditUserDto updatedBy;
 }

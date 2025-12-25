@@ -1,28 +1,18 @@
 package ecommerce_app.modules.auth.custom;
 
-import ecommerce_app.modules.user.model.entity.Role;
-import ecommerce_app.modules.user.model.entity.User;
 import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
 import lombok.Builder;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 @Builder
-public record CustomUserDetails(User user) implements UserDetails {
+public record CustomUserDetails(AuthUser user) implements UserDetails {
 
   @Override
   public Collection<? extends GrantedAuthority> getAuthorities() {
 
-    Set<GrantedAuthority> authorities = new HashSet<>();
-    for (Role role : user.getRoles()) {
-      authorities.add(new SimpleGrantedAuthority("ROLE_"+role.getName()));
-      role.getPermissions()
-          .forEach(permission -> authorities.add(new SimpleGrantedAuthority("PERMISSION_" + permission.getName())));
-    }
-    return authorities;
+    return user.getAuthorities().stream().map(SimpleGrantedAuthority::new).toList();
   }
 
   @Override

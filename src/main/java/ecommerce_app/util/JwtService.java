@@ -1,6 +1,7 @@
 package ecommerce_app.util;
 
-import ecommerce_app.modules.user.model.entity.User;
+import ecommerce_app.infrastructure.property.AppProperty;
+import ecommerce_app.modules.auth.custom.CustomUserDetails;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
@@ -11,34 +12,47 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.List;
-import java.util.stream.Stream;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Service;
 
 @Service
 public class JwtService {
 
-  private static final String SECRET_KEY = "cuQMzcVqFdJ2nmAkskDlCzuv21mqGUcZ";
-  private static final String ISSUER = "ecommerce_app";
-  public static final int ACCESS_TOKEN_VALIDITY_MINUTES = 1;
-  public static final int REFRESH_TOKEN_VALIDITY_DAYS = 90;
+  private final String issuer;
+  private final AppProperty appProperty;
 
-  public String generateAccessToken(User user) {
+  public JwtService(AppProperty appProperty) {
+    this.appProperty = appProperty;
+    this.issuer = appProperty.getAppName();
+  }
+
+  public String generateAccessToken(CustomUserDetails userDetails) {
+    // Extract authorities from CustomUserDetails
+    List<String> authorities =
+        userDetails.getAuthorities().stream().map(GrantedAuthority::getAuthority).toList();
 
     return Jwts.builder()
-        .setIssuer(ISSUER)
-        .setSubject(user.getEmail())
-        .claim("authorities", getAuthorities(user))
+        .setIssuer(appProperty.getAppName())
+        .setSubject(userDetails.getUsername())
+        .claim("authorities", authorities)
         .setIssuedAt(new Date())
         .setExpiration(
-            Date.from(Instant.now().plus(ACCESS_TOKEN_VALIDITY_MINUTES, ChronoUnit.MINUTES)))
-        .signWith(Keys.hmacShaKeyFor(SECRET_KEY.getBytes()), SignatureAlgorithm.HS256)
+            Date.from(
+                Instant.now()
+                    .plus(appProperty.getJwt().getAccessExpiredInMinute(), ChronoUnit.MINUTES)))
+        .signWith(getKey(), SignatureAlgorithm.HS256)
         .compact();
   }
 
   public String generateRefreshToken(String subject, boolean rememberMe) {
-      var expirationAt = rememberMe? Date.from(Instant.now().plus(30, ChronoUnit.DAYS)):  Date.from(Instant.now().plus(REFRESH_TOKEN_VALIDITY_DAYS, ChronoUnit.DAYS));
+    var expirationAt =
+        rememberMe
+            ? Date.from(Instant.now().plus(30, ChronoUnit.DAYS))
+            : Date.from(
+                Instant.now()
+                    .plus(appProperty.getJwt().getRefreshExpiredInMinute(), ChronoUnit.DAYS));
     return Jwts.builder()
-        .setIssuer(ISSUER)
+        .setIssuer(issuer)
         .setSubject(subject)
         .setIssuedAt(new Date())
         .setExpiration(expirationAt)
@@ -66,21 +80,26 @@ public class JwtService {
     }
   }
 
-  public List<String> getAuthorities(User user) {
+  public Long getAccessExpirationMs() {
+    return appProperty.getJwt().getAccessExpiredInMinute() * 60 * 1000;
+  }
 
-    // Flatten roles and permissions
-    return user.getRoles().stream()
-        .flatMap(
-            role -> {
-              Stream<String> roleStream = Stream.of("ROLE_" + role.getName());
-              Stream<String> permissionStream =
-                  role.getPermissions().stream().map(p -> "PERMISSION_" + p.getName());
-              return Stream.concat(roleStream, permissionStream);
-            })
-        .toList();
+  public Long getRefreshExpirationMs() {
+    return appProperty.getJwt().getAccessExpiredInMinute() * 86400 * 1000;
+  }
+
+  public List<String> extractAuthorities(String token) {
+    try {
+      Claims claims =
+          Jwts.parserBuilder().setSigningKey(getKey()).build().parseClaimsJws(token).getBody();
+
+      return claims.get("authorities", List.class);
+    } catch (JwtException | IllegalArgumentException e) {
+      return List.of();
+    }
   }
 
   private Key getKey() {
-    return Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
+    return Keys.hmacShaKeyFor(appProperty.getJwt().getSecretKey().getBytes());
   }
 }

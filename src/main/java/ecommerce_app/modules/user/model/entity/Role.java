@@ -1,7 +1,7 @@
 package ecommerce_app.modules.user.model.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import ecommerce_app.infrastructure.model.entity.BaseSoftDeleteEntity;
-import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -12,7 +12,6 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.Table;
-
 import java.util.HashSet;
 import java.util.Set;
 import lombok.AllArgsConstructor;
@@ -42,14 +41,12 @@ public class Role extends BaseSoftDeleteEntity {
   @Column(name = "description", length = 250)
   private String description;
 
-  // INVERSE SIDE (User owns the relationship)
-  @ManyToMany(
-      fetch = FetchType.EAGER,
-      mappedBy = "roles")
+  @ManyToMany(mappedBy = "roles", fetch = FetchType.LAZY)
+  @JsonIgnore
   private Set<User> users;
 
   // Role owns permissions
-  @ManyToMany(fetch = FetchType.EAGER)
+  @ManyToMany(fetch = FetchType.LAZY)
   @JoinTable(
       name = "role_permissions",
       joinColumns = @JoinColumn(name = "role_id"),

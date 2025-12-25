@@ -3,7 +3,7 @@ package ecommerce_app.infrastructure.model.entity;
 import jakarta.persistence.Column;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.MappedSuperclass;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.data.annotation.LastModifiedBy;
@@ -18,7 +18,7 @@ public abstract class BaseSoftDeleteEntity {
   private Boolean isDeleted = false;
 
   @Column(name = "deleted_at")
-  private LocalDateTime deletedAt;
+  private Instant deletedAt;
 
   @LastModifiedBy
   @Column(name = "deleted_by")
@@ -26,6 +26,6 @@ public abstract class BaseSoftDeleteEntity {
 
   public void softDelete() {
     this.isDeleted = true;
-    this.deletedAt = LocalDateTime.now();
+    this.deletedAt = Instant.now();
   }
 }

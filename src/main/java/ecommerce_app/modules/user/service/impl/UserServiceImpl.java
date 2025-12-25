@@ -1,5 +1,6 @@
 package ecommerce_app.modules.user.service.impl;
 
+import com.google.firebase.database.DatabaseException;
 import ecommerce_app.config.DataInitializer;
 import ecommerce_app.infrastructure.exception.BadRequestException;
 import ecommerce_app.infrastructure.exception.ForbiddenException;
@@ -20,6 +21,8 @@ import ecommerce_app.modules.user.specification.UserSpecification;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
@@ -120,7 +123,6 @@ public class UserServiceImpl implements UserService {
             fileManagerService.saveFile(
                 updateUserRequest.getProfile(), storageConfigProperty.getAvatar());
         saved.setAvatar(savedAvatar);
-
       }
 
       return userMapper.toUserResponse(userRepository.save(saved));
@@ -307,24 +309,69 @@ public class UserServiceImpl implements UserService {
     log.info("Password changed successfully");
   }
 
-  @Transactional
-  @Override
-  public void assignRoles(Long userId, Set<Long> roleIds) {
-    log.info("Assigning roles for user {}", userId);
-    User user =
-        userRepository
-            .findById(userId)
-            .orElseThrow(() -> new ResourceNotFoundException("User", userId));
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public void assignRoles(Long userId, Set<Long> roleIds) {
+        try {
+            log.info("=== START assignRoles for user: {}, roleIds: {}", userId, roleIds);
 
-    Set<Role> roles = new HashSet<>(roleRepository.findAllById(roleIds));
+            // 1. Fetch user
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new ResourceNotFoundException("User", userId));
+            log.debug("Found user: {}", user.getEmail());
 
-    if (CollectionUtils.isEmpty(roleIds)
-        && user.getRoles().stream().anyMatch(role -> role.getName().equals("ADMIN"))) {
-      throw new BadRequestException("User must have at least one role");
+            // 2. Check current roles
+            Set<String> currentRoleNames = user.getRoles().stream()
+                    .map(Role::getName)
+                    .collect(Collectors.toSet());
+            log.debug("Current roles: {}", currentRoleNames);
+
+            boolean isAdmin = currentRoleNames.contains("ADMIN");
+            log.debug("Is admin: {}", isAdmin);
+
+            // 3. Fetch new roles
+            Set<Role> newRoles = new HashSet<>(roleRepository.findAllById(roleIds));
+            Set<String> newRoleNames = newRoles.stream()
+                    .map(Role::getName)
+                    .collect(Collectors.toSet());
+            log.debug("New roles to assign: {}", newRoleNames);
+
+            // 4. Validation
+            if (isAdmin && newRoles.isEmpty()) {
+                log.error("Admin user cannot have empty roles");
+                throw new BadRequestException("Admin user must have at least one role");
+            }
+
+            if (newRoles.size() != roleIds.size()) {
+                Set<Long> foundIds = newRoles.stream().map(Role::getId).collect(Collectors.toSet());
+                Set<Long> missingIds = roleIds.stream()
+                        .filter(id -> !foundIds.contains(id))
+                        .collect(Collectors.toSet());
+                log.error("Roles not found: {}", missingIds);
+                throw new ResourceNotFoundException("Roles not found: " + missingIds);
+            }
+
+            // 5. Clear existing (to avoid duplicate key violations)
+            log.debug("Clearing existing roles...");
+            user.getRoles().clear();
+            userRepository.saveAndFlush(user); // Force flush to clear
+
+            // 6. Assign new roles
+            log.debug("Assigning new roles...");
+            user.setRoles(newRoles);
+            User savedUser = userRepository.save(user);
+
+            log.info("=== END assignRoles - SUCCESS for user: {}", userId);
+
+        } catch (DataIntegrityViolationException e) {
+            log.error("=== Database constraint violation", e);
+            throw new DatabaseException("Role assignment failed: " + e.getMostSpecificCause().getMessage(), e);
+        } catch (BadRequestException | ResourceNotFoundException e) {
+            log.error("=== Business rule violation", e);
+            throw e; // Re-throw business exceptions
+        } catch (Exception e) {
+            log.error("=== Unexpected error", e);
+            throw new DatabaseException("Could not assign roles for user " + userId, e);
+        }
     }
-
-    user.setRoles(roles);
-    userRepository.save(user);
-    log.info("Roles assigned successfully");
-  }
 }

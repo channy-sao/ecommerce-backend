@@ -14,6 +14,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -51,6 +52,7 @@ public class RoleController {
       responseCode = "200",
       description = "Role created successfully",
       content = @Content(schema = @Schema(implementation = BaseBodyResponse.class)))
+  @PreAuthorize("hasRole('SUPER_ADMIN')")
   @PostMapping
   public ResponseEntity<BaseBodyResponse> createRole(
       @Valid @RequestBody CreateRoleRequest createRoleRequest) {
@@ -73,6 +75,7 @@ public class RoleController {
       responseCode = "200",
       description = "Role updated successfully",
       content = @Content(schema = @Schema(implementation = BaseBodyResponse.class)))
+  @PreAuthorize("hasAuthority('ROLE_UPDATE')")
   @PutMapping("/{id}")
   public ResponseEntity<BaseBodyResponse> updateRole(
       @Valid @RequestBody UpdateRoleRequest updateRoleRequest, @PathVariable("id") Long roleId) {
@@ -95,6 +98,7 @@ public class RoleController {
       responseCode = "200",
       description = "Role deleted successfully",
       content = @Content(schema = @Schema(implementation = BaseBodyResponse.class)))
+  @PreAuthorize("hasRole('SUPER_ADMIN') or hasAuthority('ROLE_DELETE')")
   @DeleteMapping("/{id}")
   public ResponseEntity<BaseBodyResponse> deleteRole(@PathVariable("id") Long roleId) {
 
@@ -102,16 +106,19 @@ public class RoleController {
     return BaseBodyResponse.success(null, "Delete Role Successfully");
   }
 
+  @PreAuthorize("hasRole('ADMIN') or hasAuthority('USER_CREATE')")
   @GetMapping("/{id}")
   public ResponseEntity<BaseBodyResponse> getRoleById(@PathVariable(value = "id") long roleId) {
     return BaseBodyResponse.success(roleService.getRole(roleId), "Get Role Successfully");
   }
 
+  @PreAuthorize("hasAuthority('ROLE_READ')")
   @GetMapping
   public ResponseEntity<BaseBodyResponse> getRoles() {
     return BaseBodyResponse.success(roleService.getRoles(), "Get Roles Successfully");
   }
 
+  @PreAuthorize("hasAuthority('ROLE_READ')")
   @GetMapping("/search")
   public ResponseEntity<BaseBodyResponse> searchRole(@Parameter(name = "role") String roleName) {
     return BaseBodyResponse.success(roleService.searchRole(roleName), "Get Roles Successfully");

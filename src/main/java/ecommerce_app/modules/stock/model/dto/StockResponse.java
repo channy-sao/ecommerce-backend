@@ -2,6 +2,8 @@ package ecommerce_app.modules.stock.model.dto;
 
 import ecommerce_app.modules.product.model.entity.Product;
 import io.swagger.v3.oas.annotations.media.Schema;
+
+import java.time.Instant;
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -33,8 +35,8 @@ public class StockResponse {
   private Long updatedBy;
 
   @Schema(description = "Timestamp when the stock record was created", example = "2024-07-01T10:00:00")
-  private LocalDateTime createdAt;
+  private Instant createdAt;
 
   @Schema(description = "Timestamp when the stock record was last updated", example = "2024-07-15T15:30:00")
-  private LocalDateTime updatedAt;
+  private Instant updatedAt;
 }

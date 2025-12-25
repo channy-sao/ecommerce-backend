@@ -73,6 +73,10 @@ springdoc:
 app:
   baseUrl: ${APP_BASE_URL:http://localhost:8080}
   firebaseApiKey: AIzaSyCUyK9i5mknwnAIJc6Gl-bYDZ0MijHQTRg
+  jwt:
+    secretKey: ${JWT_SECRET}
+    access-expired-in-minute: ${JWT_ACCESS_EXPIRES_MINUTE}
+    refresh-expired-in-minute: ${JWT_REFRESH_EXPIRES_MINUTE}
   storage:
     upload:
       avatar: ./storage/upload/avatar

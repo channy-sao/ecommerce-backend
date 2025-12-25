@@ -1,5 +1,7 @@
 package ecommerce_app.modules.user.model.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import ecommerce_app.infrastructure.model.entity.BaseAuditingEntity;
 import ecommerce_app.modules.address.model.entity.Address;
 import ecommerce_app.modules.cart.model.entity.Cart;
@@ -23,6 +25,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -88,7 +91,9 @@ public class User extends BaseAuditingEntity {
   @Column(name = "uuid", nullable = false)
   private UUID uuid = UUID.randomUUID();
 
-  @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
+  @OneToOne(
+      mappedBy = "user",
+      cascade = {CascadeType.MERGE, CascadeType.PERSIST})
   private Cart cart;
 
   @OneToMany(
@@ -104,12 +109,19 @@ public class User extends BaseAuditingEntity {
       cascade = CascadeType.ALL,
       fetch = FetchType.LAZY,
       targetEntity = Order.class)
+  @OnDelete(action = OnDeleteAction.CASCADE)
+  @JsonIgnore
   private List<Order> orders;
 
-  @ManyToMany(fetch = FetchType.EAGER)
+  @ManyToMany(fetch = FetchType.LAZY)
   @JoinTable(
       name = "user_roles",
       joinColumns = @JoinColumn(name = "user_id"),
       inverseJoinColumns = @JoinColumn(name = "role_id"))
-  private Set<Role> roles = new HashSet<>();
+  private Set<Role> roles;
+
+  public String getFullName() {
+    return firstName + " " + lastName;
+  }
+
 }
