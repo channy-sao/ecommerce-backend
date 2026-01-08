@@ -14,13 +14,36 @@ logging:
     org:
       springframework:
         security: ${SERVER_SECURITY_LOG_LEVEL:info}
+        # Transaction management
+        transaction: ERROR
+        orm:
+          jpa: ERROR
+      hibernate:
+        SQL: ERROR
+        type:
+          descriptor:
+            sql:
+              BasicBinder: ERROR
+        engine:
+          transaction:
+            internal:
+              transactionImpl: TRACE
+          jdbc:
+            spi:
+              SqlExceptionHelper: ERROR
+
     web: ${SERVER_WEB_LOG_LEVEL:info}
     root: ${SERVER_ROOT_LOG_LEVEL:info}
+
 spring:
   application:
     name: ${APP_NAME}
   profiles:
     active: ${SPRING_ENV:dev}
+  devtools:
+    restart:
+      enabled: false
+      livereload: false
   main:
     allow-bean-definition-overriding: true
   jackson:
@@ -34,6 +57,26 @@ spring:
     password: ${DB_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
 
+    hikari:
+      # PostgreSQL-specific settings
+      connection-timeout: 10000
+      maximum-pool-size: 20  # Smaller for PostgreSQL
+      minimum-idle: 5
+      idle-timeout: 300000
+      max-lifetime: 1800000
+      leak-detection-threshold: 50000  # Lower for PostgreSQL
+      connection-test-query: SELECT 1
+
+      # PostgreSQL optimization
+      data-source-properties:
+        # PostgreSQL specific
+        socketTimeout: 30
+        loginTimeout: 10
+        tcpKeepAlive: true
+        preferQueryMode: simple
+        # Disable batch for now
+        reWriteBatchedInserts: false
+
   servlet:
     multipart:
       enabled: true
@@ -43,8 +86,21 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: false
+      bytecode:
+        provider: none
+        use_reflection_optimizer: false
+      properties:
+        enable_lazy_load_no_trans: false  # IMPORTANT: Prevents lazy loading outside transactions
+        default_batch_fetch_size: 20      # Optimizes batch loading
+        jdbc:
+          batch_size: 20                  # Batches updates
+    show-sql: true
     generate-ddl: true
+    open-in-view: false
+  #    properties:
+  #      hibernate:
+  #        format_sql: true
+  #        use_sql_comments: true
 
   mail:
     host: ${SMTP_SERVER_HOST:smtp.gmail.com}

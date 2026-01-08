@@ -1,5 +1,7 @@
 package ecommerce_app.modules.order.model.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import ecommerce_app.constant.enums.OrderStatus;
 import ecommerce_app.constant.enums.PaymentMethod;
 import ecommerce_app.constant.enums.PaymentStatus;
@@ -26,6 +28,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.ToString;
 
 @Getter
 @AllArgsConstructor
@@ -34,17 +37,16 @@ import lombok.Setter;
 @Setter
 @Table(name = "orders")
 @Entity
+@ToString(exclude = {"user", "cart", "orderItems"}) // Exclude relationships
 public class Order {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
-  @ManyToOne(
-      fetch = FetchType.LAZY,
-      optional = false,
-      targetEntity = User.class,
-      cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
   @JoinColumn(name = "user_id", nullable = false, referencedColumnName = "id")
+  @JsonIgnoreProperties({"orders", "cart", "addresses", "roles"}) // Use @JsonIgnoreProperties
+  @JsonIgnore
   private User user;
 
   @ManyToOne(
@@ -53,6 +55,7 @@ public class Order {
       targetEntity = Cart.class,
       cascade = {CascadeType.PERSIST, CascadeType.MERGE})
   @JoinColumn(name = "cart_id", nullable = false, referencedColumnName = "id")
+  @JsonIgnore
   private Cart cart;
 
   @Column(nullable = false, name = "total_amount")
@@ -72,9 +75,10 @@ public class Order {
 
   @OneToMany(
       cascade = CascadeType.ALL,
-      fetch = FetchType.EAGER,
+      fetch = FetchType.LAZY,
       orphanRemoval = true,
       targetEntity = OrderItem.class,
       mappedBy = "order")
+  @JsonIgnore
   private List<OrderItem> orderItems = new ArrayList<>();
 }

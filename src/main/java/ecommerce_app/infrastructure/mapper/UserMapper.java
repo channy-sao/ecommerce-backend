@@ -43,7 +43,7 @@ public class UserMapper {
    * @param user the user entity to map
    * @return a populated {@link UserResponse}
    */
-  public UserResponse toUserResponse(final User user) {
+  public UserResponse toUserResponse(User user) {
     UserResponse userResponse = new UserResponse();
     userResponse.setId(user.getId());
     userResponse.setEmail(user.getEmail());

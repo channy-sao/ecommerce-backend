@@ -30,7 +30,7 @@ public class UserDetailServiceImpl implements UserDetailsService {
             .findByEmail(username)
             .orElseThrow(() -> new UsernameNotFoundException("User not found"));
     if (!Objects.equals(user.getProvider(), "LOCAL")) {
-      //      throw new UsernameNotFoundException("User not registered for local login");
+      // throw new UsernameNotFoundException("User not registered for local login");
       log.warn("User {} provider is not LOCAL", user.getEmail());
     }
 

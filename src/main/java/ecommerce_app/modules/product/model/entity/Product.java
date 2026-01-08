@@ -1,5 +1,6 @@
 package ecommerce_app.modules.product.model.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import ecommerce_app.infrastructure.model.entity.AuditingEntity;
 import ecommerce_app.modules.cart.model.entity.CartItem;
 import ecommerce_app.modules.category.model.entity.Category;
@@ -62,6 +63,7 @@ public class Product extends AuditingEntity {
       cascade = {CascadeType.MERGE, CascadeType.PERSIST})
   @JoinColumn(name = "category_id", referencedColumnName = "id", nullable = false)
   @OnDelete(action = OnDeleteAction.CASCADE)
+  @JsonIgnore
   private Category category;
 
   @OneToMany(
@@ -70,6 +72,7 @@ public class Product extends AuditingEntity {
       targetEntity = CartItem.class,
       mappedBy = "product")
   @OnDelete(action = OnDeleteAction.CASCADE)
+  @JsonIgnore
   private List<CartItem> cartItems;
 
   @OneToMany(
@@ -78,6 +81,7 @@ public class Product extends AuditingEntity {
           targetEntity = OrderItem.class,
           mappedBy = "product")
   @OnDelete(action = OnDeleteAction.CASCADE)
+  @JsonIgnore
   private List<OrderItem> orderItems;
 
   @Column(nullable = false, unique = true, name = "uuid")
@@ -89,6 +93,7 @@ public class Product extends AuditingEntity {
           targetEntity = ProductImport.class,
           mappedBy = "product")
   @OnDelete(action = OnDeleteAction.CASCADE)
+  @JsonIgnore
   private List<ProductImport> productImports;
 
   @OneToMany(
@@ -97,6 +102,7 @@ public class Product extends AuditingEntity {
           targetEntity = Stock.class,
           mappedBy = "product")
   @OnDelete(action = OnDeleteAction.CASCADE)
+  @JsonIgnore
   private List<Stock> stocks;
 
 }

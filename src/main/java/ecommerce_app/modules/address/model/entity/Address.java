@@ -1,5 +1,6 @@
 package ecommerce_app.modules.address.model.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import ecommerce_app.modules.user.model.entity.User;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -16,6 +17,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.ToString;
 
 @Builder
 @NoArgsConstructor
@@ -24,6 +26,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "addresses")
+@ToString(exclude = "user") // Exclude relationship
 public class Address {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -62,11 +65,8 @@ public class Address {
   @Column(name = "postal_code", length = 100)
   private String postalCode;
 
-  @ManyToOne(
-      fetch = FetchType.LAZY,
-      cascade = CascadeType.ALL,
-      optional = false,
-      targetEntity = User.class)
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
   @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = false)
+  @JsonIgnoreProperties({"addresses", "cart", "orders", "roles"}) // Use @JsonIgnoreProperties
   private User user;
 }

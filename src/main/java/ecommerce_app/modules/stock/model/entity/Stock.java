@@ -1,5 +1,6 @@
 package ecommerce_app.modules.stock.model.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import ecommerce_app.infrastructure.model.entity.AuditingEntity;
 import ecommerce_app.modules.product.model.entity.Product;
 import jakarta.persistence.*;
@@ -27,6 +28,7 @@ public class Stock extends AuditingEntity {
       cascade = {CascadeType.MERGE, CascadeType.PERSIST},
       fetch = FetchType.LAZY)
   @JoinColumn(name = "product_id", referencedColumnName = "id", nullable = false, unique = true)
+  @JsonIgnore
   private Product product;
 
   @Column(nullable = false, name = "quantity")

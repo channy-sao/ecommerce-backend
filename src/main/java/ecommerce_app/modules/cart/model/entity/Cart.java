@@ -1,6 +1,7 @@
 package ecommerce_app.modules.cart.model.entity;
 
-import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import ecommerce_app.constant.enums.CartStatus;
 import ecommerce_app.infrastructure.model.entity.BaseAuditingEntity;
 import ecommerce_app.modules.order.model.entity.OrderItem;
@@ -16,6 +17,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
@@ -29,6 +31,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.ToString;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
@@ -41,6 +44,7 @@ import org.hibernate.annotations.OnDeleteAction;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@ToString(exclude = {"user", "cartItems", "orderItems"}) // Exclude relationships
 public class Cart extends BaseAuditingEntity {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -65,14 +69,17 @@ public class Cart extends BaseAuditingEntity {
   private List<CartItem> cartItems;
 
   @OneToMany(
-          mappedBy = "cart",
-          targetEntity = OrderItem.class,
-          cascade = CascadeType.ALL,
-          fetch = FetchType.LAZY)
+      mappedBy = "cart",
+      targetEntity = OrderItem.class,
+      cascade = CascadeType.ALL,
+      fetch = FetchType.LAZY)
   @OnDelete(action = OnDeleteAction.CASCADE)
   private List<OrderItem> orderItems;
 
-  @OneToOne private User user;
+  @OneToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "user_id")
+  @JsonIgnoreProperties({"cart", "addresses", "orders", "roles"}) // Use @JsonIgnoreProperties
+  private User user;
 
   public void addNewItem(Product product) {
     if (cartItems == null) {

@@ -1,6 +1,5 @@
 package ecommerce_app.modules.user.service.impl;
 
-import com.google.firebase.database.DatabaseException;
 import ecommerce_app.config.DataInitializer;
 import ecommerce_app.infrastructure.exception.BadRequestException;
 import ecommerce_app.infrastructure.exception.ForbiddenException;
@@ -18,11 +17,11 @@ import ecommerce_app.modules.user.repository.RoleRepository;
 import ecommerce_app.modules.user.repository.UserRepository;
 import ecommerce_app.modules.user.service.UserService;
 import ecommerce_app.modules.user.specification.UserSpecification;
+import jakarta.persistence.EntityManager;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
@@ -32,15 +31,11 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.CollectionUtils;
 
-/**
- * Implementation of {@link UserService} that handles user-related business logic, including
- * creation, update, deletion, and status management.
- */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -52,6 +47,7 @@ public class UserServiceImpl implements UserService {
   private final StorageConfigProperty storageConfigProperty;
   private final FileManagerService fileManagerService;
   private final UserMapper userMapper;
+  private final EntityManager entityManager;
 
   @Transactional(readOnly = true)
   @Override
@@ -60,12 +56,7 @@ public class UserServiceImpl implements UserService {
     return getUserById(userId);
   }
 
-  /**
-   * Finds a user by email.
-   *
-   * @param email the email to search for
-   * @return the {@link User} if found, otherwise null
-   */
+  @Transactional(readOnly = true)
   @Override
   public UserResponse findByEmail(String email) {
     log.info("Find User by email: {}", email);
@@ -77,12 +68,7 @@ public class UserServiceImpl implements UserService {
     return userMapper.toUserResponse(user);
   }
 
-  /**
-   * Finds a user by phone number.
-   *
-   * @param phone the phone number to search for
-   * @return the {@link User} if found, otherwise null
-   */
+  @Transactional(readOnly = true)
   @Override
   public UserResponse findByPhone(String phone) {
     log.info("Find User by phone: {}", phone);
@@ -94,63 +80,50 @@ public class UserServiceImpl implements UserService {
     return userMapper.toUserResponse(user);
   }
 
-  /**
-   * Updates the user information and optionally updates the avatar image.
-   *
-   * @param updateUserRequest the user request data
-   * @param userId the ID of the user to update
-   * @return the updated {@link User} entity
-   */
   @Transactional(rollbackFor = Exception.class)
   @Override
-  public UserResponse updateUser(UpdateUserRequest updateUserRequest, Long userId) {
-    log.info("Update User by id: {}", userId);
+  public void updateUser(UpdateUserRequest request, Long userId) {
+
     try {
-      final User existing = findUserById(userId);
-      final String existingAvatar = existing.getAvatar();
-      // update user in DB
-      modelMapper.map(updateUserRequest, existing);
-      if (updateUserRequest.getPassword() != null) {
-        existing.setPassword(passwordEncoder.encode(updateUserRequest.getPassword()));
-      }
-      User saved = userRepository.save(existing);
+      User user =
+          userRepository
+              .findById(userId)
+              .orElseThrow(() -> new ResourceNotFoundException("User", userId));
 
-      // update avatar file
-      if (updateUserRequest.getProfile() != null && !updateUserRequest.getProfile().isEmpty()) {
-        // remove an exiting file and upload new
-        this.fileManagerService.deleteFile(storageConfigProperty.getAvatar(), existingAvatar);
-        String savedAvatar =
-            fileManagerService.saveFile(
-                updateUserRequest.getProfile(), storageConfigProperty.getAvatar());
-        saved.setAvatar(savedAvatar);
+      validateUniqueFields(request, userId);
+
+      // update ONLY simple fields
+      user.setFirstName(request.getFirstName());
+      user.setLastName(request.getLastName());
+
+      if (request.getPhone() != null && !request.getPhone().isBlank()) {
+        user.setPhone(request.getPhone());
       }
 
-      return userMapper.toUserResponse(userRepository.save(saved));
-    } catch (DataIntegrityViolationException e) {
-      log.error(e.getMessage(), e);
-      throw new BadRequestException(e.getMessage());
+      if (request.getPassword() != null) {
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+      }
+      userRepository.save(user);
+      log.info("User updated: {}", user.getId());
+    } catch (Exception ex) {
+      log.error("FULL ERROR", ex);
+      throw ex; // DO NOT WRAP IT
     }
   }
 
-  /**
-   * Creates a new user with encrypted password and optional avatar image upload.
-   *
-   * @param createUserRequest the user request data
-   * @return the created {@link User} entity
-   */
   @Transactional(rollbackFor = Exception.class)
   @Override
   public UserResponse create(CreateUserRequest createUserRequest) {
     try {
       log.info("Creating user: {}", createUserRequest);
-      // save user to a database
       User user = modelMapper.map(createUserRequest, User.class);
       user.setProvider("LOCAL");
-      // encrypt password
+      if (createUserRequest.getPhone() != null && createUserRequest.getPhone().isBlank()) {
+        user.setPhone(null);
+      }
       user.setPassword(passwordEncoder.encode(createUserRequest.getPassword()));
       User savedUser = userRepository.save(user);
 
-      // save image avatar of user to storage
       if (createUserRequest.getProfile() != null) {
         log.info("Uploading file: {}", createUserRequest.getProfile().getOriginalFilename());
         String avatarPath =
@@ -169,15 +142,11 @@ public class UserServiceImpl implements UserService {
     }
   }
 
-  /**
-   * Deletes a user by ID from the database. Storage cleanup can be implemented as needed.
-   *
-   * @param userId the ID of the user to delete
-   */
   @Transactional(rollbackFor = Exception.class)
   @Override
   public void deleteUser(Long userId) {
     log.info("Deleting user: {}", userId);
+
     final User user = findUserById(userId);
 
     // prevent if user is super admin
@@ -187,22 +156,19 @@ public class UserServiceImpl implements UserService {
           String.format("Could not delete user %s", DataInitializer.SUPER_ADMIN_ROLE));
     }
 
-    // delete from database
-    this.userRepository.deleteById(userId);
-
-    // delete from storage
     final String avatar = user.getAvatar();
-    this.fileManagerService.deleteFile(storageConfigProperty.getAvatar(), avatar);
-    log.info("Deleted user with id {}", userId);
+
+    // Delete from database
+    this.userRepository.delete(user);
+
+    log.info("Deleted user with id {} from database", userId);
+
+    // Delete from storage (after transaction commits)
+    if (avatar != null && !avatar.isBlank()) {
+      deleteAvatarFile(avatar);
+    }
   }
 
-  /**
-   * Retrieves a user by their ID.
-   *
-   * @param userId the ID of the user to retrieve
-   * @return the {@link User} entity if found
-   * @throws ResourceNotFoundException if no user with the specified ID exists
-   */
   public UserResponse getUserById(Long userId) {
     log.info("Get user by id: {}", userId);
     return userMapper.toUserResponse(findUserById(userId));
@@ -214,45 +180,27 @@ public class UserServiceImpl implements UserService {
         .orElseThrow(() -> new ResourceNotFoundException("User", userId));
   }
 
-  /**
-   * Updates the active status of a user.
-   *
-   * @param userId the ID of the user to update
-   * @param status the new active status (true = active, false = inactive)
-   */
   @Transactional(rollbackFor = Exception.class)
   @Override
   public void updateStatus(Long userId, Boolean status) {
     log.info("Updating status of user {}", userId);
-    var user = findUserById(userId);
 
-    // prevent disable user super admin
-    if (Boolean.TRUE.equals(status)
-        || user.getRoles().stream()
-            .noneMatch(role -> role.getName().equals(DataInitializer.SUPER_ADMIN_ROLE))) {
-      user.setIsActive(status);
-      userRepository.save(user);
+    boolean isSuperAdminRole = userRepository.hasRole(userId, DataInitializer.SUPER_ADMIN_ROLE);
 
-      log.info("Updated status of user {}", userId);
-    } else {
+    if (Boolean.FALSE.equals(status) && isSuperAdminRole) {
       throw new BadRequestException("Could not disable super administrator");
     }
+
+    // Use direct update query (avoids entity state issues)
+    int updatedCount = userRepository.updateUserStatus(userId, status);
+
+    if (updatedCount == 0) {
+      throw new ResourceNotFoundException("User", userId);
+    }
+
+    log.info("Updated status of user {} to {}", userId, status);
   }
 
-  /**
-   * Filters users based on a search string applied to multiple fields (email, phone, first name,
-   * last name).
-   *
-   * @param isPage whether to apply pagination (currently not used in this implementation but can be
-   *     extended)
-   * @param page the page number to retrieve (zero-based index)
-   * @param pageSize the number of records per page
-   * @param sortBy the field to sort by (e.g., "firstName", "email")
-   * @param direction the direction of the sort (ASC or DESC)
-   * @param filter the search keyword to filter user fields (case-insensitive and partial match)
-   * @return a {@link Page} of {@link User} entities matching the filter and pagination/sorting
-   *     criteria
-   */
   @Transactional(readOnly = true)
   @Override
   public Page<UserResponse> filter(
@@ -268,9 +216,8 @@ public class UserServiceImpl implements UserService {
       List<User> users = userRepository.findAll(userSpecification, sort);
       return new PageImpl<>(users.stream().map(userMapper::toUserResponse).toList());
     }
-    // default it starts from zero
-    PageRequest pageRequest = PageRequest.of(page - 1, pageSize, sort);
 
+    PageRequest pageRequest = PageRequest.of(page - 1, pageSize, sort);
     return userRepository.findAll(userSpecification, pageRequest).map(userMapper::toUserResponse);
   }
 
@@ -284,19 +231,16 @@ public class UserServiceImpl implements UserService {
             .orElseThrow(
                 () -> new ResourceNotFoundException("User", changePasswordRequest.getEmail()));
 
-    // verify user password
     if (!passwordEncoder.matches(changePasswordRequest.getOldPassword(), user.getPassword())) {
       log.error("Current password is not correct");
       throw new BadRequestException("Current password is not correct");
     }
 
-    // verify password is difference
     if (changePasswordRequest.getNewPassword().equals(changePasswordRequest.getOldPassword())) {
       log.error("New Password must be different from current password");
       throw new BadRequestException("New Password must be different from current password");
     }
 
-    // 4. Validate password confirmation
     if (!changePasswordRequest
         .getNewPassword()
         .equals(changePasswordRequest.getConfirmNewPassword())) {
@@ -309,69 +253,85 @@ public class UserServiceImpl implements UserService {
     log.info("Password changed successfully");
   }
 
-    @Transactional(rollbackFor = Exception.class)
-    @Override
-    public void assignRoles(Long userId, Set<Long> roleIds) {
-        try {
-            log.info("=== START assignRoles for user: {}, roleIds: {}", userId, roleIds);
+  @Transactional(rollbackFor = Exception.class)
+  @Override
+  public void assignRoles(Long userId, Set<Long> roleIds) {
+    try {
+      log.info("=== START assignRoles for user: {}, roleIds: {}", userId, roleIds);
 
-            // 1. Fetch user
-            User user = userRepository.findById(userId)
-                    .orElseThrow(() -> new ResourceNotFoundException("User", userId));
-            log.debug("Found user: {}", user.getEmail());
+      // Fetch user with roles to avoid lazy loading
+      User user =
+          userRepository
+              .findByIdWithRoles(userId) // Add this method
+              .orElseThrow(() -> new ResourceNotFoundException("User", userId));
 
-            // 2. Check current roles
-            Set<String> currentRoleNames = user.getRoles().stream()
-                    .map(Role::getName)
-                    .collect(Collectors.toSet());
-            log.debug("Current roles: {}", currentRoleNames);
+      // Fetch new roles
+      Set<Role> newRoles = new HashSet<>(roleRepository.findAllById(roleIds));
 
-            boolean isAdmin = currentRoleNames.contains("ADMIN");
-            log.debug("Is admin: {}", isAdmin);
+      if (newRoles.size() != roleIds.size()) {
+        Set<Long> foundIds = newRoles.stream().map(Role::getId).collect(Collectors.toSet());
+        Set<Long> missingIds =
+            roleIds.stream().filter(id -> !foundIds.contains(id)).collect(Collectors.toSet());
+        log.error("Roles not found: {}", missingIds);
+        throw new ResourceNotFoundException("Roles not found: " + missingIds);
+      }
 
-            // 3. Fetch new roles
-            Set<Role> newRoles = new HashSet<>(roleRepository.findAllById(roleIds));
-            Set<String> newRoleNames = newRoles.stream()
-                    .map(Role::getName)
-                    .collect(Collectors.toSet());
-            log.debug("New roles to assign: {}", newRoleNames);
+      // Check if user is admin and trying to remove all roles
+      boolean isAdmin = user.getRoles().stream().anyMatch(role -> role.getName().equals("ADMIN"));
 
-            // 4. Validation
-            if (isAdmin && newRoles.isEmpty()) {
-                log.error("Admin user cannot have empty roles");
-                throw new BadRequestException("Admin user must have at least one role");
-            }
+      if (isAdmin && newRoles.isEmpty()) {
+        throw new BadRequestException("Admin user must have at least one role");
+      }
 
-            if (newRoles.size() != roleIds.size()) {
-                Set<Long> foundIds = newRoles.stream().map(Role::getId).collect(Collectors.toSet());
-                Set<Long> missingIds = roleIds.stream()
-                        .filter(id -> !foundIds.contains(id))
-                        .collect(Collectors.toSet());
-                log.error("Roles not found: {}", missingIds);
-                throw new ResourceNotFoundException("Roles not found: " + missingIds);
-            }
+      // Update roles
+      user.getRoles().clear();
+      user.getRoles().addAll(newRoles);
+      userRepository.save(user);
 
-            // 5. Clear existing (to avoid duplicate key violations)
-            log.debug("Clearing existing roles...");
-            user.getRoles().clear();
-            userRepository.saveAndFlush(user); // Force flush to clear
+      log.info("=== END assignRoles - SUCCESS for user: {}", userId);
 
-            // 6. Assign new roles
-            log.debug("Assigning new roles...");
-            user.setRoles(newRoles);
-            User savedUser = userRepository.save(user);
-
-            log.info("=== END assignRoles - SUCCESS for user: {}", userId);
-
-        } catch (DataIntegrityViolationException e) {
-            log.error("=== Database constraint violation", e);
-            throw new DatabaseException("Role assignment failed: " + e.getMostSpecificCause().getMessage(), e);
-        } catch (BadRequestException | ResourceNotFoundException e) {
-            log.error("=== Business rule violation", e);
-            throw e; // Re-throw business exceptions
-        } catch (Exception e) {
-            log.error("=== Unexpected error", e);
-            throw new DatabaseException("Could not assign roles for user " + userId, e);
-        }
+    } catch (DataIntegrityViolationException e) {
+      log.error("=== Database constraint violation", e);
+      throw new BadRequestException("Role assignment failed: Duplicate assignment detected");
+    } catch (BadRequestException | ResourceNotFoundException e) {
+      throw e;
+    } catch (Exception e) {
+      log.error("=== Unexpected error", e);
+      throw new BadRequestException("Could not assign roles for user " + userId);
     }
+  }
+
+  private void validateUniqueFields(UpdateUserRequest request, Long userId) {
+
+    if (request.getEmail() != null
+        && userRepository.existsByEmailAndIdNot(request.getEmail(), userId)) {
+      throw new BadRequestException("Email already exists");
+    }
+
+    if (request.getPhone() != null
+        && userRepository.existsByPhoneAndIdNot(request.getPhone(), userId)) {
+      throw new BadRequestException("Phone already exists");
+    }
+  }
+
+  /** Delete avatar file outside of transaction to avoid rollback */
+  @Async
+  public void deleteAvatarFile(String avatarPath) {
+    try {
+      fileManagerService.deleteFile(storageConfigProperty.getAvatar(), avatarPath);
+      log.info("Deleted avatar file: {}", avatarPath);
+    } catch (Exception e) {
+      log.error("Failed to delete avatar file {}: {}", avatarPath, e.getMessage());
+    }
+  }
+
+  /** Clean up failed upload */
+  private void cleanupFailedUpload(String avatarPath) {
+    try {
+      fileManagerService.deleteFile(storageConfigProperty.getAvatar(), avatarPath);
+      log.warn("Cleaned up failed upload: {}", avatarPath);
+    } catch (Exception e) {
+      log.error("Failed to cleanup failed upload {}: {}", avatarPath, e.getMessage());
+    }
+  }
 }

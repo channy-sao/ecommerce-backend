@@ -45,11 +45,9 @@ public class ProductResponse {
   @Schema(description = "Indicates whether the product is featured", example = "true")
   private Boolean isFeature;
 
-  @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd-MM-yyyy HH:mm:ss")
   @Schema(description = "Timestamp when the product was created", example = "2025-06-01T12:34:56")
   private Instant createdAt;
 
-  @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd-MM-yyyy HH:mm:ss")
   @Schema(
       description = "Timestamp when the product was last updated",
       example = "2025-06-04T15:00:00")

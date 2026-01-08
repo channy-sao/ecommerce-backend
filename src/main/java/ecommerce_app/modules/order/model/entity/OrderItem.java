@@ -1,5 +1,6 @@
 package ecommerce_app.modules.order.model.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import ecommerce_app.modules.cart.model.entity.Cart;
 import ecommerce_app.modules.product.model.entity.Product;
 import jakarta.persistence.CascadeType;
@@ -59,5 +60,6 @@ public class OrderItem {
       targetEntity = Cart.class,
       optional = false)
   @JoinColumn(name = "cart_id", nullable = false, referencedColumnName = "id")
+  @JsonIgnore
   private Cart cart;
 }

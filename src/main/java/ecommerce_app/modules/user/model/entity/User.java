@@ -1,12 +1,10 @@
 package ecommerce_app.modules.user.model.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import ecommerce_app.infrastructure.model.entity.BaseAuditingEntity;
 import ecommerce_app.modules.address.model.entity.Address;
 import ecommerce_app.modules.cart.model.entity.Cart;
 import ecommerce_app.modules.order.model.entity.Order;
-import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -19,18 +17,20 @@ import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.ToString;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
@@ -45,6 +45,10 @@ import org.hibernate.annotations.OnDeleteAction;
 @Setter
 @Entity
 @Builder
+@ToString(exclude = {"cart", "addresses", "orders", "roles"}) // Exclude ALL relationships
+@EqualsAndHashCode(
+    exclude = {"cart", "addresses", "orders", "roles"},
+    callSuper = false)
 @NoArgsConstructor
 @AllArgsConstructor
 public class User extends BaseAuditingEntity {
@@ -52,7 +56,7 @@ public class User extends BaseAuditingEntity {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
-  @Column(name = "uid", length = 75, unique = true)
+  @Column(name = "uid", length = 75, nullable = true)
   private String uid;
 
   @Column(name = "password", length = 250)
@@ -61,7 +65,7 @@ public class User extends BaseAuditingEntity {
   @Column(nullable = false, name = "email", unique = true, length = 100)
   private String email;
 
-  @Column(name = "phone", unique = true, length = 25)
+  @Column(name = "phone", nullable = true, length = 25)
   private String phone;
 
   @Column(name = "first_name", length = 50, nullable = true)
@@ -70,7 +74,7 @@ public class User extends BaseAuditingEntity {
   @Column(length = 50, name = "last_name", nullable = true)
   private String lastName;
 
-  @Column(name = "avatar")
+  @Column(name = "avatar", length = 512)
   private String avatar;
 
   @Column(name = "provider")
@@ -88,40 +92,40 @@ public class User extends BaseAuditingEntity {
   @Column(name = "remember_me", nullable = false)
   private Boolean rememberMe = false;
 
-  @Column(name = "uuid", nullable = false)
-  private UUID uuid = UUID.randomUUID();
+  @Column(name = "uuid", nullable = false, unique = true, updatable = false)
+  private UUID uuid;
 
-  @OneToOne(
-      mappedBy = "user",
-      cascade = {CascadeType.MERGE, CascadeType.PERSIST})
-  private Cart cart;
-
-  @OneToMany(
-      cascade = CascadeType.ALL,
-      fetch = FetchType.LAZY,
-      targetEntity = Address.class,
-      mappedBy = "user")
-  @OnDelete(action = OnDeleteAction.CASCADE)
-  private List<Address> addresses;
-
-  @OneToMany(
-      mappedBy = "user",
-      cascade = CascadeType.ALL,
-      fetch = FetchType.LAZY,
-      targetEntity = Order.class)
-  @OnDelete(action = OnDeleteAction.CASCADE)
-  @JsonIgnore
-  private List<Order> orders;
+//  @OneToOne(mappedBy = "user")
+//  @JsonIgnore
+//  private Cart cart;
+//
+//  @OneToMany(fetch = FetchType.LAZY, mappedBy = "user")
+//  @OnDelete(action = OnDeleteAction.CASCADE)
+//  @JsonIgnore
+//  private List<Address> addresses;
+//
+//  @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+//  @OnDelete(action = OnDeleteAction.CASCADE)
+//  @JsonIgnore
+//  private List<Order> orders;
 
   @ManyToMany(fetch = FetchType.LAZY)
   @JoinTable(
       name = "user_roles",
       joinColumns = @JoinColumn(name = "user_id"),
       inverseJoinColumns = @JoinColumn(name = "role_id"))
-  private Set<Role> roles;
+  @JsonIgnore
+  private Set<Role> roles = new HashSet<>();
 
   public String getFullName() {
     return firstName + " " + lastName;
   }
 
+  // pre persist
+  @PrePersist
+  public void prePersist() {
+    if (uuid == null) {
+      uuid = UUID.randomUUID();
+    }
+  }
 }

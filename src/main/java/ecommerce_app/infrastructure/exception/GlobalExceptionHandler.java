@@ -6,6 +6,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.TransactionSystemException;
 import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -50,15 +51,24 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
   }
 
   @ExceptionHandler(IllegalArgumentException.class)
-  public ResponseEntity<BaseBodyResponse> handleIllegalArgumentException(IllegalArgumentException ex) {
+  public ResponseEntity<BaseBodyResponse> handleIllegalArgumentException(
+      IllegalArgumentException ex) {
     HttpStatus httpStatus = HttpStatus.BAD_REQUEST;
 
     return BaseBodyResponse.failed(httpStatus, ex.getMessage());
   }
 
   @ExceptionHandler(ResourceNotFoundException.class)
-  public ResponseEntity<BaseBodyResponse> handleResourceNotFoundException(ResourceNotFoundException ex) {
+  public ResponseEntity<BaseBodyResponse> handleResourceNotFoundException(
+      ResourceNotFoundException ex) {
     HttpStatus httpStatus = HttpStatus.NOT_FOUND;
+    return BaseBodyResponse.failed(httpStatus, ex.getMessage());
+  }
+
+  @ExceptionHandler(TransactionSystemException.class)
+  public ResponseEntity<BaseBodyResponse> handleTransactionSystemException(
+      TransactionSystemException ex) {
+    HttpStatus httpStatus = HttpStatus.INTERNAL_SERVER_ERROR;
     return BaseBodyResponse.failed(httpStatus, ex.getMessage());
   }
 }

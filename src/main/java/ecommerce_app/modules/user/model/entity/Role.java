@@ -19,6 +19,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.ToString;
 
 @Table(name = "roles")
 @Getter
@@ -27,6 +28,7 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@ToString(exclude = {"permissions", "users"}) // ← ADD THIS if missing
 public class Role extends BaseSoftDeleteEntity {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -51,5 +53,6 @@ public class Role extends BaseSoftDeleteEntity {
       name = "role_permissions",
       joinColumns = @JoinColumn(name = "role_id"),
       inverseJoinColumns = @JoinColumn(name = "permission_id"))
+  @JsonIgnore
   private Set<Permission> permissions = new HashSet<>();
 }

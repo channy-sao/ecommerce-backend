@@ -1,6 +1,7 @@
 package ecommerce_app.modules.cart.model.entity;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import ecommerce_app.constant.enums.CartStatus;
 import ecommerce_app.modules.product.model.entity.Product;
 import jakarta.persistence.CascadeType;
@@ -49,6 +50,7 @@ public class CartItem {
       targetEntity = Cart.class,
       cascade = {CascadeType.MERGE, CascadeType.PERSIST})
   @JoinColumn(name = "cart_id", referencedColumnName = "id", nullable = false)
+  @JsonIgnore
   private Cart cart;
 
   @CreatedBy

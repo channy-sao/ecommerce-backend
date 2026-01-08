@@ -4,6 +4,8 @@ import jakarta.persistence.Column;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.MappedSuperclass;
 import java.time.Instant;
+import java.time.LocalDateTime;
+
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.data.annotation.LastModifiedBy;
@@ -18,7 +20,7 @@ public abstract class BaseEntity extends AuditingEntity {
   private boolean isDeleted = false;
 
   @Column(name = "deleted_at")
-  private Instant deletedAt;
+  private LocalDateTime deletedAt;
 
   @LastModifiedBy
   @Column(name = "deleted_by")
@@ -26,6 +28,6 @@ public abstract class BaseEntity extends AuditingEntity {
 
   public void softDelete() {
     this.isDeleted = true;
-    this.deletedAt = Instant.now();
+    this.deletedAt = LocalDateTime.now();
   }
 }

@@ -1,5 +1,6 @@
 package ecommerce_app.modules.stock.model.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import ecommerce_app.infrastructure.model.entity.AuditingEntity;
 import ecommerce_app.modules.product.model.entity.Product;
 import jakarta.persistence.CascadeType;
@@ -33,11 +34,12 @@ public class ProductImport extends AuditingEntity {
   private Long id;
 
   @ManyToOne(
-      fetch = FetchType.EAGER,
+      fetch = FetchType.LAZY,
       optional = false,
       targetEntity = Product.class,
       cascade = CascadeType.ALL)
   @JoinColumn(name = "product_id", referencedColumnName = "id")
+  @JsonIgnore
   private Product product;
 
   @Column(nullable = false, name = "quantity")

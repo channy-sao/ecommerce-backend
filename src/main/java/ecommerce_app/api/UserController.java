@@ -17,8 +17,10 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.InitBinder;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -38,6 +40,13 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserController {
   private final UserService userService;
 
+  // Prevent ModelMapper from being used in data binding
+  @InitBinder
+  public void initBinder(WebDataBinder binder) {
+    binder.setDisallowedFields("roles", "addresses", "orders", "cart");
+    binder.setValidator(null); // Disable any auto-validators
+  }
+
   /**
    * Creates a new user based on the provided user data.
    *
@@ -54,7 +63,6 @@ public class UserController {
   }
 
   @Operation(summary = "Change user password")
-  @PreAuthorize("hasAuthority('USER_UPDATE')")
   @PutMapping("change-password")
   public ResponseEntity<BaseBodyResponse> changePassword(
       @Valid @RequestBody UpdatePasswordRequest updateRequest) {
@@ -140,11 +148,13 @@ public class UserController {
   @PreAuthorize("hasAuthority('USER_UPDATE')")
   @PutMapping("/{id}")
   public ResponseEntity<BaseBodyResponse> updateUser(
-      @ModelAttribute UpdateUserRequest updateUserRequest,
-      @PathVariable(value = "id") Long userId) {
-    return BaseBodyResponse.success(
-        userService.updateUser(updateUserRequest, userId),
-        ResponseMessageConstant.UPDATE_SUCCESSFULLY);
+      @Parameter(description = "User update form data", required = true) @ModelAttribute @Valid
+          UpdateUserRequest updateUserRequest,
+      @Parameter(description = "User ID", required = true, example = "123")
+          @PathVariable(value = "id")
+          Long userId) {
+    this.userService.updateUser(updateUserRequest, userId);
+    return BaseBodyResponse.success(null, ResponseMessageConstant.UPDATE_SUCCESSFULLY);
   }
 
   /**

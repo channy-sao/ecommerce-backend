@@ -1,17 +1,14 @@
 package ecommerce_app.infrastructure.model.response.body;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import ecommerce_app.constant.message.ResponseMessageConstant;
 import ecommerce_app.util.StatusResponseUtils;
+import jakarta.servlet.http.HttpServletRequest;
 import java.io.Serializable;
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZonedDateTime;
 import java.util.List;
-
-import jakarta.servlet.http.HttpServletRequest;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -20,7 +17,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-@Data
+@Getter
+@Setter
 public class BaseBodyResponse implements Serializable {
   @JsonInclude(JsonInclude.Include.NON_NULL)
   private Boolean success;

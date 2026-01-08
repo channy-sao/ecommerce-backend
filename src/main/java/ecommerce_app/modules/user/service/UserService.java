@@ -15,7 +15,7 @@ public interface UserService {
 
   UserResponse findByPhone(String phone);
 
-  UserResponse updateUser(UpdateUserRequest updateRequest, Long userId);
+  void updateUser(UpdateUserRequest updateRequest, Long userId);
 
   UserResponse create(CreateUserRequest createUserRequest);
 

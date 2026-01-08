@@ -35,8 +35,8 @@ public class StockResponse {
   private Long updatedBy;
 
   @Schema(description = "Timestamp when the stock record was created", example = "2024-07-01T10:00:00")
-  private Instant createdAt;
+  private LocalDateTime createdAt;
 
   @Schema(description = "Timestamp when the stock record was last updated", example = "2024-07-15T15:30:00")
-  private Instant updatedAt;
+  private LocalDateTime updatedAt;
 }
