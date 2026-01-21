@@ -5,6 +5,7 @@ import ecommerce_app.infrastructure.model.entity.AuditingEntity;
 import ecommerce_app.modules.cart.model.entity.CartItem;
 import ecommerce_app.modules.category.model.entity.Category;
 import ecommerce_app.modules.order.model.entity.OrderItem;
+import ecommerce_app.modules.promotion.model.entity.Promotion;
 import ecommerce_app.modules.stock.model.entity.ProductImport;
 import ecommerce_app.modules.stock.model.entity.Stock;
 import jakarta.persistence.CascadeType;
@@ -16,9 +17,12 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
@@ -76,10 +80,10 @@ public class Product extends AuditingEntity {
   private List<CartItem> cartItems;
 
   @OneToMany(
-          cascade = {CascadeType.MERGE, CascadeType.PERSIST},
-          fetch = FetchType.LAZY,
-          targetEntity = OrderItem.class,
-          mappedBy = "product")
+      cascade = {CascadeType.MERGE, CascadeType.PERSIST},
+      fetch = FetchType.LAZY,
+      targetEntity = OrderItem.class,
+      mappedBy = "product")
   @OnDelete(action = OnDeleteAction.CASCADE)
   @JsonIgnore
   private List<OrderItem> orderItems;
@@ -88,21 +92,32 @@ public class Product extends AuditingEntity {
   private UUID uuid = UUID.randomUUID();
 
   @OneToMany(
-          cascade = {CascadeType.MERGE, CascadeType.PERSIST},
-          fetch = FetchType.LAZY,
-          targetEntity = ProductImport.class,
-          mappedBy = "product")
+      cascade = {CascadeType.MERGE, CascadeType.PERSIST},
+      fetch = FetchType.LAZY,
+      targetEntity = ProductImport.class,
+      mappedBy = "product")
   @OnDelete(action = OnDeleteAction.CASCADE)
   @JsonIgnore
   private List<ProductImport> productImports;
 
-  @OneToMany(
-          cascade = {CascadeType.MERGE, CascadeType.PERSIST},
-          fetch = FetchType.LAZY,
-          targetEntity = Stock.class,
-          mappedBy = "product")
+  @OneToOne(
+      cascade = {CascadeType.MERGE, CascadeType.PERSIST},
+      targetEntity = Stock.class,
+      mappedBy = "product")
   @OnDelete(action = OnDeleteAction.CASCADE)
   @JsonIgnore
-  private List<Stock> stocks;
+  private Stock stock;
 
+  // Add this field to the Product class
+  @ManyToMany(mappedBy = "products")
+  @JsonIgnore
+  private List<Promotion> promotions;
+
+  @Transient
+  public int getStockQuantity() {
+    if (stock == null) {
+      return 0;
+    }
+    return stock.getQuantity();
+  }
 }

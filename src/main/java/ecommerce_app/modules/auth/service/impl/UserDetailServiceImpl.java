@@ -27,10 +27,9 @@ public class UserDetailServiceImpl implements UserDetailsService {
   public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
     User user =
         userRepository
-            .findByEmail(username)
+            .findByEmailWithRolesAndPermissions(username)
             .orElseThrow(() -> new UsernameNotFoundException("User not found"));
     if (!Objects.equals(user.getProvider(), "LOCAL")) {
-      // throw new UsernameNotFoundException("User not registered for local login");
       log.warn("User {} provider is not LOCAL", user.getEmail());
     }
 

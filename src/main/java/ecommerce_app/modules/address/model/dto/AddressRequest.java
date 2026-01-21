@@ -2,7 +2,6 @@ package ecommerce_app.modules.address.model.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -49,8 +48,8 @@ public class AddressRequest {
   @Schema(description = "Postal or ZIP code", example = "12000")
   private String postalCode;
 
-  @Schema(description = "Set this address as the default", example = "true")
-  private boolean isDefault;
+  @Schema(description = "Set this address as the default", example = "true", name = "isDefault")
+  private Boolean isDefault;
 
   @Schema(description = "Latitude coordinate", example = "11.5564")
   private Double latitude;

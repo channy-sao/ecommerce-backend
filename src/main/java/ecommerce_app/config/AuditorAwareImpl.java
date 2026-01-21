@@ -1,12 +1,10 @@
 package ecommerce_app.config;
 
-import ecommerce_app.modules.user.repository.UserRepository;
+import ecommerce_app.modules.auth.custom.CustomUserDetails;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.AuditorAware;
-import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 
 /**
  * AuditorAware implementation used to automatically capture the ID of the currently authenticated
@@ -14,7 +12,6 @@ import org.springframework.security.core.userdetails.UserDetails;
  */
 @RequiredArgsConstructor
 public class AuditorAwareImpl implements AuditorAware<Long> {
-  private final UserRepository userRepository;
 
   /**
    * Retrieves the ID of the currently authenticated user to be used as the auditor.
@@ -23,17 +20,17 @@ public class AuditorAwareImpl implements AuditorAware<Long> {
    */
   @Override
   public Optional<Long> getCurrentAuditor() {
-    final SecurityContext securityContext = SecurityContextHolder.getContext();
-    if (securityContext.getAuthentication() == null
-        || !securityContext.getAuthentication().isAuthenticated()) {
+    var auth = SecurityContextHolder.getContext().getAuthentication();
+
+    if (auth == null || !auth.isAuthenticated()) {
       return Optional.empty();
     }
 
-    Object principal = securityContext.getAuthentication().getPrincipal();
+    Object principal = auth.getPrincipal();
 
-    if (principal instanceof UserDetails userDetails) {
-      var user = userRepository.findByEmail(userDetails.getUsername()).orElse(null);
-      return user == null ? Optional.empty() : Optional.of(user.getId());
+    // If principal is your custom UserDetails
+    if (principal instanceof CustomUserDetails(ecommerce_app.modules.auth.custom.AuthUser user)) {
+      return Optional.of(user.getId()); // <- safe, no repository call
     }
 
     return Optional.empty();

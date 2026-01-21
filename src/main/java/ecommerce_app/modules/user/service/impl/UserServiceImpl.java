@@ -85,10 +85,7 @@ public class UserServiceImpl implements UserService {
   public void updateUser(UpdateUserRequest request, Long userId) {
 
     try {
-      User user =
-          userRepository
-              .findById(userId)
-              .orElseThrow(() -> new ResourceNotFoundException("User", userId));
+      final User user = findUserById(userId);
 
       validateUniqueFields(request, userId);
 
@@ -102,6 +99,19 @@ public class UserServiceImpl implements UserService {
 
       if (request.getPassword() != null) {
         user.setPassword(passwordEncoder.encode(request.getPassword()));
+      }
+
+      // if include new  file in request
+      if (request.getProfile() != null && !request.getProfile().isEmpty()) {
+        // remove old file if exist
+        if (user.getAvatar() != null && !user.getAvatar().isBlank()) {
+          deleteAvatarFile(user.getAvatar());
+        }
+
+        // save new file
+        String saveFile =
+            fileManagerService.saveFile(request.getProfile(), storageConfigProperty.getAvatar());
+        user.setAvatar(saveFile);
       }
       userRepository.save(user);
       log.info("User updated: {}", user.getId());

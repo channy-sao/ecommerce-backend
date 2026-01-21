@@ -1,11 +1,13 @@
 package ecommerce_app.api.client;
 
 import ecommerce_app.infrastructure.model.response.body.BaseBodyResponse;
+import ecommerce_app.modules.auth.custom.CustomUserDetails;
 import ecommerce_app.modules.cart.service.CartService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -22,27 +24,35 @@ public class CartController {
   private final CartService cartService;
 
   @PostMapping("/add-to-cart")
-  public ResponseEntity<BaseBodyResponse> addCart(@RequestParam Long productId) {
+  public ResponseEntity<BaseBodyResponse> addCart(
+      @RequestParam Long productId, @AuthenticationPrincipal CustomUserDetails userDetails) {
     return BaseBodyResponse.success(
-        this.cartService.addNewProductToCart(productId), "Successfully added cart.");
+        this.cartService.addNewProductToCart(productId, userDetails.getId()),
+        "Successfully added cart.");
   }
 
-  @PostMapping("/items/{productId}/increment")
+  @PostMapping("/items/{itemId}/increment")
   public ResponseEntity<BaseBodyResponse> increment(
-      @PathVariable(value = "productId", name = "productId") Long productId) {
+      @PathVariable(value = "itemId", name = "itemId") Long itemId,
+      @AuthenticationPrincipal CustomUserDetails userDetails) {
     return BaseBodyResponse.success(
-        this.cartService.incrementItem(productId), "Successfully increment cart.");
+        this.cartService.incrementItem(itemId, userDetails.getId()),
+        "Successfully increment cart.");
   }
 
-  @PostMapping("/items/{productId}/decrement")
+  @PostMapping("/items/{itemId}/decrement")
   public ResponseEntity<BaseBodyResponse> decrement(
-      @PathVariable(name = "productId", value = "productId") Long productId) {
+      @PathVariable(name = "itemId", value = "itemId") Long itemId,
+      @AuthenticationPrincipal CustomUserDetails userDetails) {
     return BaseBodyResponse.success(
-        this.cartService.decrementItem(productId), "Successfully decrement cart.");
+        this.cartService.decrementItem(itemId, userDetails.getId()),
+        "Successfully decrement cart.");
   }
 
   @GetMapping
-  public ResponseEntity<BaseBodyResponse> getCart() {
-    return BaseBodyResponse.success(this.cartService.getCart(), "Successfully get cart.");
+  public ResponseEntity<BaseBodyResponse> getCart(
+      @AuthenticationPrincipal CustomUserDetails userDetails) {
+    return BaseBodyResponse.success(
+        this.cartService.getCart(userDetails.getId()), "Successfully get cart.");
   }
 }

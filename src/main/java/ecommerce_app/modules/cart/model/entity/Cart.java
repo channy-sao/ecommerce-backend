@@ -1,8 +1,8 @@
 package ecommerce_app.modules.cart.model.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import ecommerce_app.constant.enums.CartStatus;
+import ecommerce_app.infrastructure.exception.BadRequestException;
 import ecommerce_app.infrastructure.model.entity.BaseAuditingEntity;
 import ecommerce_app.modules.order.model.entity.OrderItem;
 import ecommerce_app.modules.product.model.entity.Product;
@@ -18,12 +18,12 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
@@ -44,14 +44,10 @@ import org.hibernate.annotations.OnDeleteAction;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@ToString(exclude = {"user", "cartItems", "orderItems"}) // Exclude relationships
 public class Cart extends BaseAuditingEntity {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
-
-  @Column(nullable = false, unique = true, name = "total")
-  private BigDecimal total;
 
   @Column(name = "status", nullable = false, length = 25)
   @Enumerated(EnumType.STRING)
@@ -76,7 +72,7 @@ public class Cart extends BaseAuditingEntity {
   @OnDelete(action = OnDeleteAction.CASCADE)
   private List<OrderItem> orderItems;
 
-  @OneToOne(fetch = FetchType.LAZY)
+  @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "user_id")
   @JsonIgnoreProperties({"cart", "addresses", "orders", "roles"}) // Use @JsonIgnoreProperties
   private User user;
@@ -87,36 +83,28 @@ public class Cart extends BaseAuditingEntity {
     }
 
     boolean exists = cartItems.stream().anyMatch(item -> item.getProduct().equals(product));
-    if (exists) throw new IllegalStateException("Already in cart");
+    if (exists) throw new BadRequestException("Product is already in cart");
     final CartItem cartItem =
         CartItem.builder()
             .cart(this)
             .product(product)
             .price(product.getPrice())
-            .status(CartStatus.ACTIVE)
             .quantity(1)
             .build();
     cartItems.add(cartItem);
   }
 
-  public void incrementItem(Product product) {
-    CartItem item =
-        cartItems.stream()
-            .filter(i -> i.getProduct().equals(product))
-            .findFirst()
-            .orElseThrow(() -> new RuntimeException("Not in cart"));
-    item.increment();
+  public void removeItemById(Long itemId) {
+    cartItems.removeIf(item -> item.getId().equals(itemId)); // Remove by itemId
   }
 
-  public void decrementItem(Product product) {
-    Iterator<CartItem> it = cartItems.iterator();
-    while (it.hasNext()) {
-      CartItem item = it.next();
-      if (item.getProduct().equals(product)) {
-        item.decrement();
-        if (item.getQuantity() <= 0) it.remove();
-        return;
-      }
+  // Total price in the cart
+  public BigDecimal getTotal() {
+    if (cartItems == null || cartItems.isEmpty()) {
+      return BigDecimal.ZERO;
     }
+    return cartItems.stream()
+        .map(item -> item.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
+        .reduce(BigDecimal.ZERO, BigDecimal::add);
   }
 }

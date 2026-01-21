@@ -48,9 +48,15 @@ public class OrderItem {
   @JoinColumn(name = "product_id", nullable = false, referencedColumnName = "id")
   private Product product;
 
+  // How many units of this product were ordered
   @Column(nullable = false, name = "quantity")
   private Integer quantity;
 
+  /*
+   * Price before any discount
+   * Formula: subtotal = originalPrice × quantity
+   * Example: originalPrice = 50, quantity = 3 → subtotal = 150
+   */
   @Column(nullable = false, name = "subtotal")
   private BigDecimal subtotal;
 
@@ -62,4 +68,31 @@ public class OrderItem {
   @JoinColumn(name = "cart_id", nullable = false, referencedColumnName = "id")
   @JsonIgnore
   private Cart cart;
+
+  // The applied promotion or coupon code, if any
+  @Column(name = "promotion_code")
+  private String promotionCode;
+
+  /*
+   * How much discount is applied to this item
+   * Example: subtotal = 150, discountAmount = 30 → 30 off
+   */
+  @Column(name = "discount_amount")
+  private BigDecimal discountAmount = BigDecimal.ZERO;
+
+  /*
+   * Unit price of the product at the time of order
+   * Used to calculate subtotal
+   * Example: 1 unit = 50
+   */
+  @Column(name = "original_price")
+  private BigDecimal originalPrice;
+
+  /*
+   * Final price after discount
+   * Formula: totalPrice = subtotal − discountAmount
+   * Example: subtotal = 150, discountAmount = 30 → totalPrice = 120
+   */
+  @Column(name = "total_price")
+  private BigDecimal totalPrice;
 }

@@ -71,4 +71,10 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     HttpStatus httpStatus = HttpStatus.INTERNAL_SERVER_ERROR;
     return BaseBodyResponse.failed(httpStatus, ex.getMessage());
   }
+
+  @ExceptionHandler(IllegalStateException.class)
+  public ResponseEntity<BaseBodyResponse> handleIllegalStateException(IllegalStateException ex) {
+    HttpStatus httpStatus = HttpStatus.INTERNAL_SERVER_ERROR;
+    return BaseBodyResponse.failed(httpStatus, ex.getMessage());
+  }
 }

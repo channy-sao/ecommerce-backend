@@ -18,8 +18,6 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 @EnableTransactionManagement
 @RequiredArgsConstructor
 public class AuditConfig {
-  private final UserRepository userRepository;
-
   /**
    * Provides an implementation of {@link AuditorAware} that retrieves the current auditor (user).
    * This is typically used for tracking which user created or modified a given entity.
@@ -28,6 +26,6 @@ public class AuditConfig {
    */
   @Bean
   public AuditorAware<Long> auditorProvider() {
-    return new AuditorAwareImpl(userRepository);
+    return new AuditorAwareImpl();
   }
 }

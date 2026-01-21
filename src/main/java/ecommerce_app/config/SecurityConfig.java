@@ -1,5 +1,7 @@
 package ecommerce_app.config;
 
+import ecommerce_app.modules.auth.custom.CustomUserDetails;
+import ecommerce_app.modules.auth.service.impl.UserDetailServiceImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -29,9 +31,7 @@ public class SecurityConfig {
 
   private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
   private final CustomAccessDenied customAccessDenied;
-  private final PasswordEncoder passwordEncoder;
   private final JwtAuthFilter jwtAuthFilter;
-  private final UserDetailsService userDetailsService;
 
   @Bean
   public AuthenticationManager authenticationManager(AuthenticationConfiguration config)
@@ -68,13 +68,13 @@ public class SecurityConfig {
                         "/v3/api-docs.yaml",
                         "/swagger-resources/**")
                     .permitAll()
-                    .requestMatchers("/api/v1/auth/me", "/api/admin/v1/**")
+                    .requestMatchers("/api/v1/auth/me", "/api/admin/v1/**", "/api/client/v1/**")
                     .authenticated()
                     .anyRequest()
                     .permitAll())
         .sessionManagement(
             session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-        .authenticationProvider(authenticationProvider())
+        //        .authenticationProvider(authenticationProvider())
         .exceptionHandling(
             exception ->
                 exception
@@ -82,12 +82,5 @@ public class SecurityConfig {
                     .accessDeniedHandler(customAccessDenied))
         .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
     return http.build();
-  }
-
-  @Bean
-  public DaoAuthenticationProvider authenticationProvider() {
-    DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider(userDetailsService);
-    authProvider.setPasswordEncoder(passwordEncoder);
-    return authProvider;
   }
 }

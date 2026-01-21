@@ -68,6 +68,7 @@ public class RoleServiceImpl extends ValidatePermission implements RoleService {
             });
   }
 
+  @Transactional(rollbackFor = Exception.class)
   @Override
   public void deleteRole(long roleId) {
     log.info("Start soft delete role id={}", roleId);
@@ -83,6 +84,7 @@ public class RoleServiceImpl extends ValidatePermission implements RoleService {
     log.info("Role soft deleted id={}", roleId);
   }
 
+  @Transactional(readOnly = true)
   @Override
   public RoleResponse getRole(long roleId) {
     log.info("Start get role id={}", roleId);
@@ -93,6 +95,7 @@ public class RoleServiceImpl extends ValidatePermission implements RoleService {
     return modelMapper.map(role, RoleResponse.class);
   }
 
+  @Transactional(readOnly = true)
   @Override
   public Set<RoleResponse> getRoles() {
     log.info("Start get roles.");

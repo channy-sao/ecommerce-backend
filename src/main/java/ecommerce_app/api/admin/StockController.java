@@ -1,11 +1,13 @@
 package ecommerce_app.api.admin;
 
 import ecommerce_app.infrastructure.model.response.body.BaseBodyResponse;
+import ecommerce_app.modules.stock.model.dto.ProductImportFilterRequest;
 import ecommerce_app.modules.stock.model.dto.ProductImportRequest;
 import ecommerce_app.modules.stock.model.dto.ProductImportResponse;
 import ecommerce_app.modules.stock.model.dto.UpdateStockRequest;
 import ecommerce_app.modules.stock.service.ProductImportService;
 import ecommerce_app.modules.stock.service.StockService;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -26,7 +28,7 @@ public class StockController {
   // 1) Import product (Create)
   // -----------------------------
 
-  @PostMapping("/import")
+  @PostMapping("/import-product")
   public ResponseEntity<BaseBodyResponse> importProducts(
       @RequestBody @Valid ProductImportRequest productImportRequest) {
     this.productImportService.importProduct(productImportRequest);
@@ -37,7 +39,7 @@ public class StockController {
   // 2) Update import record (Fix mistakes)
   // -----------------------------
 
-  @PutMapping("/import/{id}")
+  @PutMapping("/import-product/{id}")
   public ResponseEntity<BaseBodyResponse> updateImportProduct(
       @PathVariable(value = "id") Long id,
       @RequestBody @Valid ProductImportRequest productImportRequest) {
@@ -49,17 +51,19 @@ public class StockController {
   // 3) Get all import history
   // -----------------------------
 
-  @GetMapping("/import")
-  public ResponseEntity<BaseBodyResponse> getImported() {
-    final List<ProductImportResponse> productImports =
-        this.productImportService.getProductImports();
-    return BaseBodyResponse.success(productImports, "Get Product Imports successful");
+  @PostMapping("/import-product/filter")
+  public ResponseEntity<BaseBodyResponse> getImported(
+      @RequestBody @Valid
+          ProductImportFilterRequest filterRequest) {
+    return BaseBodyResponse.pageSuccess(
+        this.productImportService.getImportListing(filterRequest),
+        "Get Product Imports successful");
   }
 
   // -----------------------------
   // 4) Get import history by product
   // -----------------------------
-  @GetMapping("/import/product/{productId}")
+  @GetMapping("/import-product/product/{productId}")
   public ResponseEntity<BaseBodyResponse> getImportedByProduct(
       @PathVariable(value = "productId") Long productId) {
     final List<ProductImportResponse> productImports =
@@ -80,12 +84,12 @@ public class StockController {
   // 6) Update stock manually (optional)
   // For example: admin adjusts stock
   // -----------------------------
-  @PatchMapping("/product/{productId}")
+  @PatchMapping("/product/{productId}/adjust")
   public ResponseEntity<BaseBodyResponse> updateStock(
       @PathVariable Long productId, @Valid @RequestBody UpdateStockRequest request) {
 
     stockService.adjustStock(productId, request.getQuantity());
-    return ResponseEntity.ok().build();
+    return BaseBodyResponse.success(null, "adjust Stock successful");
   }
 
   // -----------------------------
@@ -94,5 +98,17 @@ public class StockController {
   @GetMapping
   public ResponseEntity<BaseBodyResponse> getStocks() {
     return BaseBodyResponse.success(stockService.getStocks(), "Listing stocks successful");
+  }
+
+  // -----------------------------
+  // 8) Get History of imported product by product id
+  // -----------------------------
+  @GetMapping("/import-product/product/{productId}/history")
+  public ResponseEntity<BaseBodyResponse> getProductImportHistory(
+      @PathVariable(value = "productId") Long productId) {
+    final var productImports =
+        this.productImportService.getProductImportHistoryByProductId(productId);
+    return BaseBodyResponse.success(
+        productImports, "Get Product Import history by Product successful");
   }
 }

@@ -1,6 +1,7 @@
 package ecommerce_app.util;
 
 import ecommerce_app.modules.cart.model.entity.Cart;
+import ecommerce_app.modules.promotion.model.entity.Promotion;
 import java.math.BigDecimal;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
@@ -27,5 +28,25 @@ public class AmountCalculatedUtils {
     return cart.getCartItems().stream()
         .map(cartItem -> cartItem.getPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity())))
         .reduce(BigDecimal.ZERO, BigDecimal::add);
+  }
+
+  public static BigDecimal calculateTotalAmountWithPromotion(Cart cart, Promotion promotion) {
+    BigDecimal subtotal = calculateTotalAmount(cart);
+
+    if (promotion == null) {
+      return subtotal;
+    }
+
+    // For actual discount calculation, you would use PromotionFacade
+    // This is a simplified version
+    BigDecimal discount = calculateDiscount(cart, promotion);
+
+    return subtotal.subtract(discount);
+  }
+
+  private static BigDecimal calculateDiscount(Cart cart, Promotion promotion) {
+    // This is a placeholder - actual discount calculation should use PromotionFacade
+    // You might want to remove this method and always use PromotionFacade
+    return BigDecimal.ZERO;
   }
 }

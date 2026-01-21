@@ -4,6 +4,7 @@ import ecommerce_app.infrastructure.io.service.FileManagerService;
 import ecommerce_app.infrastructure.property.StorageConfigProperty;
 import ecommerce_app.modules.product.model.dto.ProductResponse;
 import ecommerce_app.modules.product.model.entity.Product;
+import java.util.List;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import org.modelmapper.ModelMapper;
@@ -18,7 +19,8 @@ public class ProductMapper {
   public static void setProperties(
       ModelMapper modelMapper,
       FileManagerService fileManagerService,
-      StorageConfigProperty storageConfigProperty, AuditUserResolver auditUserResolver) {
+      StorageConfigProperty storageConfigProperty,
+      AuditUserResolver auditUserResolver) {
     ProductMapper.modelMapper = modelMapper;
     ProductMapper.fileManagerService = fileManagerService;
     ProductMapper.storageConfigProperty = storageConfigProperty;
@@ -32,11 +34,13 @@ public class ProductMapper {
             ? null
             : fileManagerService.getResourceUrl(
                 storageConfigProperty.getProduct(), product.getImage());
+    final var auditUserMap =
+        auditUserResolver.resolve(List.of(product.getCreatedBy(), product.getUpdatedBy()));
     response.setImage(image);
     response.setCategoryId(product.getCategory().getId());
     response.setCategoryName(product.getCategory().getName());
-    response.setCreatedBy(auditUserResolver.resolve(product.getCreatedBy()));
-    response.setUpdatedBy(auditUserResolver.resolve(product.getUpdatedBy()));
+    response.setCreatedBy(auditUserMap.get(product.getCreatedBy()));
+    response.setUpdatedBy(auditUserMap.get(product.getUpdatedBy()));
     return response;
   }
 }

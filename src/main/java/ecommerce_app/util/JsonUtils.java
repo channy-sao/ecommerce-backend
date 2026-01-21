@@ -3,14 +3,16 @@ package ecommerce_app.util;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Utility class for JSON serialization and deserialization using Jackson's ObjectMapper.
- * This class provides methods to convert objects to JSON strings and vice versa.
- * It ensures a singleton instance of ObjectMapper for efficient usage.
+ * Utility class for JSON serialization and deserialization using Jackson's ObjectMapper. This class
+ * provides methods to convert objects to JSON strings and vice versa. It ensures a singleton
+ * instance of ObjectMapper for efficient usage.
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 @Slf4j
@@ -26,6 +28,8 @@ public class JsonUtils {
   public static ObjectMapper getObjectMapper() {
     if (objectMapper == null) {
       objectMapper = new ObjectMapper();
+      objectMapper.registerModule(new JavaTimeModule());
+      objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
     }
     return objectMapper;
   }
@@ -33,9 +37,9 @@ public class JsonUtils {
   /**
    * Converts a JSON string into an object of the specified class.
    *
-   * @param json  the JSON string to deserialize
+   * @param json the JSON string to deserialize
    * @param clazz the target class type
-   * @param <T>   the type of the object
+   * @param <T> the type of the object
    * @return an instance of the specified class
    * @throws JsonProcessingException if deserialization fails
    */
@@ -44,17 +48,17 @@ public class JsonUtils {
   }
 
   /**
-   * Converts a JSON string into an object of the specified type reference.
-   * Useful for handling generic types such as Lists and Maps.
+   * Converts a JSON string into an object of the specified type reference. Useful for handling
+   * generic types such as Lists and Maps.
    *
-   * @param json          the JSON string to deserialize
+   * @param json the JSON string to deserialize
    * @param typeReference the target type reference
-   * @param <T>           the type of the object
+   * @param <T> the type of the object
    * @return an instance of the specified type
    * @throws JsonProcessingException if deserialization fails
    */
   public static <T> T fromJson(String json, TypeReference<T> typeReference)
-          throws JsonProcessingException {
+      throws JsonProcessingException {
     return getObjectMapper().readValue(json, typeReference);
   }
 
@@ -62,7 +66,7 @@ public class JsonUtils {
    * Serializes an object into a JSON string.
    *
    * @param data the object to serialize
-   * @param <T>  the type of the object
+   * @param <T> the type of the object
    * @return a JSON string representation of the object
    * @throws JsonProcessingException if serialization fails
    */

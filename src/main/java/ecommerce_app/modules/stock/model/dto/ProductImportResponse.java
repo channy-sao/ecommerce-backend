@@ -1,5 +1,7 @@
 package ecommerce_app.modules.stock.model.dto;
 
+import ecommerce_app.infrastructure.model.response.AuditUserDto;
+import ecommerce_app.modules.product.model.dto.ProductResponse;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -21,8 +23,8 @@ public class ProductImportResponse {
   @Schema(description = "Unique identifier of the import record", example = "1")
   private Long id;
 
-  @Schema(description = "ID of the imported product", example = "101")
-  private Long productId;
+  @Schema(description = "Representation of product")
+  private ProductResponse product;
 
   @Schema(description = "Quantity of the product imported", example = "50")
   private int quantity;
@@ -55,9 +57,9 @@ public class ProductImportResponse {
       example = "2024-07-26T12:30:45")
   private LocalDateTime updatedAt;
 
-  @Schema(description = "ID of the user who created the import record", example = "5")
-  private Long createdBy;
+  @Schema(description = "User who created the import record")
+  private AuditUserDto createdBy;
 
-  @Schema(description = "ID of the user who last updated the import record", example = "8")
-  private Long updatedBy;
+  @Schema(description = "User who last updated the import record")
+  private AuditUserDto updatedBy;
 }

@@ -2,9 +2,6 @@ package ecommerce_app.modules.user.model.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import ecommerce_app.infrastructure.model.entity.BaseAuditingEntity;
-import ecommerce_app.modules.address.model.entity.Address;
-import ecommerce_app.modules.cart.model.entity.Cart;
-import ecommerce_app.modules.order.model.entity.Order;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -15,13 +12,10 @@ import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.OneToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
@@ -31,8 +25,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
 
 @Table(
     name = "users",
@@ -45,10 +37,6 @@ import org.hibernate.annotations.OnDeleteAction;
 @Setter
 @Entity
 @Builder
-@ToString(exclude = {"cart", "addresses", "orders", "roles"}) // Exclude ALL relationships
-@EqualsAndHashCode(
-    exclude = {"cart", "addresses", "orders", "roles"},
-    callSuper = false)
 @NoArgsConstructor
 @AllArgsConstructor
 public class User extends BaseAuditingEntity {
@@ -89,25 +77,14 @@ public class User extends BaseAuditingEntity {
   @Column(name = "email_verified_at")
   private LocalDateTime emailVerifiedAt;
 
+  @Column(name = "email_verified")
+  private Boolean isEmailVerified;
+
   @Column(name = "remember_me", nullable = false)
   private Boolean rememberMe = false;
 
   @Column(name = "uuid", nullable = false, unique = true, updatable = false)
   private UUID uuid;
-
-//  @OneToOne(mappedBy = "user")
-//  @JsonIgnore
-//  private Cart cart;
-//
-//  @OneToMany(fetch = FetchType.LAZY, mappedBy = "user")
-//  @OnDelete(action = OnDeleteAction.CASCADE)
-//  @JsonIgnore
-//  private List<Address> addresses;
-//
-//  @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
-//  @OnDelete(action = OnDeleteAction.CASCADE)
-//  @JsonIgnore
-//  private List<Order> orders;
 
   @ManyToMany(fetch = FetchType.LAZY)
   @JoinTable(

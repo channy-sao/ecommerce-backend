@@ -22,7 +22,7 @@ public class Stock extends AuditingEntity {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
-  @ManyToOne(
+  @OneToOne(
       optional = false,
       targetEntity = Product.class,
       cascade = {CascadeType.MERGE, CascadeType.PERSIST},

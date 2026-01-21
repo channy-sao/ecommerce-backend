@@ -1,8 +1,7 @@
 package ecommerce_app.modules.address.model.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import ecommerce_app.modules.user.model.entity.User;
-import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -67,6 +66,6 @@ public class Address {
 
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
   @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = false)
-  @JsonIgnoreProperties({"addresses", "cart", "orders", "roles"}) // Use @JsonIgnoreProperties
+  @JsonIgnore
   private User user;
 }

@@ -1,5 +1,6 @@
 package ecommerce_app.modules.address.model.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -13,6 +14,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @Schema(description = "Address response DTO containing full address information")
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class AddressResponse {
 
   @Schema(description = "Unique identifier of the address", example = "1")
@@ -39,7 +41,7 @@ public class AddressResponse {
   @Schema(description = "Longitude coordinate", example = "104.9282")
   private double longitude;
 
-  @Schema(description = "Indicates if this is the default address", example = "true")
+  @Schema(description = "Indicates if this is the default address", example = "true", name = "isDefault")
   private boolean isDefault;
 
   @Schema(description = "First line of the address", example = "Building A, Room 101")

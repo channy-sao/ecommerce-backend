@@ -1,19 +1,22 @@
 package ecommerce_app.modules.stock.service.impl;
 
 import ecommerce_app.infrastructure.exception.ResourceNotFoundException;
+import ecommerce_app.infrastructure.mapper.StockMapper;
+import ecommerce_app.modules.product.model.dto.ProductResponse;
 import ecommerce_app.modules.product.model.entity.Product;
 import ecommerce_app.modules.product.repository.ProductRepository;
 import ecommerce_app.modules.stock.model.dto.StockResponse;
 import ecommerce_app.modules.stock.model.entity.Stock;
 import ecommerce_app.modules.stock.repository.StockRepository;
 import ecommerce_app.modules.stock.service.StockService;
+import java.util.List;
+
+import ecommerce_app.util.ProductMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
 
 @Service
 @Transactional
@@ -21,13 +24,14 @@ import java.util.List;
 @RequiredArgsConstructor
 public class StockServiceImpl implements StockService {
   private final StockRepository stockRepository;
-  private final ModelMapper modelMapper;
   private final ProductRepository productRepository;
+  private final StockMapper stockMapper;
 
+  @Transactional(readOnly = true)
   @Override
   public StockResponse getByProductId(Long productId) {
     log.info("Get Stock By ProductId: {}", productId);
-    return modelMapper.map(stockRepository.getByProductId(productId), StockResponse.class);
+    return stockMapper.toStockResponse(stockRepository.getByProductId(productId));
   }
 
   @Override
@@ -77,16 +81,17 @@ public class StockServiceImpl implements StockService {
     // Convert to response
     StockResponse.builder()
         .id(stock.getId())
-        .productId(stock.getProduct().getId())
+        .product(ProductMapper.toProductResponse(stock.getProduct()))
         .quantity(stock.getQuantity())
         .updatedAt(stock.getUpdatedAt())
         .build();
   }
 
+  @Transactional(readOnly = true)
   @Override
   public List<StockResponse> getStocks() {
     log.info("Get Stock List");
     final var stocks = stockRepository.findAll();
-    return stocks.stream().map(stock -> modelMapper.map(stock, StockResponse.class)).toList();
+    return stocks.stream().map(stockMapper::toStockResponse).toList();
   }
 }

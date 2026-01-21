@@ -15,6 +15,10 @@ public record CustomUserDetails(AuthUser user) implements UserDetails {
     return user.getAuthorities().stream().map(SimpleGrantedAuthority::new).toList();
   }
 
+  public Long getId() {
+    return user.getId();
+  }
+
   @Override
   public String getPassword() {
     return user.getPassword();

@@ -1,14 +1,10 @@
 package ecommerce_app.modules.cart.model.entity;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import ecommerce_app.constant.enums.CartStatus;
 import ecommerce_app.modules.product.model.entity.Product;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -22,7 +18,6 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.springframework.data.annotation.CreatedBy;
 
 @Table(name = "cart_items")
 @Entity
@@ -53,18 +48,19 @@ public class CartItem {
   @JsonIgnore
   private Cart cart;
 
-  @CreatedBy
   @Column(name = "quantity", nullable = false)
   private int quantity;
 
-  @Column(nullable = false, unique = true, name = "price")
+  @Column(nullable = false, name = "price")
   private BigDecimal price;
 
-  @Column(name = "status", nullable = false, length = 25)
-  @Enumerated(EnumType.STRING)
-  private CartStatus status;
+  public void increment() {
+    quantity++;
+  }
 
+  public void decrement() {
 
-  public void increment() { quantity++; }
-  public void decrement() { quantity--; }
+    if (quantity > 0) quantity--;
+  }
+
 }

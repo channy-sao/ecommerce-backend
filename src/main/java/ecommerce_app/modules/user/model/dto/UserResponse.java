@@ -1,15 +1,14 @@
 package ecommerce_app.modules.user.model.dto;
 
 import ecommerce_app.modules.user.model.entity.Permission;
-import ecommerce_app.modules.user.model.entity.User;
 import io.swagger.v3.oas.annotations.media.Schema;
+import java.time.LocalDateTime;
 import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.modelmapper.ModelMapper;
 
 @Getter
 @Setter
@@ -44,6 +43,18 @@ public class UserResponse {
 
   @Schema(description = "Status of the user account", example = "true")
   private Boolean isActive;
+
+  @Schema(description = "Email Verified of the user account", example = "true")
+  private Boolean isEmailVerified;
+
+  @Schema(description = "Email Verified Time of the user account", example = "true")
+  private LocalDateTime emailVerifiedAt;
+
+  @Schema(description = "Created date time of user")
+  private LocalDateTime createdAt;
+
+  @Schema(description = "Updated date time of user")
+  private LocalDateTime updatedAt;
 
   @Schema(description = "Role representation of user")
   private Set<RoleResponse> roles;

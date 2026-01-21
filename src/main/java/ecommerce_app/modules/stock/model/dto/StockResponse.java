@@ -1,10 +1,10 @@
 package ecommerce_app.modules.stock.model.dto;
 
-import ecommerce_app.modules.product.model.entity.Product;
+import ecommerce_app.infrastructure.model.response.AuditUserDto;
+import ecommerce_app.modules.product.model.dto.ProductResponse;
 import io.swagger.v3.oas.annotations.media.Schema;
-
-import java.time.Instant;
 import java.time.LocalDateTime;
+import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -22,21 +22,25 @@ public class StockResponse {
   @Schema(description = "Stock ID", example = "1")
   private Long id;
 
-  @Schema(description = "Associated product object")
-  private Long productId;
+  @Schema(description = "Product object response")
+  private ProductResponse product;
 
   @Schema(description = "Quantity of the product in stock", example = "100")
   private int quantity;
 
   @Schema(description = "User ID who created the stock record", example = "10")
-  private Long createdBy;
+  private AuditUserDto createdBy;
 
   @Schema(description = "User ID who last updated the stock record", example = "15")
-  private Long updatedBy;
+  private AuditUserDto updatedBy;
 
-  @Schema(description = "Timestamp when the stock record was created", example = "2024-07-01T10:00:00")
+  @Schema(
+      description = "Timestamp when the stock record was created",
+      example = "2024-07-01T10:00:00")
   private LocalDateTime createdAt;
 
-  @Schema(description = "Timestamp when the stock record was last updated", example = "2024-07-15T15:30:00")
+  @Schema(
+      description = "Timestamp when the stock record was last updated",
+      example = "2024-07-15T15:30:00")
   private LocalDateTime updatedAt;
 }

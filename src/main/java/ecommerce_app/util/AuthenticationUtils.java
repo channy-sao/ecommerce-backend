@@ -1,5 +1,7 @@
 package ecommerce_app.util;
 
+import ecommerce_app.modules.auth.custom.AuthUser;
+import ecommerce_app.modules.auth.custom.CustomUserDetails;
 import ecommerce_app.modules.user.model.entity.User;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
