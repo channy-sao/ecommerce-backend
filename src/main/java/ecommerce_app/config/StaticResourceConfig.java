@@ -10,7 +10,6 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @RequiredArgsConstructor
 @Configuration
 public class StaticResourceConfig implements WebMvcConfigurer {
-  private final TraceInterceptor traceInterceptor;
 
   @Override
   public void addResourceHandlers(ResourceHandlerRegistry registry) {
@@ -27,10 +26,5 @@ public class StaticResourceConfig implements WebMvcConfigurer {
         .allowedOriginPatterns("*")
         .allowedMethods("*")
         .allowCredentials(true);
-  }
-
-  @Override
-  public void addInterceptors(InterceptorRegistry registry) {
-    registry.addInterceptor(traceInterceptor);
   }
 }

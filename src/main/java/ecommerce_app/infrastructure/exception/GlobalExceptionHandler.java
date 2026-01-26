@@ -14,6 +14,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
+import java.util.stream.Collectors;
+
 @ControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
@@ -24,7 +26,10 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
       HttpHeaders headers,
       HttpStatusCode statusCode,
       WebRequest request) {
-    return BaseBodyResponse.internalFailed(statusCode, ex.getMessage());
+    log.error(ex.getMessage(), ex);
+    return ResponseEntity.status(statusCode)
+        .headers(headers)
+        .body(BaseBodyResponse.bodyFailed(statusCode, ex.getMessage()));
   }
 
   @Override
@@ -33,48 +38,47 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
       HttpHeaders headers,
       HttpStatusCode status,
       WebRequest request) {
-    HttpStatus httpStatus = HttpStatus.BAD_REQUEST;
-    String message = "Invalid value";
+    log.error(ex.getMessage(), ex);
+    String message =
+        ex.getBindingResult().getAllErrors().stream()
+            .map(ObjectError::getDefaultMessage)
+            .collect(Collectors.joining("; "));
 
-    for (ObjectError err : ex.getBindingResult().getAllErrors()) {
-      message = err.getDefaultMessage();
-    }
-
-    return BaseBodyResponse.internalFailed(httpStatus, message);
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+        .headers(headers)
+        .body(BaseBodyResponse.bodyFailed(HttpStatus.BAD_REQUEST, message));
   }
 
   @ExceptionHandler(BadRequestException.class)
   public ResponseEntity<BaseBodyResponse> handleBadRequestException(BadRequestException ex) {
-    HttpStatus httpStatus = HttpStatus.BAD_REQUEST;
-
-    return BaseBodyResponse.failed(httpStatus, ex.getMessage());
+    log.error(ex.getMessage(), ex);
+    return BaseBodyResponse.failed(HttpStatus.BAD_REQUEST, ex.getMessage());
   }
 
   @ExceptionHandler(IllegalArgumentException.class)
   public ResponseEntity<BaseBodyResponse> handleIllegalArgumentException(
       IllegalArgumentException ex) {
-    HttpStatus httpStatus = HttpStatus.BAD_REQUEST;
-
-    return BaseBodyResponse.failed(httpStatus, ex.getMessage());
+    log.error(ex.getMessage(), ex);
+    return BaseBodyResponse.failed(HttpStatus.BAD_REQUEST, ex.getMessage());
   }
 
   @ExceptionHandler(ResourceNotFoundException.class)
   public ResponseEntity<BaseBodyResponse> handleResourceNotFoundException(
       ResourceNotFoundException ex) {
-    HttpStatus httpStatus = HttpStatus.NOT_FOUND;
-    return BaseBodyResponse.failed(httpStatus, ex.getMessage());
+    log.error(ex.getMessage(), ex);
+    return BaseBodyResponse.failed(HttpStatus.NOT_FOUND, ex.getMessage());
   }
 
   @ExceptionHandler(TransactionSystemException.class)
   public ResponseEntity<BaseBodyResponse> handleTransactionSystemException(
       TransactionSystemException ex) {
-    HttpStatus httpStatus = HttpStatus.INTERNAL_SERVER_ERROR;
-    return BaseBodyResponse.failed(httpStatus, ex.getMessage());
+    log.error(ex.getMessage(), ex);
+    return BaseBodyResponse.failed(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage());
   }
 
   @ExceptionHandler(IllegalStateException.class)
   public ResponseEntity<BaseBodyResponse> handleIllegalStateException(IllegalStateException ex) {
-    HttpStatus httpStatus = HttpStatus.INTERNAL_SERVER_ERROR;
-    return BaseBodyResponse.failed(httpStatus, ex.getMessage());
+    log.error(ex.getMessage(), ex);
+    return BaseBodyResponse.failed(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage());
   }
 }

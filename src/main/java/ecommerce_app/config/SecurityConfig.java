@@ -32,6 +32,7 @@ public class SecurityConfig {
   private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
   private final CustomAccessDenied customAccessDenied;
   private final JwtAuthFilter jwtAuthFilter;
+  private final TraceFilter traceFilter;
 
   @Bean
   public AuthenticationManager authenticationManager(AuthenticationConfiguration config)
@@ -80,6 +81,7 @@ public class SecurityConfig {
                 exception
                     .authenticationEntryPoint(customAuthenticationEntryPoint)
                     .accessDeniedHandler(customAccessDenied))
+        .addFilterBefore(traceFilter, JwtAuthFilter.class)
         .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
     return http.build();
   }

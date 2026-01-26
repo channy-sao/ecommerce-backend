@@ -23,4 +23,7 @@ public final class AppConstant {
 
   // KEYCLOAK
   public static final String KEYCLOAK_SCHEME_NAME = "keycloak";
+
+  // Severlet Request Attribute
+  public static final String REQUEST_ID = "requestId";
 }
