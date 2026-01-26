@@ -1,6 +1,8 @@
 package ecommerce_app.infrastructure.exception;
 
 import ecommerce_app.infrastructure.model.response.body.BaseBodyResponse;
+import ecommerce_app.util.MessageSourceService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -18,7 +20,10 @@ import java.util.stream.Collectors;
 
 @ControllerAdvice
 @Slf4j
+@RequiredArgsConstructor
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
+  private final MessageSourceService messageSourceService;
+
   @Override
   protected ResponseEntity<Object> handleExceptionInternal(
       Exception ex,
@@ -66,7 +71,8 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
   public ResponseEntity<BaseBodyResponse> handleResourceNotFoundException(
       ResourceNotFoundException ex) {
     log.error(ex.getMessage(), ex);
-    return BaseBodyResponse.failed(HttpStatus.NOT_FOUND, ex.getMessage());
+    String message = messageSourceService.getMessage("error.resource.notfound");
+    return BaseBodyResponse.failed(HttpStatus.NOT_FOUND, message);
   }
 
   @ExceptionHandler(TransactionSystemException.class)

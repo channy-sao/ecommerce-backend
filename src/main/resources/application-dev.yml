@@ -1,0 +1,12 @@
+# Custom I18n Configuration
+app:
+  i18n:
+    basename: i18n/messages
+    default-locale: en
+    supported-locales:
+      - en
+      - es
+      - fr
+      - km
+    param-name: lang
+    cache-seconds: -1 # Disable cache in dev for hot reload
