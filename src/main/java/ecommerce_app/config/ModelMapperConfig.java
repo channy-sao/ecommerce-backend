@@ -51,7 +51,7 @@ public class ModelMapperConfig {
         .addMappings(
             mapper -> {
               mapper.skip(Product::setId);
-              mapper.skip(Product::setCategory);
+              mapper.skip((product, object) -> product.getCategory().setId(null));
             });
 
     // Add converter for PersistentSet to Set
