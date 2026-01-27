@@ -24,6 +24,6 @@ public class ExcelCellUtils {
 
   public static Boolean getBooleanCell(Cell cell) {
     if (cell == null) return false;
-    return cell.getBooleanCellValue();
+    return Boolean.valueOf(cell.getStringCellValue());
   }
 }

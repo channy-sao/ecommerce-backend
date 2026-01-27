@@ -35,6 +35,8 @@
         <firebase-admin.version>9.5.0</firebase-admin.version>
         <apache-poi.version>5.5.1</apache-poi.version>
         <jwt.version>0.13.0</jwt.version>
+        <faker.version>1.0.2</faker.version>
+        <jasper.version>6.20.6</jasper.version>
     </properties>
     <dependencies>
         <dependency>
@@ -152,6 +154,26 @@
             <groupId>org.apache.poi</groupId>
             <artifactId>poi-ooxml</artifactId>
             <version>${apache-poi.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.github.javafaker</groupId>
+            <artifactId>javafaker</artifactId>
+            <version>${faker.version}</version>
+        </dependency>
+
+        <!-- JasperReports -->
+        <dependency>
+            <groupId>net.sf.jasperreports</groupId>
+            <artifactId>jasperreports</artifactId>
+            <version>${jasper.version}</version>
+        </dependency>
+
+        <!-- Apache POI for Excel export -->
+        <dependency>
+            <groupId>net.sf.jasperreports</groupId>
+            <artifactId>jasperreports-excel-poi</artifactId>
+            <version>${jasper.version}</version>
         </dependency>
 
     </dependencies>
