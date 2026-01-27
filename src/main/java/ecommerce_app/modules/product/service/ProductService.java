@@ -1,10 +1,12 @@
 package ecommerce_app.modules.product.service;
 
+import ecommerce_app.modules.product.model.dto.ImportProductFromExcelResponse;
 import ecommerce_app.modules.product.model.dto.ProductRequest;
 import ecommerce_app.modules.product.model.dto.ProductResponse;
 import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Sort;
+import org.springframework.web.multipart.MultipartFile;
 
 public interface ProductService {
   ProductResponse saveProduct(ProductRequest productRequest);
@@ -25,4 +27,6 @@ public interface ProductService {
       Sort.Direction direction,
       Long categoryId,
       String filter);
+
+  ImportProductFromExcelResponse importProductFromExcel(MultipartFile file);
 }

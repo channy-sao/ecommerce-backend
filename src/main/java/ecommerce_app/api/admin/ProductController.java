@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/admin/v1/products")
@@ -48,7 +49,7 @@ public class ProductController {
         productService.getProductById(id), ResponseMessageConstant.FIND_ONE_SUCCESSFULLY);
   }
 
-  @PutMapping(value = "/{id}", consumes =  MediaType.MULTIPART_FORM_DATA_VALUE)
+  @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   public ResponseEntity<BaseBodyResponse> updateCategory(
       @ModelAttribute ProductRequest productRequest, @PathVariable(value = "id") Long id) {
     return BaseBodyResponse.success(
@@ -74,5 +75,12 @@ public class ProductController {
     return BaseBodyResponse.pageSuccess(
         productService.filter(isPaged, page, pageSize, sortBy, sortDirection, categoryId, filter),
         ResponseMessageConstant.FIND_ALL_SUCCESSFULLY);
+  }
+
+  @PostMapping(value = "/import-from-excel", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+  public ResponseEntity<BaseBodyResponse> importFromExcel(
+      @RequestParam("file") MultipartFile file) {
+    return BaseBodyResponse.success(
+        productService.importProductFromExcel(file), "Imported product from Excel File");
   }
 }

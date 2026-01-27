@@ -1,11 +1,17 @@
 package ecommerce_app.modules.product.service.impl;
 
+import static ecommerce_app.util.ExcelCellUtils.getBigDecimalCell;
+import static ecommerce_app.util.ExcelCellUtils.getBooleanCell;
+import static ecommerce_app.util.ExcelCellUtils.getLongCell;
+import static ecommerce_app.util.ExcelCellUtils.getStringCell;
+
 import ecommerce_app.infrastructure.exception.BadRequestException;
 import ecommerce_app.infrastructure.exception.ResourceNotFoundException;
 import ecommerce_app.infrastructure.io.service.FileManagerService;
 import ecommerce_app.infrastructure.property.StorageConfigProperty;
 import ecommerce_app.modules.category.model.entity.Category;
 import ecommerce_app.modules.category.repository.CategoryRepository;
+import ecommerce_app.modules.product.model.dto.ImportProductFromExcelResponse;
 import ecommerce_app.modules.product.model.dto.ProductRequest;
 import ecommerce_app.modules.product.model.dto.ProductResponse;
 import ecommerce_app.modules.product.model.entity.Product;
@@ -13,10 +19,16 @@ import ecommerce_app.modules.product.repository.ProductRepository;
 import ecommerce_app.modules.product.service.ProductService;
 import ecommerce_app.modules.product.specification.ProductSpecification;
 import ecommerce_app.util.ProductMapper;
+import java.io.InputStream;
 import java.util.List;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.FilenameUtils;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.modelmapper.ModelMapper;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
@@ -26,6 +38,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @RequiredArgsConstructor
@@ -189,6 +202,87 @@ public class ProductServiceImpl implements ProductService {
     return productPage.map(ProductMapper::toProductResponse);
   }
 
+  @Override
+  @Transactional(rollbackFor = Exception.class)
+  public ImportProductFromExcelResponse importProductFromExcel(MultipartFile file) {
+
+    log.info("Importing product from excel file {}", file.getOriginalFilename());
+
+    // 1. Validate excel file
+    this.validateExcelFile(file);
+
+    ImportProductFromExcelResponse response = new ImportProductFromExcelResponse();
+
+    int totalRows = 0;
+    int totalSuccessRows = 0;
+    int totalErrorRows = 0;
+
+    try (InputStream is = file.getInputStream();
+        Workbook workbook = WorkbookFactory.create(is)) {
+
+      Sheet sheet = workbook.getSheetAt(0);
+
+      // 2. Validate header
+      Row headerRow = sheet.getRow(0);
+      validateColumnHeader(headerRow);
+
+      // 3. Iterate rows (skip header)
+      for (int i = 1; i <= sheet.getLastRowNum(); i++) {
+
+        Row row = sheet.getRow(i);
+        if (row == null) {
+          continue;
+        }
+
+        totalRows++;
+
+        try {
+          ProductRequest request = mapRowToProductRequest(row);
+
+          // Map request → entity
+          Product product = modelMapper.map(request, Product.class);
+
+          // Force insert (important)
+          product.setId(null);
+
+          // Set category
+          Category category =
+              categoryRepository
+                  .findById(request.getCategoryId())
+                  .orElseThrow(
+                      () -> new ResourceNotFoundException("Category", request.getCategoryId()));
+
+          product.setCategory(category);
+
+          // Default image if Excel doesn't contain one
+          if (product.getImage() == null) {
+            product.setImage("default-product.png");
+          }
+
+          productRepository.save(product);
+
+          totalSuccessRows++;
+
+        } catch (Exception ex) {
+          log.error("Error inserting product at row {}", row.getRowNum(), ex);
+          totalErrorRows++;
+        }
+      }
+
+    } catch (Exception e) {
+      log.error("Import product from excel failed", e);
+      throw new BadRequestException("Import product from excel failed");
+    }
+    if (totalSuccessRows == 0) {
+      throw new BadRequestException("Import product from excel failed all rows, please try again");
+    }
+    response.setTotalCount(totalRows);
+    response.setSuccessCount(totalSuccessRows);
+    response.setErrorCount(totalErrorRows);
+
+    return response;
+  }
+
   // Create a custom mapping method
   private void updateProductFromRequest(ProductRequest request, Product existingProduct) {
     // Map simple fields
@@ -196,5 +290,34 @@ public class ProductServiceImpl implements ProductService {
     existingProduct.setDescription(request.getDescription());
     existingProduct.setPrice(request.getPrice());
     existingProduct.setIsFeature(request.getIsFeature());
+  }
+
+  private void validateExcelFile(MultipartFile file) {
+    if (file.isEmpty() || file.getSize() <= 0) {
+      log.error("Excel file is empty");
+      throw new BadRequestException("Excel file is empty");
+    }
+    if (!Objects.requireNonNull(FilenameUtils.getExtension(file.getOriginalFilename()))
+        .equalsIgnoreCase("xlsx")) {
+      log.error("Excel file extension is not supported");
+      throw new BadRequestException("Excel file extension not supported");
+    }
+  }
+
+  void validateColumnHeader(Row row) {
+    // TODO: check validation
+  }
+
+  private ProductRequest mapRowToProductRequest(Row row) {
+
+    return ProductRequest.builder()
+        .name(getStringCell(row.getCell(0)))
+        .description(getStringCell(row.getCell(1)))
+        .price(getBigDecimalCell(row.getCell(2)))
+        // image handled separately (see below)
+        .image(null)
+        .categoryId(getLongCell(row.getCell(4)))
+        .isFeature(getBooleanCell(row.getCell(5)))
+        .build();
   }
 }

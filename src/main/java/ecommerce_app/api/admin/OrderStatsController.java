@@ -11,6 +11,8 @@ import ecommerce_app.modules.order.model.dto.TopProductResponse;
 import ecommerce_app.modules.order.service.impl.OrderStatsServiceImpl;
 import java.time.LocalDate;
 import java.util.List;
+
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -21,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/admin/v1/order-stats")
 @RequiredArgsConstructor
 @Slf4j
+@Tag(name = "Order Statistics Controller", description = "For admin manage statistics virtualization")
 // @PreAuthorize("hasRole('ADMIN')")
 public class OrderStatsController {
 
