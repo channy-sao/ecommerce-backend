@@ -1,8 +1,8 @@
 package ecommerce_app.modules.notification.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import ecommerce_app.constant.enums.NotificationStatus;
+import ecommerce_app.infrastructure.exception.InternalServerErrorException;
 import ecommerce_app.infrastructure.exception.ResourceNotFoundException;
 import ecommerce_app.modules.notification.model.dto.NotificationRequest;
 import ecommerce_app.modules.notification.model.dto.NotificationResponse;
@@ -118,9 +118,9 @@ public class NotificationService {
 
       return notificationRepository.save(notification);
 
-    } catch (Exception e ) {
-      log.error("Error serializing notification data: {}", e.getMessage());
-      throw new RuntimeException("Failed to save notification", e);
+    } catch (Exception e) {
+      log.error("Error serializing notification data: {}", e.getMessage(), e);
+      throw new InternalServerErrorException("Failed to save notification", e);
     }
   }
 
@@ -198,7 +198,7 @@ public class NotificationService {
       // Send to all devices
       if (tokens.size() == 1) {
         // Single device
-        DeviceToken deviceToken = tokens.get(0);
+        DeviceToken deviceToken = tokens.getFirst();
         sendToSingleDevice(notification, deviceToken, data);
       } else {
         // Multiple devices - use multicast
@@ -302,7 +302,7 @@ public class NotificationService {
     User user =
         userRepository
             .findById(userId)
-            .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+            .orElseThrow(() -> new ResourceNotFoundException("User" + userId));
 
     return notificationRepository
         .findByUserAndIsDeletedFalseOrderByCreatedAtDesc(user, pageable)
@@ -325,7 +325,7 @@ public class NotificationService {
             notificationId, LocalDateTime.now(), NotificationStatus.READ);
 
     if (updated == 0) {
-      throw new ResourceNotFoundException("Notification not found with id: " + notificationId);
+      throw new ResourceNotFoundException("Notification" + notificationId);
     }
 
     log.info("Notification marked as read: {}", notificationId);
@@ -337,7 +337,7 @@ public class NotificationService {
     User user =
         userRepository
             .findById(userId)
-            .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+            .orElseThrow(() -> new ResourceNotFoundException("User" + userId));
 
     int updated =
         notificationRepository.markAllAsRead(user, LocalDateTime.now(), NotificationStatus.READ);
@@ -351,10 +351,7 @@ public class NotificationService {
     Notification notification =
         notificationRepository
             .findById(notificationId)
-            .orElseThrow(
-                () ->
-                    new ResourceNotFoundException(
-                        "Notification not found with id: " + notificationId));
+            .orElseThrow(() -> new ResourceNotFoundException("Notification" + notificationId));
 
     // Verify ownership
     if (!notification.getUser().getId().equals(userId)) {
@@ -414,7 +411,7 @@ public class NotificationService {
     for (User user : users) {
       try {
         // Skip inactive users
-        if (!user.getIsActive()) {
+        if (Boolean.FALSE.equals(user.getIsActive())) {
           continue;
         }
 

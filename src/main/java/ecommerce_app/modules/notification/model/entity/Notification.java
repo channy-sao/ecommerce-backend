@@ -11,6 +11,9 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 @Entity
 @Table(
@@ -29,7 +32,8 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Notification extends AuditingEntity {
+@EntityListeners(AuditingEntityListener.class)
+public class Notification {
 
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -91,6 +95,14 @@ public class Notification extends AuditingEntity {
   @Column(name = "read_at")
   private LocalDateTime readAt;
 
+  /** Whether notification has been sent via FCM */
+  @CreatedDate
+  @Column(name = "created_at", nullable = false, updatable = false)
+  private LocalDateTime createdAt;
+
+  @Column(name = "updated_at")
+  @LastModifiedDate
+  private LocalDateTime updatedAt;
 
   @Column(name = "is_sent", nullable = false)
   @Builder.Default
@@ -236,9 +248,8 @@ public class Notification extends AuditingEntity {
     if (isRead == null) {
       isRead = false;
     }
-    if(isSent == null) {
+    if (isSent == null) {
       isSent = false;
-
     }
     if (retryCount == null) {
       retryCount = 0;

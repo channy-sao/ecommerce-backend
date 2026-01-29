@@ -16,9 +16,6 @@ import lombok.Setter;
 @AllArgsConstructor
 public class DeviceTokenRequest {
 
-  @NotNull(message = "User ID is required")
-  private Long userId;
-
   @NotBlank(message = "Token is required")
   private String token;
 

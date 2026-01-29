@@ -16,5 +16,12 @@ public enum NotificationType {
   PAYMENT_FAILED,
   PROMOTION,
   SYSTEM,
-  CUSTOM
+  CUSTOM,
+  CHAT,
+  ORDER,
+  SHIPPING,
+  ACCOUNT,
+  REVIEW,
+  WISHLIST,
+  GENERAL
 }

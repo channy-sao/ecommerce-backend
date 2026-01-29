@@ -31,7 +31,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
       throws ServletException, IOException {
     log.info("Request URL : {}", request.getRequestURI());
     String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
-    log.info("Auth Header : {}", authHeader);
     try {
       if (authHeader != null
           && (authHeader.startsWith("bearer ") || authHeader.startsWith("Bearer "))) {
