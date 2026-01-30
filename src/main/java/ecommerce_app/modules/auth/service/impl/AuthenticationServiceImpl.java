@@ -3,6 +3,7 @@ package ecommerce_app.modules.auth.service.impl;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseToken;
 import ecommerce_app.constant.TokenTypeConstant;
+import ecommerce_app.constant.enums.AuthProvider;
 import ecommerce_app.infrastructure.exception.UnauthorizedException;
 import ecommerce_app.infrastructure.mapper.UserMapper;
 import ecommerce_app.modules.auth.custom.AuthUserLoader;
@@ -69,7 +70,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
       User userBuilder =
           User.builder()
               .email(email)
-              .uid(uid)
+              .firebaseUid(uid)
               .avatar(picture)
               .firstName(firstName == null ? "" : firstName)
               .lastName(lastName == null ? "" : lastName)
@@ -79,7 +80,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
               .emailVerifiedAt(LocalDateTime.now())
               .isActive(true)
               .uuid(UUID.randomUUID())
-              .provider(signInProvider)
+              .authProvider(AuthProvider.fromProviderString(signInProvider))
               .lastLoginAt(LocalDateTime.now())
               .build();
 

@@ -1,9 +1,12 @@
 package ecommerce_app.modules.user.model.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import ecommerce_app.constant.enums.AuthProvider;
 import ecommerce_app.infrastructure.model.entity.BaseAuditingEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -20,11 +23,9 @@ import java.util.Set;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import lombok.ToString;
 
 @Table(
     name = "users",
@@ -44,8 +45,8 @@ public class User extends BaseAuditingEntity {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
-  @Column(name = "uid", length = 75, nullable = true)
-  private String uid;
+  @Column(name = "firebase_uid", length = 75, nullable = true)
+  private String firebaseUid; // Firebase User ID
 
   @Column(name = "password", length = 250)
   private String password;
@@ -65,8 +66,9 @@ public class User extends BaseAuditingEntity {
   @Column(name = "avatar", length = 512)
   private String avatar;
 
-  @Column(name = "provider")
-  private String provider;
+  @Column(name = "auth_provider")
+  @Enumerated(EnumType.STRING)
+  private AuthProvider authProvider; // LOCAL, GOOGLE, etc.
 
   @Column(name = "is_active", nullable = false)
   private Boolean isActive = true;

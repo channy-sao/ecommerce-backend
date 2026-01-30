@@ -1,5 +1,6 @@
 package ecommerce_app.modules.auth.service.impl;
 
+import ecommerce_app.constant.enums.AuthProvider;
 import ecommerce_app.modules.auth.custom.AuthUser;
 import ecommerce_app.modules.auth.custom.CustomUserDetails;
 import ecommerce_app.modules.user.model.entity.Role;
@@ -29,7 +30,7 @@ public class UserDetailServiceImpl implements UserDetailsService {
         userRepository
             .findByEmailWithRolesAndPermissions(username)
             .orElseThrow(() -> new UsernameNotFoundException("User not found"));
-    if (!Objects.equals(user.getProvider(), "LOCAL")) {
+    if (!Objects.equals(user.getAuthProvider(), AuthProvider.LOCAL)) {
       log.warn("User {} provider is not LOCAL", user.getEmail());
     }
 

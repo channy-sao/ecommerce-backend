@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 
 @Service
 @RequiredArgsConstructor
@@ -26,9 +27,13 @@ public class AuthUserLoader {
 
     final Set<String> authorities = new HashSet<>();
 
-    for (Role role : user.getRoles()) {
-      authorities.add("ROLE_" + role.getName());
-      role.getPermissions().forEach(p -> authorities.add(String.valueOf(p.getName())));
+    if (!CollectionUtils.isEmpty(user.getRoles())) {
+      for (Role role : user.getRoles()) {
+        authorities.add("ROLE_" + role.getName());
+        if (role.getPermissions() != null) {
+          role.getPermissions().forEach(p -> authorities.add(String.valueOf(p.getName())));
+        }
+      }
     }
 
     AuthUser authUser =

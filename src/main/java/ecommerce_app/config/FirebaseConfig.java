@@ -3,6 +3,8 @@ package ecommerce_app.config;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.messaging.FirebaseMessaging;
 import ecommerce_app.infrastructure.exception.ApiException;
 import jakarta.annotation.PostConstruct;
@@ -44,5 +46,10 @@ public class FirebaseConfig {
   @Bean
   public FirebaseMessaging firebaseMessaging(FirebaseApp firebaseApp) {
     return FirebaseMessaging.getInstance(firebaseApp);
+  }
+
+  @Bean
+  public FirebaseAuth firebaseAuth() throws IOException {
+    return FirebaseAuth.getInstance(initializeFirebase());
   }
 }

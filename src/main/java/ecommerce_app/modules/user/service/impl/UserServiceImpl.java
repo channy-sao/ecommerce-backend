@@ -1,6 +1,7 @@
 package ecommerce_app.modules.user.service.impl;
 
 import ecommerce_app.config.DataInitializer;
+import ecommerce_app.constant.enums.AuthProvider;
 import ecommerce_app.infrastructure.exception.BadRequestException;
 import ecommerce_app.infrastructure.exception.ForbiddenException;
 import ecommerce_app.infrastructure.exception.ResourceNotFoundException;
@@ -127,7 +128,7 @@ public class UserServiceImpl implements UserService {
     try {
       log.info("Creating user: {}", createUserRequest);
       User user = modelMapper.map(createUserRequest, User.class);
-      user.setProvider("LOCAL");
+      user.setAuthProvider(AuthProvider.LOCAL);
       if (createUserRequest.getPhone() != null && createUserRequest.getPhone().isBlank()) {
         user.setPhone(null);
       }

@@ -97,6 +97,12 @@ public class UserMapper {
     if (avatar == null) {
       return null;
     }
+    // if avatar from auth provider (e.g., Google Firebase)
+    if (avatar.startsWith("http://") || avatar.startsWith("https://")) {
+      return avatar;
+    }
+
+    // else get from our storage with concatenated url
     return fileManagerService.getResourceUrl(storageConfigProperty.getAvatar(), avatar);
   }
 }

@@ -1,5 +1,6 @@
 package ecommerce_app.config;
 
+import ecommerce_app.constant.enums.AuthProvider;
 import ecommerce_app.constant.enums.PermissionEnum;
 import ecommerce_app.infrastructure.exception.ResourceNotFoundException;
 import ecommerce_app.modules.user.model.entity.Permission;
@@ -104,7 +105,7 @@ public class DataInitializer implements ApplicationRunner {
                       .phone("+855 356789")
                       .uuid(UUID.randomUUID())
                       .isActive(true)
-                      .provider("LOCAL")
+                      .authProvider(AuthProvider.LOCAL)
                       .rememberMe(true)
                       .emailVerifiedAt(LocalDateTime.now())
                       .roles(Set.of(role))
