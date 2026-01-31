@@ -11,6 +11,7 @@ import java.util.Objects;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections.CollectionUtils;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -36,9 +37,11 @@ public class UserDetailServiceImpl implements UserDetailsService {
 
     Set<String> authorities = new HashSet<>();
 
-    for (Role role : user.getRoles()) {
-      authorities.add("ROLE_" + role.getName());
-      role.getPermissions().forEach(p -> authorities.add(String.valueOf(p.getName())));
+    if (CollectionUtils.isEmpty(user.getRoles())) {
+      for (Role role : user.getRoles()) {
+        authorities.add("ROLE_" + role.getName());
+        role.getPermissions().forEach(p -> authorities.add(String.valueOf(p.getName())));
+      }
     }
 
     AuthUser authUser =

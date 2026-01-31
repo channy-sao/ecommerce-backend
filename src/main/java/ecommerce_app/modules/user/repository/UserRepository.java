@@ -1,5 +1,6 @@
 package ecommerce_app.modules.user.repository;
 
+import ecommerce_app.constant.enums.AuthProvider;
 import ecommerce_app.modules.user.model.entity.User;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -12,6 +13,8 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificationExecutor<User> {
   Optional<User> findByEmail(String email);
+
+  Optional<User> findByEmailAndAuthProviderNot(String email, AuthProvider authProvider);
 
   @Query("SELECT u FROM User u LEFT JOIN FETCH u.roles WHERE u.id = :userId")
   Optional<User> findByIdWithRoles(@Param("userId") Long userId);

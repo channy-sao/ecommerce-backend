@@ -1,5 +1,6 @@
 package ecommerce_app.modules.auth.custom;
 
+import ecommerce_app.constant.enums.AuthProvider;
 import ecommerce_app.modules.user.model.entity.Role;
 import ecommerce_app.modules.user.model.entity.User;
 import ecommerce_app.modules.user.repository.UserRepository;
@@ -22,7 +23,7 @@ public class AuthUserLoader {
 
     final User user =
         userRepository
-            .findByEmail(email)
+            .findByEmailAndAuthProviderNot(email, AuthProvider.LOCAL)
             .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
     final Set<String> authorities = new HashSet<>();
