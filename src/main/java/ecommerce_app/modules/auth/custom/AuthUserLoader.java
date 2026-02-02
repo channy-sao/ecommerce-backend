@@ -23,7 +23,7 @@ public class AuthUserLoader {
 
     final User user =
         userRepository
-            .findByEmailAndAuthProviderNot(email, AuthProvider.LOCAL)
+            .findByEmail(email)
             .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
     final Set<String> authorities = new HashSet<>();

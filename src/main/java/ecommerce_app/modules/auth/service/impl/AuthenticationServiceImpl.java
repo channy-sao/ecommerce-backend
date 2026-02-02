@@ -160,10 +160,15 @@ public class AuthenticationServiceImpl implements AuthenticationService {
   public UserResponse getCurrentUser() {
     log.info("Start Fetch Current User  {'/me'}");
     final var authentication = SecurityContextHolder.getContext().getAuthentication();
-    if (!authentication.isAuthenticated()) {
+    if (authentication == null || !authentication.isAuthenticated()) {
+      log.error("Authentication Failed");
       throw new UnauthorizedException("Unauthorized");
     }
     CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+    if (userDetails == null) {
+      log.error("Authentication Failed, user details is null");
+      throw new UnauthorizedException("Unauthorized");
+    }
     User currentUser =
         userRepository
             .findByEmail(userDetails.getUsername())

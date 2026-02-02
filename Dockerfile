@@ -1,5 +1,5 @@
 # Multi-stage build for smaller final image
-FROM maven:3.9.6-eclipse-temurin-21-alpine AS builder
+FROM eclipse-temurin:25-jdk-alpine AS builder
 
 # Set working directory
 WORKDIR /app
@@ -10,20 +10,23 @@ COPY .mvn .mvn
 COPY mvnw .
 COPY mvnw.cmd .
 
+# Make mvnw executable
+RUN chmod +x mvnw  # <-- IMPORTANT!
+
 # Download dependencies (cached layer)
-RUN mvn dependency:go-offline -B
+RUN ./mvnw dependency:go-offline -B
 
 # Copy source code
 COPY src ./src
 
 # Build the application
-RUN mvn clean package -DskipTests
+RUN ./mvnw clean package -DskipTests
 
 # Runtime stage - Use JRE for smaller image
-FROM eclipse-temurin:21-jre-alpine
+FROM eclipse-temurin:25-jdk-alpine
 
 # Set labels
-LABEL maintainer="your-email@example.com"
+LABEL maintainer="channy.sao.2001@gmail.com"
 LABEL description="Spring Boot Application"
 LABEL version="1.0.0"
 

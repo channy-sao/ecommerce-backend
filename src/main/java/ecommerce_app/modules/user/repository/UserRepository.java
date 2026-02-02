@@ -14,7 +14,14 @@ import org.springframework.stereotype.Repository;
 public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificationExecutor<User> {
   Optional<User> findByEmail(String email);
 
+  Optional<User> findByEmailAndIsActive(String email, boolean status);
+
+  Optional<User> findByFirebaseUid(String uid);
+
   Optional<User> findByEmailAndAuthProviderNot(String email, AuthProvider authProvider);
+
+  @Query("SELECT u FROM User u WHERE u.email = :username and u.isActive = :status and u.authProvider <> ecommerce_app.constant.enums.AuthProvider.LOCAL")
+  Optional<User> findUserInProviderAndStatus(String username, boolean status);
 
   @Query("SELECT u FROM User u LEFT JOIN FETCH u.roles WHERE u.id = :userId")
   Optional<User> findByIdWithRoles(@Param("userId") Long userId);
