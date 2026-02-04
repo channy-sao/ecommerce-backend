@@ -26,12 +26,16 @@ public class RoleResponse {
   @Schema(description = "Permissions assigned to the role")
   private Set<Permission> permissions;
 
+  @Schema(description = "Status Role", example = "Status of role")
+  private boolean isActive;
+
   public static RoleResponse toRoleResponse(final Role role) {
     final var roleResponse = new RoleResponse();
     roleResponse.setId(role.getId());
     roleResponse.setName(role.getName());
     roleResponse.setDescription(role.getDescription());
     roleResponse.setPermissions(role.getPermissions());
+    roleResponse.setActive(role.isActive());
     return roleResponse;
   }
 }
