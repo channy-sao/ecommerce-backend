@@ -11,7 +11,7 @@ public interface RoleService {
 
   void updateRole(UpdateRoleRequest updateRoleRequest, long roleId);
 
-  void deleteRole(long roleId);
+  void toggleStatus(long roleId);
 
   RoleResponse getRole(long roleId);
 

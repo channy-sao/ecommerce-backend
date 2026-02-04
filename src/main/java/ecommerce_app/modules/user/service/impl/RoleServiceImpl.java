@@ -70,17 +70,17 @@ public class RoleServiceImpl extends ValidatePermission implements RoleService {
 
   @Transactional(rollbackFor = Exception.class)
   @Override
-  public void deleteRole(long roleId) {
+  public void toggleStatus(long roleId) {
     log.info("Start soft delete role id={}", roleId);
 
     final Role role =
         roleRepository
             .findById(roleId)
             .orElseThrow(() -> new ResourceNotFoundException("Role", roleId));
-    role.setActive(false);
+    role.setActive(!role.isActive());
     roleRepository.save(role);
 
-    log.info("Role soft deleted id={}", roleId);
+    log.info("Update status role id={}", roleId);
   }
 
   @Transactional(readOnly = true)

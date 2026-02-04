@@ -85,7 +85,7 @@ public class RoleController {
   }
 
   /**
-   * Soft delete a role.
+   * Toggle status of role.
    *
    * <p>The role will not be physically removed from the database. Instead, it will be marked as
    * deleted.
@@ -96,14 +96,14 @@ public class RoleController {
   @Operation(summary = "Delete role", description = "Soft delete a role by id")
   @ApiResponse(
       responseCode = "200",
-      description = "Role deleted successfully",
+      description = "Toggle Role status successfully",
       content = @Content(schema = @Schema(implementation = BaseBodyResponse.class)))
   @PreAuthorize("hasRole('SUPER_ADMIN') or hasAuthority('ROLE_DELETE')")
-  @DeleteMapping("/{id}")
-  public ResponseEntity<BaseBodyResponse> deleteRole(@PathVariable("id") Long roleId) {
+  @PatchMapping("/{id}")
+  public ResponseEntity<BaseBodyResponse> toggleStatus(@PathVariable("id") Long roleId) {
 
-    roleService.deleteRole(roleId);
-    return BaseBodyResponse.success(null, "Delete Role Successfully");
+    roleService.toggleStatus(roleId);
+    return BaseBodyResponse.success(null, "Toggle Status Role Successfully");
   }
 
   @PreAuthorize("hasRole('ADMIN') or hasAuthority('USER_CREATE')")
