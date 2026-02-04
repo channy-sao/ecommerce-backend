@@ -18,6 +18,7 @@ import ecommerce_app.modules.product.model.entity.Product;
 import ecommerce_app.modules.product.repository.ProductRepository;
 import ecommerce_app.modules.product.service.ProductService;
 import ecommerce_app.modules.product.specification.ProductSpecification;
+import ecommerce_app.util.FileUtils;
 import ecommerce_app.util.ProductMapper;
 import java.io.InputStream;
 import java.util.List;
@@ -209,7 +210,7 @@ public class ProductServiceImpl implements ProductService {
     log.info("Importing product from excel file {}", file.getOriginalFilename());
 
     // 1. Validate excel file
-    this.validateExcelFile(file);
+    FileUtils.validateExcelFile(file);
 
     ImportProductFromExcelResponse response = new ImportProductFromExcelResponse();
 
@@ -290,18 +291,6 @@ public class ProductServiceImpl implements ProductService {
     existingProduct.setDescription(request.getDescription());
     existingProduct.setPrice(request.getPrice());
     existingProduct.setIsFeature(request.getIsFeature());
-  }
-
-  private void validateExcelFile(MultipartFile file) {
-    if (file.isEmpty() || file.getSize() <= 0) {
-      log.error("Excel file is empty");
-      throw new BadRequestException("Excel file is empty");
-    }
-    if (!Objects.requireNonNull(FilenameUtils.getExtension(file.getOriginalFilename()))
-        .equalsIgnoreCase("xlsx")) {
-      log.error("Excel file extension is not supported");
-      throw new BadRequestException("Excel file extension not supported");
-    }
   }
 
   void validateColumnHeader(Row row) {

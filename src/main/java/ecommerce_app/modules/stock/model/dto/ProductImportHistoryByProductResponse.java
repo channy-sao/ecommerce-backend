@@ -2,6 +2,8 @@ package ecommerce_app.modules.stock.model.dto;
 
 import ecommerce_app.modules.product.model.dto.ProductResponse;
 import io.swagger.v3.oas.annotations.media.Schema;
+
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Map;
 import lombok.AllArgsConstructor;
@@ -21,5 +23,5 @@ public class ProductImportHistoryByProductResponse {
   private ProductResponse product;
 
   @Schema(description = "Product import by date")
-  private Map<LocalDateTime, ProductImportResponse> productImports;
+  private Map<Instant, ProductImportResponse> productImports;
 }

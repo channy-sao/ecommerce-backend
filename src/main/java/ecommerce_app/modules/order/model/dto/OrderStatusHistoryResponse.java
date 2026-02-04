@@ -2,11 +2,10 @@ package ecommerce_app.modules.order.model.dto;
 
 import ecommerce_app.constant.enums.OrderStatus;
 import ecommerce_app.infrastructure.model.response.AuditUserDto;
+import java.time.Instant;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
-
-import java.time.LocalDateTime;
 
 @Getter
 @Setter
@@ -14,6 +13,6 @@ import java.time.LocalDateTime;
 public class OrderStatusHistoryResponse {
   private Long id;
   private OrderStatus status;
-  private LocalDateTime createdAt;
+  private Instant createdAt;
   private AuditUserDto createdBy;
 }

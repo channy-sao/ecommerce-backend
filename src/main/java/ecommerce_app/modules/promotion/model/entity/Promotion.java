@@ -2,7 +2,7 @@ package ecommerce_app.modules.promotion.model.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import ecommerce_app.constant.enums.PromotionType;
-import ecommerce_app.infrastructure.model.entity.AuditingEntity;
+import ecommerce_app.infrastructure.model.entity.UserAuditableEntity;
 import ecommerce_app.modules.product.model.entity.Product;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -28,7 +28,7 @@ import lombok.Setter;
 @Table(name = "promotions")
 @Getter
 @Setter
-public class Promotion extends AuditingEntity {
+public class Promotion extends UserAuditableEntity {
 
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)

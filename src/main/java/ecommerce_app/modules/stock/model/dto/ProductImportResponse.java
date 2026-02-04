@@ -4,7 +4,7 @@ import ecommerce_app.infrastructure.model.response.AuditUserDto;
 import ecommerce_app.modules.product.model.dto.ProductResponse;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -50,12 +50,12 @@ public class ProductImportResponse {
   @Schema(
       description = "Timestamp of when the import record was created",
       example = "2024-07-25T10:15:30")
-  private LocalDateTime createdAt;
+  private Instant createdAt;
 
   @Schema(
       description = "Timestamp of the last update to the import record",
       example = "2024-07-26T12:30:45")
-  private LocalDateTime updatedAt;
+  private Instant updatedAt;
 
   @Schema(description = "User who created the import record")
   private AuditUserDto createdBy;

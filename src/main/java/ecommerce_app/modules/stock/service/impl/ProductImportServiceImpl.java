@@ -3,7 +3,7 @@ package ecommerce_app.modules.stock.service.impl;
 import ecommerce_app.infrastructure.annotation.LogExecutionTime;
 import ecommerce_app.infrastructure.exception.ResourceNotFoundException;
 import ecommerce_app.infrastructure.mapper.ProductImportMapper;
-import ecommerce_app.infrastructure.model.entity.BaseAuditingEntity;
+import ecommerce_app.infrastructure.model.entity.TimeAuditableEntity;
 import ecommerce_app.modules.product.model.entity.Product;
 import ecommerce_app.modules.product.repository.ProductRepository;
 import ecommerce_app.modules.stock.model.dto.ProductImportFilterRequest;
@@ -19,6 +19,7 @@ import ecommerce_app.modules.stock.service.StockService;
 import ecommerce_app.modules.stock.specification.ProductImportSpecification;
 import ecommerce_app.util.ProductMapper;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
@@ -159,11 +160,11 @@ public class ProductImportServiceImpl implements ProductImportService {
 
     // history
     // Group imports by date and create response map
-    Map<LocalDateTime, ProductImportResponse> productImports =
+    Map<Instant, ProductImportResponse> productImports =
         productImportHistory.stream()
             .collect(
                 Collectors.toMap(
-                    BaseAuditingEntity::getCreatedAt,
+                    TimeAuditableEntity::getCreatedAt,
                     productImportMapper::toProductImportResponse,
                     (existing, replacement) -> existing,
                     () -> new TreeMap<>(Comparator.reverseOrder()) // Sorted map by date

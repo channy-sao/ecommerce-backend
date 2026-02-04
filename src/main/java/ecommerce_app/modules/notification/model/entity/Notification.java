@@ -2,7 +2,6 @@ package ecommerce_app.modules.notification.model.entity;
 
 import ecommerce_app.constant.enums.NotificationStatus;
 import ecommerce_app.constant.enums.NotificationType;
-import ecommerce_app.infrastructure.model.entity.AuditingEntity;
 import ecommerce_app.modules.user.model.entity.User;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;

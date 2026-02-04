@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 @Data
@@ -19,6 +20,6 @@ public class ProductReportDto {
   private BigDecimal price;
   private String categoryName;
   private Boolean isFeature;
-  private LocalDateTime createdAt;
+  private Instant createdAt;
   private String createdByFullName;
 }

@@ -55,7 +55,7 @@ public class DataInitializer implements ApplicationRunner {
                             .build()));
         log.info("Permission {} has been created", permissionEnum.name());
       }
-    } catch (Exception e) {
+    } catch (Exception _) {
       log.info("Permissions not created");
     }
   }
@@ -71,9 +71,10 @@ public class DataInitializer implements ApplicationRunner {
                       Role.builder()
                           .name(SUPER_ADMIN_ROLE)
                           .permissions(new HashSet<>(permissionRepository.findAll()))
+                              .isActive(true)
                           .uid(UUID.randomUUID().toString())
                           .build()));
-    } catch (Exception e) {
+    } catch (Exception _) {
       log.info("Roles not created");
     }
   }

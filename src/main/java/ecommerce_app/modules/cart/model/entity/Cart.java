@@ -3,7 +3,7 @@ package ecommerce_app.modules.cart.model.entity;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import ecommerce_app.constant.enums.CartStatus;
 import ecommerce_app.infrastructure.exception.BadRequestException;
-import ecommerce_app.infrastructure.model.entity.BaseAuditingEntity;
+import ecommerce_app.infrastructure.model.entity.TimeAuditableEntity;
 import ecommerce_app.modules.order.model.entity.OrderItem;
 import ecommerce_app.modules.product.model.entity.Product;
 import ecommerce_app.modules.user.model.entity.User;
@@ -20,7 +20,6 @@ import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
-import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -31,7 +30,6 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import lombok.ToString;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
@@ -44,7 +42,7 @@ import org.hibernate.annotations.OnDeleteAction;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Cart extends BaseAuditingEntity {
+public class Cart extends TimeAuditableEntity {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;

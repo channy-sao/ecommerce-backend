@@ -2,8 +2,7 @@ package ecommerce_app.modules.order.model.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import ecommerce_app.constant.enums.OrderStatus;
-import ecommerce_app.infrastructure.model.entity.AuditingEntity;
-import ecommerce_app.infrastructure.model.entity.BaseAuditingEntity;
+import ecommerce_app.infrastructure.model.entity.UserAuditableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -28,7 +27,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class OrderStatusHistory extends AuditingEntity {
+public class OrderStatusHistory extends UserAuditableEntity {
 
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)

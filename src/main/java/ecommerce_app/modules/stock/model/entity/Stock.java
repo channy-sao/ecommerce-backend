@@ -1,7 +1,7 @@
 package ecommerce_app.modules.stock.model.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import ecommerce_app.infrastructure.model.entity.AuditingEntity;
+import ecommerce_app.infrastructure.model.entity.UserAuditableEntity;
 import ecommerce_app.modules.product.model.entity.Product;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -17,7 +17,7 @@ import lombok.Setter;
 @Builder
 @Entity
 @Table(name = "stocks")
-public class Stock extends AuditingEntity {
+public class Stock extends UserAuditableEntity {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;

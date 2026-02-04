@@ -3,13 +3,16 @@ package ecommerce_app.api.admin;
 import ecommerce_app.constant.message.ResponseMessageConstant;
 import ecommerce_app.infrastructure.exception.BadRequestException;
 import ecommerce_app.infrastructure.model.response.body.BaseBodyResponse;
+import ecommerce_app.modules.category.model.dto.BulkCategoryRequest;
 import ecommerce_app.modules.category.model.dto.CategoryRequest;
 import ecommerce_app.modules.category.service.CategoryExcelTemplateService;
 import ecommerce_app.modules.category.service.CategoryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
@@ -26,9 +29,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin/v1/categories")
@@ -84,6 +89,22 @@ public class CategoryController {
     return BaseBodyResponse.pageSuccess(
         categoryService.filter(isPaged, page, pageSize, sortBy, sortDirection, filter),
         ResponseMessageConstant.FIND_ALL_SUCCESSFULLY);
+  }
+
+  @PostMapping(path = "/import-from-excel", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+  public ResponseEntity<BaseBodyResponse> importCategoriesFromExcel(
+      @RequestParam("file") MultipartFile file) {
+    // Implementation for importing categories from an Excel file
+    this.categoryService.importCategoriesFromExcel(file);
+    return BaseBodyResponse.success(null, ResponseMessageConstant.SUCCESS);
+  }
+
+  @PostMapping("/bulk-insert")
+  public ResponseEntity<BaseBodyResponse> bulkInsertCategories(
+      @RequestBody @Valid BulkCategoryRequest bulkCategoryRequest) {
+    // Implementation for importing categories from an Excel file
+    this.categoryService.bulkInsertCategories(bulkCategoryRequest.getCategories());
+    return BaseBodyResponse.success(null, ResponseMessageConstant.SUCCESS);
   }
 
   /** Download Excel template for category import with dynamic sample data */

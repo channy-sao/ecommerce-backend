@@ -2,7 +2,7 @@ package ecommerce_app.modules.user.model.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import ecommerce_app.constant.enums.AuthProvider;
-import ecommerce_app.infrastructure.model.entity.BaseAuditingEntity;
+import ecommerce_app.infrastructure.model.entity.TimeAuditableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -40,7 +40,7 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class User extends BaseAuditingEntity {
+public class User extends TimeAuditableEntity {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;

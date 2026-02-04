@@ -1,13 +1,14 @@
 // ecommerce_app/modules/promotion/model/dto/PromotionResponse.java
 package ecommerce_app.modules.promotion.model.dto;
 
-import ecommerce_app.constant.enums.PromotionType;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import ecommerce_app.constant.enums.PromotionType;
 import ecommerce_app.modules.product.model.dto.ProductResponse;
-import lombok.Data;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
+import lombok.Data;
 
 @Data
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -25,6 +26,6 @@ public class PromotionResponse {
     private Integer maxUsage;
     private Integer currentUsage;
     private List<ProductResponse> products;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+    private Instant createdAt;
+    private Instant updatedAt;
 }

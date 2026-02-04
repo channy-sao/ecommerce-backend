@@ -1,7 +1,7 @@
 package ecommerce_app.modules.stock.model.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import ecommerce_app.infrastructure.model.entity.AuditingEntity;
+import ecommerce_app.infrastructure.model.entity.UserAuditableEntity;
 import ecommerce_app.modules.product.model.entity.Product;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -27,7 +27,7 @@ import lombok.Setter;
 @AllArgsConstructor
 @Entity
 @Table(name = "product_imports")
-public class ProductImport extends AuditingEntity {
+public class ProductImport extends UserAuditableEntity {
 
   @Id
   @GeneratedValue(strategy = GenerationType.AUTO)

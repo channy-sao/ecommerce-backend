@@ -9,16 +9,17 @@ import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.LastModifiedBy;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-@EntityListeners(AuditingEntityListener.class)
 @MappedSuperclass
+@EntityListeners(AuditingEntityListener.class)
 @Getter
 @Setter
-public abstract class AuditingEntity extends BaseAuditingEntity {
+public abstract class BusinessAuditableEntity extends TimeAuditableEntity {
+
   @CreatedBy
-  @Column(name = "created_by", nullable = false, updatable = false)
+  @Column(name = "created_by", updatable = false)
   private Long createdBy;
 
   @LastModifiedBy
-  @Column(name = "updated_by", nullable = false)
+  @Column(name = "updated_by")
   private Long updatedBy;
 }

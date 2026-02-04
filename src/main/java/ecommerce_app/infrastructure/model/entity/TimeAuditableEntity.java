@@ -3,6 +3,8 @@ package ecommerce_app.infrastructure.model.entity;
 import jakarta.persistence.Column;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.MappedSuperclass;
+
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 import lombok.Getter;
@@ -15,14 +17,12 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 @MappedSuperclass
 @Getter
 @Setter
-public abstract class BaseAuditingEntity {
+public abstract class TimeAuditableEntity {
   @Column(name = "created_at", nullable = false, updatable = false)
-//  @Temporal(TemporalType.TIMESTAMP)  // Not be use with Instant
   @CreatedDate
-  private LocalDateTime createdAt;
+  private Instant createdAt;
 
   @Column(name = "updated_at")
-//  @Temporal(TemporalType.TIMESTAMP)  // Not be use with Instant
   @LastModifiedDate
-  private LocalDateTime updatedAt;
+  private Instant updatedAt;
 }

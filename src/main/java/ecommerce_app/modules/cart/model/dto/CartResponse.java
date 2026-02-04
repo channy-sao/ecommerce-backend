@@ -3,7 +3,7 @@ package ecommerce_app.modules.cart.model.dto;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import ecommerce_app.constant.enums.CartStatus;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
@@ -24,8 +24,8 @@ public class CartResponse {
   private BigDecimal subtotal;
   private BigDecimal discount;
   private CartStatus status;
-  private LocalDateTime createdAt;
-  private LocalDateTime updatedAt;
+  private Instant createdAt;
+  private Instant updatedAt;
   private List<CartItemResponse> items;
 
   // User info (optional)

@@ -1,7 +1,8 @@
 package ecommerce_app.modules.user.model.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import ecommerce_app.infrastructure.model.entity.BaseSoftDeleteEntity;
+import ecommerce_app.infrastructure.model.entity.TimeAuditableEntity;
+import ecommerce_app.infrastructure.model.entity.UserAuditableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -20,6 +21,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
+import org.checkerframework.checker.units.qual.C;
 
 @Table(name = "roles")
 @Getter
@@ -28,8 +30,7 @@ import lombok.ToString;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@ToString(exclude = {"permissions", "users"}) // ← ADD THIS if missing
-public class Role extends BaseSoftDeleteEntity {
+public class Role extends TimeAuditableEntity {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
@@ -42,6 +43,9 @@ public class Role extends BaseSoftDeleteEntity {
 
   @Column(name = "description", length = 250)
   private String description;
+
+  @Column(name = "is_active", nullable = false)
+  private boolean isActive = true;
 
   @ManyToMany(mappedBy = "roles", fetch = FetchType.LAZY)
   @JsonIgnore

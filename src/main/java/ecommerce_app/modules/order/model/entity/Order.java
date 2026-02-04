@@ -1,13 +1,11 @@
 package ecommerce_app.modules.order.model.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import ecommerce_app.constant.enums.OrderStatus;
 import ecommerce_app.constant.enums.PaymentMethod;
 import ecommerce_app.constant.enums.PaymentStatus;
 import ecommerce_app.constant.enums.ShippingMethod;
-import ecommerce_app.infrastructure.model.entity.AuditingEntity;
-import ecommerce_app.infrastructure.model.entity.BaseAuditingEntity;
+import ecommerce_app.infrastructure.model.entity.UserAuditableEntity;
 import ecommerce_app.modules.cart.model.entity.Cart;
 import ecommerce_app.modules.user.model.entity.User;
 import jakarta.persistence.CascadeType;
@@ -32,7 +30,6 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import lombok.ToString;
 
 @Getter
 @AllArgsConstructor
@@ -41,7 +38,7 @@ import lombok.ToString;
 @Setter
 @Table(name = "orders")
 @Entity
-public class Order extends AuditingEntity {
+public class Order extends UserAuditableEntity {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;

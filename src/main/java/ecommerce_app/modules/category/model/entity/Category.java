@@ -1,7 +1,8 @@
 package ecommerce_app.modules.category.model.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import ecommerce_app.infrastructure.model.entity.AuditingEntity;
+import ecommerce_app.infrastructure.model.entity.TimeAuditableEntity;
+import ecommerce_app.infrastructure.model.entity.UserAuditableEntity;
 import ecommerce_app.modules.product.model.entity.Product;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -23,7 +24,7 @@ import org.hibernate.annotations.OnDeleteAction;
 @Getter
 @Setter
 @Entity
-public class Category extends AuditingEntity {
+public class Category extends TimeAuditableEntity {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
@@ -31,7 +32,7 @@ public class Category extends AuditingEntity {
   @Column(nullable = false, unique = true, length = 100, name = "name")
   private String name;
 
-  @Column(length = 100, name = "description")
+  @Column(length = 500, name = "description")
   private String description;
 
   @OneToMany(

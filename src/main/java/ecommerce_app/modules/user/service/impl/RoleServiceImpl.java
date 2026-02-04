@@ -77,8 +77,7 @@ public class RoleServiceImpl extends ValidatePermission implements RoleService {
         roleRepository
             .findById(roleId)
             .orElseThrow(() -> new ResourceNotFoundException("Role", roleId));
-
-    role.softDelete(); // ENTITY responsibility
+    role.setActive(false);
     roleRepository.save(role);
 
     log.info("Role soft deleted id={}", roleId);
