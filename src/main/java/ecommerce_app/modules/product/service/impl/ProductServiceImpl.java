@@ -18,6 +18,7 @@ import ecommerce_app.modules.product.model.entity.Product;
 import ecommerce_app.modules.product.repository.ProductRepository;
 import ecommerce_app.modules.product.service.ProductService;
 import ecommerce_app.modules.product.specification.ProductSpecification;
+import ecommerce_app.util.AuthenticationUtils;
 import ecommerce_app.util.FileUtils;
 import ecommerce_app.util.ProductMapper;
 import java.io.InputStream;
@@ -146,7 +147,9 @@ public class ProductServiceImpl implements ProductService {
   @Override
   public void deleteProduct(Long id) {
     log.info("Deleting product {}", id);
-    productRepository.deleteById(id);
+    var product = this.getById(id);
+    product.softDelete(AuthenticationUtils.getCurrentUserId());
+    productRepository.save(product);
     log.info("Deleted product {}", id);
   }
 

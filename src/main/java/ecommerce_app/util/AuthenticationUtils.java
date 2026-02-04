@@ -15,12 +15,20 @@ public class AuthenticationUtils {
     return SecurityContextHolder.getContext().getAuthentication();
   }
 
-  public static User getCurrentUser() {
-    return (User) getAuthentication().getPrincipal();
+  public static CustomUserDetails getCurrentUser() {
+    return (CustomUserDetails) getAuthentication().getPrincipal();
+  }
+
+  public static Long getCurrentUserId() {
+    var authUser = (CustomUserDetails) getAuthentication().getPrincipal();
+    if (authUser != null) {
+      return authUser.getId();
+    }
+    return null;
   }
 
   public static String getCurrentUserEmail() {
-    return getCurrentUser().getEmail();
+    return getCurrentUser().getUsername();
   }
 
   public static String getToken() {

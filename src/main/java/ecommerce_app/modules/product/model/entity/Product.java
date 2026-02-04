@@ -1,7 +1,7 @@
 package ecommerce_app.modules.product.model.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import ecommerce_app.infrastructure.model.entity.UserAuditableEntity;
+import ecommerce_app.infrastructure.model.entity.SoftDeletableEntity;
 import ecommerce_app.modules.cart.model.entity.CartItem;
 import ecommerce_app.modules.category.model.entity.Category;
 import ecommerce_app.modules.order.model.entity.OrderItem;
@@ -30,6 +30,8 @@ import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 
 @Table(
     name = "products",
@@ -40,7 +42,9 @@ import org.hibernate.annotations.OnDeleteAction;
 @Getter
 @Setter
 @Entity
-public class Product extends UserAuditableEntity {
+@SQLDelete(sql = "UPDATE products SET deleted = true WHERE id = ?")
+@SQLRestriction("deleted = false")
+public class Product extends SoftDeletableEntity {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
