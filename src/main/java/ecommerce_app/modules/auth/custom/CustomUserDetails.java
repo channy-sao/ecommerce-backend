@@ -12,7 +12,7 @@ public record CustomUserDetails(AuthUser user) implements UserDetails {
   @Override
   public Collection<? extends GrantedAuthority> getAuthorities() {
 
-    return user.getAuthorities().stream().map(SimpleGrantedAuthority::new).toList();
+    return user.getAuthorities();
   }
 
   public Long getId() {
@@ -46,6 +46,6 @@ public record CustomUserDetails(AuthUser user) implements UserDetails {
 
   @Override
   public boolean isEnabled() {
-    return true;
+    return user.isEnabled();
   }
 }
