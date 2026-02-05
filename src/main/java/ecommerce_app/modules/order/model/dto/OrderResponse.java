@@ -6,12 +6,10 @@ import ecommerce_app.constant.enums.OrderStatus;
 import ecommerce_app.constant.enums.PaymentMethod;
 import ecommerce_app.constant.enums.PaymentStatus;
 import ecommerce_app.constant.enums.ShippingMethod;
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.util.List;
-
 import ecommerce_app.modules.product.model.dto.ProductResponse;
-import ecommerce_app.modules.user.model.dto.UserResponse;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -28,7 +26,7 @@ public class OrderResponse {
   private UserOrderResponse user;
 
   @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-  private LocalDateTime orderDate;
+  private Instant orderDate;
 
   private OrderStatus orderStatus;
   private PaymentStatus paymentStatus;

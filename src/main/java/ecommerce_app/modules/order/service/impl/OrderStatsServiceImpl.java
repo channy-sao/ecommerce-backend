@@ -214,7 +214,7 @@ public class OrderStatsServiceImpl implements OrderStatsService {
 
     // Aggregate data
     for (Order order : orders) {
-      LocalDate orderDate = order.getOrderDate().toLocalDate();
+      LocalDate orderDate = LocalDate.from(order.getOrderDate());
       RevenueTrendResponse trend = trendMap.get(orderDate);
 
       if (trend != null) {
@@ -345,7 +345,7 @@ public class OrderStatsServiceImpl implements OrderStatsService {
         order.getId(),
         orderNumber,
         customerName,
-        order.getOrderDate().toLocalDate(),
+        LocalDate.from(order.getOrderDate()),
         order.getTotalAmount(),
         order.getOrderStatus().toString(),
         order.getOrderItems() != null ? order.getOrderItems().size() : 0);

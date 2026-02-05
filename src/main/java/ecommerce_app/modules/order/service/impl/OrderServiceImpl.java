@@ -33,6 +33,7 @@ import ecommerce_app.modules.user.model.entity.User;
 import ecommerce_app.modules.user.repository.UserRepository;
 import ecommerce_app.util.JsonUtils;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -427,7 +428,7 @@ public class OrderServiceImpl implements OrderService {
         .orderStatus(OrderStatus.PENDING)
         .paymentStatus(PaymentStatus.PENDING)
         .paymentMethod(checkoutRequest.getPaymentMethod())
-        .orderDate(LocalDateTime.now())
+        .orderDate(Instant.now())
         .build();
   }
 

@@ -49,12 +49,12 @@ public class ProductResponse {
   private Boolean isFeature;
 
   @Schema(description = "Timestamp when the product was created", example = "2025-06-01T12:34:56")
-  private LocalDateTime createdAt;
+  private Instant createdAt;
 
   @Schema(
       description = "Timestamp when the product was last updated",
       example = "2025-06-04T15:00:00")
-  private LocalDateTime updatedAt;
+  private Instant updatedAt;
 
   @Schema(description = "ID of the user who created the product")
   private AuditUserDto createdBy;

@@ -9,6 +9,7 @@ import ecommerce_app.constant.enums.ShippingMethod;
 import ecommerce_app.modules.address.model.dto.AddressResponse;
 import ecommerce_app.modules.product.model.dto.ProductResponse;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.AllArgsConstructor;
@@ -26,7 +27,7 @@ public class OrderDetailResponse {
   private String orderNumber;
 
   @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-  private LocalDateTime orderDate;
+  private Instant orderDate;
 
   // Status
   private OrderStatus orderStatus;

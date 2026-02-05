@@ -3,10 +3,7 @@ package ecommerce_app.infrastructure.model.entity;
 import jakarta.persistence.Column;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.MappedSuperclass;
-
 import java.time.Instant;
-import java.time.LocalDateTime;
-
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.data.annotation.CreatedDate;
