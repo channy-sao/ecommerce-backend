@@ -93,12 +93,12 @@ public class RoleController {
    * @param roleId role identifier
    * @return success response
    */
-  @Operation(summary = "Delete role", description = "Soft delete a role by id")
+  @Operation(summary = "Toggle status role", description = "Toggle status role by id")
   @ApiResponse(
       responseCode = "200",
       description = "Toggle Role status successfully",
       content = @Content(schema = @Schema(implementation = BaseBodyResponse.class)))
-  @PreAuthorize("hasRole('SUPER_ADMIN') or hasAuthority('ROLE_DELETE')")
+  @PreAuthorize("hasRole('SUPER_ADMIN') or hasAuthority('ROLE_UPDATE')")
   @PatchMapping("/{id}")
   public ResponseEntity<BaseBodyResponse> toggleStatus(@PathVariable("id") Long roleId) {
 
