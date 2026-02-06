@@ -64,6 +64,9 @@ public class Product extends SoftDeletableEntity {
   @Column(nullable = false, name = "is_feature")
   private Boolean isFeature;
 
+  @Column(nullable = false, name = "favorites_count")
+  private Integer favoritesCount = 0;
+
   @ManyToOne(
       fetch = FetchType.LAZY,
       optional = false,

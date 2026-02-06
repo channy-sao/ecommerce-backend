@@ -1,6 +1,6 @@
 package ecommerce_app.modules.product.model.entity;
 
-import ecommerce_app.infrastructure.model.entity.SoftDeleteOnlyEntity;
+import ecommerce_app.infrastructure.model.entity.TimeAuditableEntity;
 import ecommerce_app.modules.user.model.entity.User;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -14,8 +14,6 @@ import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.Setter;
-import org.hibernate.annotations.SQLDelete;
-import org.hibernate.annotations.SQLRestriction;
 
 @Entity
 @Table(
@@ -27,9 +25,7 @@ import org.hibernate.annotations.SQLRestriction;
     })
 @Getter
 @Setter
-@SQLDelete(sql = "UPDATE favorites SET deleted = true WHERE id = ?")
-@SQLRestriction("deleted = false")
-public class Favorite extends SoftDeleteOnlyEntity {
+public class Favorite extends TimeAuditableEntity {
 
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)

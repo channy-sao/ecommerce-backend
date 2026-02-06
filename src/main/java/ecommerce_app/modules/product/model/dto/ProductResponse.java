@@ -48,6 +48,9 @@ public class ProductResponse {
   @Schema(description = "Indicates whether the product is featured", example = "true")
   private Boolean isFeature;
 
+  @Schema(description = "Number of times the product has been favorite", example = "100")
+  private Integer favoritesCount;
+
   @Schema(description = "Timestamp when the product was created", example = "2025-06-01T12:34:56")
   private Instant createdAt;
 

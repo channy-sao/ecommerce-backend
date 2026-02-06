@@ -39,6 +39,7 @@ public class ProductMapper {
     response.setImage(image);
     response.setCategoryId(product.getCategory().getId());
     response.setCategoryName(product.getCategory().getName());
+    response.setFavoritesCount(product.getFavoritesCount());
     response.setCreatedBy(auditUserMap.get(product.getCreatedBy()));
     response.setUpdatedBy(auditUserMap.get(product.getUpdatedBy()));
     return response;

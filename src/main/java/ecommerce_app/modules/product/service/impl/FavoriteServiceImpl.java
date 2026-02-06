@@ -8,10 +8,12 @@ import ecommerce_app.modules.product.service.FavoriteService;
 import ecommerce_app.modules.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+@Service
 @RequiredArgsConstructor
 @Slf4j
 public class FavoriteServiceImpl implements FavoriteService {
@@ -21,7 +23,7 @@ public class FavoriteServiceImpl implements FavoriteService {
 
   @Transactional
   @Override
-  public void addFavorite(Long userId, Long productId) {
+  public void favorite(Long userId, Long productId) {
     log.info("Add favorite product. userId: {}, productId: {}", userId, productId);
     if (favoriteRepository.existsByUserIdAndProductId(userId, productId)) {
       log.info("Favorite already exists. userId: {}, productId: {}", userId, productId);
@@ -40,17 +42,42 @@ public class FavoriteServiceImpl implements FavoriteService {
     favorite.setUser(user);
 
     favoriteRepository.save(favorite);
+
+    product.setFavoritesCount(product.getFavoritesCount() + 1);
+    productRepository.save(product);
     log.info("Favorite added. userId: {}, productId: {}", userId, productId);
   }
 
   @Transactional(rollbackFor = Exception.class)
   @Override
-  public void removeFavorite(Long userId, Long productId) {
+  public void unfavorite(Long userId, Long productId) {
     log.info("Remove favorite product. userId: {}, productId: {}", userId, productId);
     favoriteRepository
         .findByUserIdAndProductId(userId, productId)
         .ifPresent(favoriteRepository::delete);
+
+    productRepository
+        .findById(productId)
+        .ifPresent(
+            product -> {
+              if (product.getFavoritesCount() > 0) {
+                product.setFavoritesCount(product.getFavoritesCount() - 1);
+                productRepository.save(product);
+              }
+            });
     log.info("Favorite removed. userId: {}, productId: {}", userId, productId);
+  }
+
+  @Transactional(rollbackFor = Exception.class)
+  @Override
+  public void toggleFavorite(Long userId, Long productId) {
+    log.info("Toggle favorite product. userId: {}, productId: {}", userId, productId);
+    if (favoriteRepository.existsByUserIdAndProductId(userId, productId)) {
+      this.unfavorite(userId, productId);
+    } else {
+      this.favorite(userId, productId);
+    }
+    log.info("Favorite toggled. userId: {}, productId: {}", userId, productId);
   }
 
   @Transactional(readOnly = true)
