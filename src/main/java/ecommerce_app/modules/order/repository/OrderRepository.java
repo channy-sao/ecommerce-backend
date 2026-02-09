@@ -2,14 +2,12 @@ package ecommerce_app.modules.order.repository;
 
 import ecommerce_app.constant.enums.OrderStatus;
 import ecommerce_app.modules.order.model.entity.Order;
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.util.List;
-import java.util.Optional;
-
 import ecommerce_app.modules.order.model.entity.OrderItem;
 import ecommerce_app.modules.order.model.projection.OrderStatsProjection;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -73,24 +71,25 @@ public interface OrderRepository
       @Param("endDate") Instant endDate);
 
   // Get orders by date range
-  @Query("SELECT o FROM Order o WHERE DATE(o.orderDate) BETWEEN :fromDate AND :toDate")
+  // This avoids the DATE() function that causes type conversion issues
+  @Query("SELECT o FROM Order o WHERE o.orderDate BETWEEN :fromDate AND :toDate")
   List<Order> findOrdersByDateRange(
-      @Param("fromDate") LocalDate fromDate, @Param("toDate") LocalDate toDate);
+      @Param("fromDate") Instant fromDate, @Param("toDate") Instant toDate);
 
   // Get orders by date range with pagination
   @Query(
-      "SELECT o FROM Order o WHERE DATE(o.orderDate) BETWEEN :fromDate AND :toDate "
+      "SELECT o FROM Order o WHERE o.orderDate BETWEEN :fromDate AND :toDate "
           + "ORDER BY o.orderDate DESC")
   List<Order> findOrdersByDateRange(
-      @Param("fromDate") LocalDate fromDate, @Param("toDate") LocalDate toDate, Pageable pageable);
+      @Param("fromDate") Instant fromDate, @Param("toDate") Instant toDate, Pageable pageable);
 
   // Get order items by date range
   @Query(
       "SELECT oi FROM OrderItem oi "
           + "JOIN oi.order o "
-          + "WHERE DATE(o.orderDate) BETWEEN :fromDate AND :toDate")
+          + "WHERE o.orderDate BETWEEN :fromDate AND :toDate")
   List<OrderItem> findOrderItemsByDateRange(
-      @Param("fromDate") LocalDate fromDate, @Param("toDate") LocalDate toDate);
+      @Param("fromDate") Instant fromDate, @Param("toDate") Instant toDate);
 
   @Query(
       """
@@ -146,6 +145,6 @@ public interface OrderRepository
   boolean existsByOrderNumber(String orderNumber);
 
   // Count orders created today (for order number generation)
-  @Query("SELECT COUNT(o) FROM Order o WHERE DATE(o.orderDate) = :date")
-  Long countOrdersCreatedToday(@Param("date") LocalDate date);
+  @Query("SELECT COUNT(o) FROM Order o WHERE CAST(o.orderDate AS date) = CAST(:date AS date)")
+  Long countOrdersCreatedToday(@Param("date") Instant date);
 }

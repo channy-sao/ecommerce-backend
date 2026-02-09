@@ -2,6 +2,7 @@
 package ecommerce_app.modules.order.service.impl;
 
 import ecommerce_app.constant.enums.OrderStatus;
+import ecommerce_app.infrastructure.exception.InternalServerErrorException;
 import ecommerce_app.infrastructure.io.service.StaticResourceService;
 import ecommerce_app.modules.order.model.dto.OrderStatsResponse;
 import ecommerce_app.modules.order.model.dto.RecentOrderResponse;
@@ -18,7 +19,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -43,69 +44,76 @@ public class OrderStatsServiceImpl implements OrderStatsService {
 
   @Override
   public OrderStatsResponse getDashboardStats() {
-    Instant now = Instant.now();
-    Instant thirtyDaysAgo = now.minus(30, ChronoUnit.DAYS);
-    Instant previousPeriodStart = thirtyDaysAgo.minus(30, ChronoUnit.DAYS);
+    try {
+      Instant now = Instant.now();
+      Instant thirtyDaysAgo = now.minus(30, ChronoUnit.DAYS);
+      Instant previousPeriodStart = thirtyDaysAgo.minus(30, ChronoUnit.DAYS);
 
-    // Single database query instead of 15+
-    OrderStatsProjection stats =
-        orderRepository.getAggregatedDashboardStats(previousPeriodStart, thirtyDaysAgo);
+      // Single database query instead of 15+
+      OrderStatsProjection stats =
+          orderRepository.getAggregatedDashboardStats(previousPeriodStart, thirtyDaysAgo);
 
-    // Calculate average order values
-    BigDecimal averageOrderValue =
-        calculateAverage(stats.getCurrentRevenue(), stats.getCurrentOrders());
+      // Calculate average order values
+      BigDecimal averageOrderValue =
+          calculateAverage(stats.getCurrentRevenue(), stats.getCurrentOrders());
 
-    BigDecimal previousAvgOrderValue =
-        calculateAverage(stats.getPreviousRevenue(), stats.getPreviousOrders());
+      BigDecimal previousAvgOrderValue =
+          calculateAverage(stats.getPreviousRevenue(), stats.getPreviousOrders());
 
-    // Calculate percentage changes
-    BigDecimal revenueChangePercent =
-        calculateChangePercent(stats.getPreviousRevenue(), stats.getCurrentRevenue());
+      // Calculate percentage changes
+      BigDecimal revenueChangePercent =
+          calculateChangePercent(stats.getPreviousRevenue(), stats.getCurrentRevenue());
 
-    BigDecimal ordersChangePercent =
-        calculateChangePercent(
-            BigDecimal.valueOf(stats.getPreviousOrders()),
-            BigDecimal.valueOf(stats.getCurrentOrders()));
+      BigDecimal ordersChangePercent =
+          calculateChangePercent(
+              BigDecimal.valueOf(stats.getPreviousOrders()),
+              BigDecimal.valueOf(stats.getCurrentOrders()));
 
-    BigDecimal pendingOrdersChangePercent =
-        calculateChangePercent(
-            BigDecimal.valueOf(stats.getPreviousPending() != null ? stats.getPreviousPending() : 0),
-            BigDecimal.valueOf(stats.getCurrentPending() != null ? stats.getCurrentPending() : 0));
+      BigDecimal pendingOrdersChangePercent =
+          calculateChangePercent(
+              BigDecimal.valueOf(
+                  stats.getPreviousPending() != null ? stats.getPreviousPending() : 0),
+              BigDecimal.valueOf(
+                  stats.getCurrentPending() != null ? stats.getCurrentPending() : 0));
 
-    BigDecimal completedOrdersChangePercent =
-        calculateChangePercent(
-            BigDecimal.valueOf(
-                stats.getPreviousCompleted() != null ? stats.getPreviousCompleted() : 0),
-            BigDecimal.valueOf(
-                stats.getCurrentCompleted() != null ? stats.getCurrentCompleted() : 0));
+      BigDecimal completedOrdersChangePercent =
+          calculateChangePercent(
+              BigDecimal.valueOf(
+                  stats.getPreviousCompleted() != null ? stats.getPreviousCompleted() : 0),
+              BigDecimal.valueOf(
+                  stats.getCurrentCompleted() != null ? stats.getCurrentCompleted() : 0));
 
-    BigDecimal cancelledOrdersChangePercent =
-        calculateChangePercent(
-            BigDecimal.valueOf(
-                stats.getPreviousCancelled() != null ? stats.getPreviousCancelled() : 0),
-            BigDecimal.valueOf(
-                stats.getCurrentCancelled() != null ? stats.getCurrentCancelled() : 0));
+      BigDecimal cancelledOrdersChangePercent =
+          calculateChangePercent(
+              BigDecimal.valueOf(
+                  stats.getPreviousCancelled() != null ? stats.getPreviousCancelled() : 0),
+              BigDecimal.valueOf(
+                  stats.getCurrentCancelled() != null ? stats.getCurrentCancelled() : 0));
 
-    BigDecimal avgOrderValueChangePercent =
-        calculateChangePercent(previousAvgOrderValue, averageOrderValue);
+      BigDecimal avgOrderValueChangePercent =
+          calculateChangePercent(previousAvgOrderValue, averageOrderValue);
 
-    return OrderStatsResponse.builder()
-        .totalRevenue(stats.getCurrentRevenue())
-        .totalOrders(stats.getCurrentOrders())
-        .pendingOrders(stats.getCurrentPending())
-        .processingOrders(stats.getCurrentProcessing())
-        .shippedOrders(stats.getCurrentShipped())
-        .deliveredOrders(stats.getCurrentDelivered())
-        .completedOrders(stats.getCurrentCompleted())
-        .cancelledOrders(stats.getCurrentCancelled())
-        .averageOrderValue(averageOrderValue)
-        .revenueChangePercent(revenueChangePercent)
-        .ordersChangePercent(ordersChangePercent)
-        .pendingOrdersChangePercent(pendingOrdersChangePercent)
-        .completedOrdersChangePercent(completedOrdersChangePercent)
-        .cancelledOrdersChangePercent(cancelledOrdersChangePercent)
-        .avgOrderValueChangePercent(avgOrderValueChangePercent)
-        .build();
+      return OrderStatsResponse.builder()
+          .totalRevenue(stats.getCurrentRevenue())
+          .totalOrders(stats.getCurrentOrders())
+          .pendingOrders(stats.getCurrentPending())
+          .processingOrders(stats.getCurrentProcessing())
+          .shippedOrders(stats.getCurrentShipped())
+          .deliveredOrders(stats.getCurrentDelivered())
+          .completedOrders(stats.getCurrentCompleted())
+          .cancelledOrders(stats.getCurrentCancelled())
+          .averageOrderValue(averageOrderValue)
+          .revenueChangePercent(revenueChangePercent)
+          .ordersChangePercent(ordersChangePercent)
+          .pendingOrdersChangePercent(pendingOrdersChangePercent)
+          .completedOrdersChangePercent(completedOrdersChangePercent)
+          .cancelledOrdersChangePercent(cancelledOrdersChangePercent)
+          .avgOrderValueChangePercent(avgOrderValueChangePercent)
+          .build();
+    } catch (Exception e) {
+      log.error("Error fetching dashboard stats", e);
+      throw new InternalServerErrorException(e.getMessage(), e);
+    }
   }
 
   private BigDecimal calculateAverage(BigDecimal total, Long count) {
@@ -117,7 +125,7 @@ public class OrderStatsServiceImpl implements OrderStatsService {
 
   @Override
   public OrderStatsResponse getStatsWithDateRange(LocalDate fromDate, LocalDate toDate) {
-    Instant fromDateTime = Instant.from(fromDate.atStartOfDay());
+    Instant fromDateTime = fromDate.atStartOfDay(ZoneId.systemDefault()).toInstant();
     Instant toDateTime = Instant.from(toDate.atTime(23, 59, 59));
 
     // Previous period (same duration before)
@@ -189,10 +197,10 @@ public class OrderStatsServiceImpl implements OrderStatsService {
 
   @Override
   public List<RevenueTrendResponse> getRevenueTrend(LocalDate fromDate, LocalDate toDate) {
-    var startDateTime = fromDate.atStartOfDay();
-    var endDateTime = toDate.atTime(23, 59, 59);
     // Get all orders in date range
-    List<Order> orders = orderRepository.findOrdersByDateRange(fromDate, toDate);
+    Instant fromInstant = fromDate.atStartOfDay(ZoneId.systemDefault()).toInstant();
+    Instant toInstant = toDate.atTime(23, 59, 59).atZone(ZoneId.systemDefault()).toInstant();
+    List<Order> orders = orderRepository.findOrdersByDateRange(fromInstant, toInstant);
     // Group by date and calculate
     Map<LocalDate, RevenueTrendResponse> trendMap = new TreeMap<>();
 
@@ -205,7 +213,7 @@ public class OrderStatsServiceImpl implements OrderStatsService {
 
     // Aggregate data
     for (Order order : orders) {
-      LocalDate orderDate = LocalDate.from(order.getOrderDate());
+      LocalDate orderDate = order.getOrderDate().atZone(ZoneId.systemDefault()).toLocalDate();
       RevenueTrendResponse trend = trendMap.get(orderDate);
 
       if (trend != null) {
@@ -228,7 +236,10 @@ public class OrderStatsServiceImpl implements OrderStatsService {
   public List<StatusDistributionResponse> getStatusDistribution(
       LocalDate fromDate, LocalDate toDate) {
     // Get all orders in date range
-    List<Order> orders = orderRepository.findOrdersByDateRange(fromDate, toDate);
+    Instant fromInstant = fromDate.atStartOfDay(ZoneId.systemDefault()).toInstant();
+    Instant toInstant = toDate.atTime(23, 59, 59).atZone(ZoneId.systemDefault()).toInstant();
+
+    List<Order> orders = orderRepository.findOrdersByDateRange(fromInstant, toInstant);
 
     // Group by status
     Map<String, Long> statusCountMap =
@@ -248,14 +259,17 @@ public class OrderStatsServiceImpl implements OrderStatsService {
               double percentage = total > 0 ? (entry.getValue().doubleValue() / total) * 100 : 0.0;
               return new StatusDistributionResponse(entry.getKey(), entry.getValue(), percentage);
             })
-        .sorted((a, b) -> Long.compare(b.getCount(), a.getCount())) // Sort by count descending
-        .collect(Collectors.toList());
+        .sorted((a, b) -> Long.compare(b.getCount(), a.getCount()))
+        .toList();
   }
 
   @Override
   public List<TopProductResponse> getTopProducts(LocalDate fromDate, LocalDate toDate, int limit) {
     // Get all order items in date range
-    List<OrderItem> orderItems = orderRepository.findOrderItemsByDateRange(fromDate, toDate);
+    Instant fromInstant = fromDate.atStartOfDay(ZoneId.systemDefault()).toInstant();
+    Instant toInstant = toDate.atTime(23, 59, 59).atZone(ZoneId.systemDefault()).toInstant();
+
+    List<OrderItem> orderItems = orderRepository.findOrderItemsByDateRange(fromInstant, toInstant);
 
     // Filter out cancelled/refunded orders
     orderItems =
@@ -266,7 +280,7 @@ public class OrderStatsServiceImpl implements OrderStatsService {
                   OrderStatus status = oi.getOrder().getOrderStatus();
                   return status != OrderStatus.CANCELLED && status != OrderStatus.REFUNDED;
                 })
-            .collect(Collectors.toList());
+            .toList();
 
     // Group by product
     Map<Product, ProductStats> productStatsMap = new HashMap<>();
@@ -283,7 +297,7 @@ public class OrderStatsServiceImpl implements OrderStatsService {
       stats.revenue = stats.revenue.add(itemRevenue);
 
       // Add quantity
-      Integer quantity = orderItem.getQuantity() != null ? orderItem.getQuantity() : 0;
+      int quantity = orderItem.getQuantity() != null ? orderItem.getQuantity() : 0;
       stats.quantity += quantity;
 
       productStatsMap.put(product, stats);
@@ -305,19 +319,22 @@ public class OrderStatsServiceImpl implements OrderStatsService {
             })
         .sorted((a, b) -> b.getRevenue().compareTo(a.getRevenue())) // Sort by revenue descending
         .limit(limit)
-        .collect(Collectors.toList());
+        .toList();
   }
 
   @Override
   public List<RecentOrderResponse> getRecentOrders(
       LocalDate fromDate, LocalDate toDate, int limit) {
     // Get recent orders with pagination
+    Instant fromInstant = fromDate.atStartOfDay(ZoneId.systemDefault()).toInstant();
+    Instant toInstant = toDate.atTime(23, 59, 59).atZone(ZoneId.systemDefault()).toInstant();
+
     List<Order> orders =
         orderRepository.findOrdersByDateRange(
-            fromDate, toDate, PageRequest.of(0, limit, Sort.by("orderDate").descending()));
+            fromInstant, toInstant, PageRequest.of(0, limit, Sort.by("orderDate").descending()));
 
     // Convert to response
-    return orders.stream().map(this::convertToRecentOrderResponse).collect(Collectors.toList());
+    return orders.stream().map(this::convertToRecentOrderResponse).toList();
   }
 
   private RecentOrderResponse convertToRecentOrderResponse(Order order) {
@@ -328,15 +345,11 @@ public class OrderStatsServiceImpl implements OrderStatsService {
       customerName = order.getUser().getFullName();
     }
 
-    // Generate order number if not exists
-    String orderNumber =
-        order.getId() != null ? "ORD-" + String.format("%06d", order.getId()) : "N/A";
-
     return new RecentOrderResponse(
         order.getId(),
-        orderNumber,
+        order.getOrderNumber(),
         customerName,
-        LocalDate.from(order.getOrderDate()),
+        order.getOrderDate().atZone(ZoneId.systemDefault()).toLocalDate(),
         order.getTotalAmount(),
         order.getOrderStatus().toString(),
         order.getOrderItems() != null ? order.getOrderItems().size() : 0);

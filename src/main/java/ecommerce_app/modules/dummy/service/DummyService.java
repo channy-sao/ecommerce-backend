@@ -27,6 +27,7 @@ import ecommerce_app.modules.user.repository.RoleRepository;
 import ecommerce_app.modules.user.repository.UserRepository;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -285,8 +286,13 @@ public class DummyService {
         var productImportRequest = new ProductImportRequest();
         productImportRequest.setProductId(product.getId());
         productImportRequest.setQuantity(quantity);
+        int randomPercent = faker.random().nextInt(50, 99);
         productImportRequest.setUnitPrice(
-            product.getPrice().multiply(BigDecimal.valueOf(faker.random().nextInt(50, 99) / 100)));
+            product
+                .getPrice()
+                .multiply(
+                    new BigDecimal(randomPercent)
+                        .divide(new BigDecimal(100), 2, RoundingMode.HALF_UP)));
         productImportRequest.setRemark(faker.lorem().word());
         productImportRequest.setSupplierName(faker.company().name());
         productImportRequest.setSupplierPhone(faker.phoneNumber().phoneNumber());

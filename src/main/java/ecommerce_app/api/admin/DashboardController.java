@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.*;
 @Slf4j
 @Tag(name = "Order Statistics Controller", description = "For admin manage statistics virtualization")
 // @PreAuthorize("hasRole('ADMIN')")
-public class OrderStatsController {
+public class DashboardController {
 
   private final OrderStatsServiceImpl orderStatsService;
 
