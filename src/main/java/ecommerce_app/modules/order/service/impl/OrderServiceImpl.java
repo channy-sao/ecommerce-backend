@@ -61,6 +61,7 @@ public class OrderServiceImpl implements OrderService {
   private final UserRepository userRepository;
   private final OrderStatusHistoryRepository orderStatusHistoryRepository;
   private final OrderMapper orderMapper;
+  private final OrderNumberGenerator orderNumberGenerator;
 
   @Transactional(rollbackFor = Exception.class)
   @Override
@@ -120,6 +121,12 @@ public class OrderServiceImpl implements OrderService {
             discountAmount,
             shippingAmount,
             totalAmount);
+
+    String orderNumber = orderNumberGenerator.generateOrderNumber();
+    order.setOrderNumber(orderNumber);
+
+    log.debug("Generated order number: {}", orderNumber);
+
     // save order
     Order savedOrder = orderRepository.save(order);
 

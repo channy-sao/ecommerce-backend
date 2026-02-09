@@ -9,6 +9,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
@@ -19,7 +20,12 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-@Table(name = "cart_items")
+@Table(
+    name = "cart_items",
+    indexes = {
+      @Index(name = "idx_cart_item_cart", columnList = "cart_id"),
+      @Index(name = "idx_cart_item_cart_product", columnList = "cart_id, product_id", unique = true)
+    })
 @Entity
 @Getter
 @Setter
@@ -62,5 +68,4 @@ public class CartItem {
 
     if (quantity > 0) quantity--;
   }
-
 }

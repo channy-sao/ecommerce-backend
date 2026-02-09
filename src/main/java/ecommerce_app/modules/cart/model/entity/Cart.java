@@ -35,7 +35,11 @@ import org.hibernate.annotations.OnDeleteAction;
 
 @Table(
     name = "carts",
-    indexes = {@Index(columnList = "uuid", name = "cart_uuid_index")})
+    indexes = {
+      @Index(columnList = "uuid", name = "cart_uuid_index"),
+      @Index(name = "idx_cart_user", columnList = "user_id"),
+      @Index(name = "idx_cart_user_status", columnList = "user_id, status")
+    })
 @Entity
 @Getter
 @Setter

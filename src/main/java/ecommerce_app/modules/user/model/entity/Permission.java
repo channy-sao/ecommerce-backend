@@ -8,6 +8,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -15,7 +16,13 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-@Table(name = "permissions")
+@Table(
+    name = "permissions",
+    indexes = {
+      @Index(name = "idx_permission_name", columnList = "name", unique = true),
+      @Index(name = "idx_permission_category", columnList = "category"),
+      @Index(name = "idx_permission_category_name", columnList = "category, name")
+    })
 @Getter
 @Setter
 @Entity

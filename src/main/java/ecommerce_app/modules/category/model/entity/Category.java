@@ -2,7 +2,6 @@ package ecommerce_app.modules.category.model.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import ecommerce_app.infrastructure.model.entity.TimeAuditableEntity;
-import ecommerce_app.infrastructure.model.entity.UserAuditableEntity;
 import ecommerce_app.modules.product.model.entity.Product;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -20,7 +19,13 @@ import lombok.Setter;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
-@Table(name = "categories", indexes = @Index(columnList = "name", name = "name_index"))
+@Table(
+    name = "categories",
+    indexes = {
+      @Index(columnList = "name", name = "name_index"),
+      @Index(name = "idx_category_created", columnList = "created_at"),
+      @Index(name = "idx_category_updated", columnList = "updated_at")
+    })
 @Getter
 @Setter
 @Entity

@@ -2,13 +2,13 @@ package ecommerce_app.modules.user.model.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import ecommerce_app.infrastructure.model.entity.TimeAuditableEntity;
-import ecommerce_app.infrastructure.model.entity.UserAuditableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
@@ -20,10 +20,16 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import lombok.ToString;
-import org.checkerframework.checker.units.qual.C;
 
-@Table(name = "roles")
+@Table(
+    name = "roles",
+    indexes = {
+      @Index(name = "idx_role_name", columnList = "role_name", unique = true),
+      @Index(name = "idx_role_uid", columnList = "uid", unique = true),
+      @Index(name = "idx_role_is_active", columnList = "is_active"),
+      @Index(name = "idx_role_active_name", columnList = "is_active, role_name"),
+      @Index(name = "idx_role_created_at", columnList = "created_at")
+    })
 @Getter
 @Setter
 @Entity

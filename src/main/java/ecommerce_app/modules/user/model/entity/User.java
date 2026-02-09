@@ -33,6 +33,9 @@ import lombok.Setter;
       @Index(columnList = "firstName", name = "first_name_index"),
       @Index(columnList = "lastName", name = "last_name_index"),
       @Index(columnList = "uuid", name = "uuid_index"),
+      @Index(name = "idx_user_firebase_uid", columnList = "firebase_uid"),
+      @Index(name = "idx_user_phone", columnList = "phone"),
+      @Index(name = "idx_user_is_active", columnList = "is_active")
     })
 @Getter
 @Setter

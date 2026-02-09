@@ -25,7 +25,6 @@ public class OrderResponse {
   private String orderNumber;
   private UserOrderResponse user;
 
-  @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
   private Instant orderDate;
 
   private OrderStatus orderStatus;

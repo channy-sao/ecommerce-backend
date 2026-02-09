@@ -10,13 +10,16 @@ import ecommerce_app.modules.order.model.dto.StatusDistributionResponse;
 import ecommerce_app.modules.order.model.dto.TopProductResponse;
 import ecommerce_app.modules.order.model.entity.Order;
 import ecommerce_app.modules.order.model.entity.OrderItem;
+import ecommerce_app.modules.order.model.projection.OrderStatsProjection;
 import ecommerce_app.modules.order.repository.OrderRepository;
 import ecommerce_app.modules.order.service.OrderStatsService;
 import ecommerce_app.modules.product.model.entity.Product;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -40,80 +43,61 @@ public class OrderStatsServiceImpl implements OrderStatsService {
 
   @Override
   public OrderStatsResponse getDashboardStats() {
-    LocalDateTime now = LocalDateTime.now();
-    LocalDateTime thirtyDaysAgo = now.minusDays(30);
-    LocalDateTime previousPeriodStart = thirtyDaysAgo.minusDays(30);
+    Instant now = Instant.now();
+    Instant thirtyDaysAgo = now.minus(30, ChronoUnit.DAYS);
+    Instant previousPeriodStart = thirtyDaysAgo.minus(30, ChronoUnit.DAYS);
 
-    // Current period stats (last 30 days)
-    BigDecimal totalRevenue = orderRepository.getTotalRevenueSince(thirtyDaysAgo);
-    Long totalOrders = orderRepository.getOrderCountSince(thirtyDaysAgo);
+    // Single database query instead of 15+
+    OrderStatsProjection stats =
+        orderRepository.getAggregatedDashboardStats(previousPeriodStart, thirtyDaysAgo);
+
+    // Calculate average order values
     BigDecimal averageOrderValue =
-        totalOrders > 0
-            ? totalRevenue.divide(BigDecimal.valueOf(totalOrders), 2, RoundingMode.HALF_UP)
-            : BigDecimal.ZERO;
+        calculateAverage(stats.getCurrentRevenue(), stats.getCurrentOrders());
 
-    // Get counts by status (last 30 days)
-    Long pendingOrders =
-        orderRepository.getOrderCountByStatusSince(OrderStatus.PENDING, thirtyDaysAgo);
-    Long processingOrders =
-        orderRepository.getOrderCountByStatusSince(OrderStatus.PROCESSING, thirtyDaysAgo);
-    Long shippedOrders =
-        orderRepository.getOrderCountByStatusSince(OrderStatus.SHIPPED, thirtyDaysAgo);
-    Long deliveredOrders =
-        orderRepository.getOrderCountByStatusSince(OrderStatus.DELIVERED, thirtyDaysAgo);
-    Long completedOrders =
-        orderRepository.getOrderCountByStatusSince(OrderStatus.COMPLETED, thirtyDaysAgo);
-    Long cancelledOrders =
-        orderRepository.getOrderCountByStatusSince(OrderStatus.CANCELLED, thirtyDaysAgo);
-
-    // Previous period stats (30-60 days ago)
-    BigDecimal previousRevenue =
-        orderRepository.getTotalRevenueBetween(previousPeriodStart, thirtyDaysAgo);
-    Long previousOrders = orderRepository.getOrderCountBetween(previousPeriodStart, thirtyDaysAgo);
     BigDecimal previousAvgOrderValue =
-        previousOrders > 0
-            ? previousRevenue.divide(BigDecimal.valueOf(previousOrders), 2, RoundingMode.HALF_UP)
-            : BigDecimal.ZERO;
-
-    // Previous status counts
-    Long previousPendingOrders =
-        orderRepository.getOrderCountByStatusBetween(
-            OrderStatus.PENDING, previousPeriodStart, thirtyDaysAgo);
-    Long previousCompletedOrders =
-        orderRepository.getOrderCountByStatusBetween(
-            OrderStatus.COMPLETED, previousPeriodStart, thirtyDaysAgo);
-    Long previousCancelledOrders =
-        orderRepository.getOrderCountByStatusBetween(
-            OrderStatus.CANCELLED, previousPeriodStart, thirtyDaysAgo);
+        calculateAverage(stats.getPreviousRevenue(), stats.getPreviousOrders());
 
     // Calculate percentage changes
-    BigDecimal revenueChangePercent = calculateChangePercent(previousRevenue, totalRevenue);
+    BigDecimal revenueChangePercent =
+        calculateChangePercent(stats.getPreviousRevenue(), stats.getCurrentRevenue());
+
     BigDecimal ordersChangePercent =
-        calculateChangePercent(BigDecimal.valueOf(previousOrders), BigDecimal.valueOf(totalOrders));
+        calculateChangePercent(
+            BigDecimal.valueOf(stats.getPreviousOrders()),
+            BigDecimal.valueOf(stats.getCurrentOrders()));
+
     BigDecimal pendingOrdersChangePercent =
         calculateChangePercent(
-            BigDecimal.valueOf(previousPendingOrders != null ? previousPendingOrders : 0),
-            BigDecimal.valueOf(pendingOrders != null ? pendingOrders : 0));
+            BigDecimal.valueOf(stats.getPreviousPending() != null ? stats.getPreviousPending() : 0),
+            BigDecimal.valueOf(stats.getCurrentPending() != null ? stats.getCurrentPending() : 0));
+
     BigDecimal completedOrdersChangePercent =
         calculateChangePercent(
-            BigDecimal.valueOf(previousCompletedOrders != null ? previousCompletedOrders : 0),
-            BigDecimal.valueOf(completedOrders != null ? completedOrders : 0));
+            BigDecimal.valueOf(
+                stats.getPreviousCompleted() != null ? stats.getPreviousCompleted() : 0),
+            BigDecimal.valueOf(
+                stats.getCurrentCompleted() != null ? stats.getCurrentCompleted() : 0));
+
     BigDecimal cancelledOrdersChangePercent =
         calculateChangePercent(
-            BigDecimal.valueOf(previousCancelledOrders != null ? previousCancelledOrders : 0),
-            BigDecimal.valueOf(cancelledOrders != null ? cancelledOrders : 0));
+            BigDecimal.valueOf(
+                stats.getPreviousCancelled() != null ? stats.getPreviousCancelled() : 0),
+            BigDecimal.valueOf(
+                stats.getCurrentCancelled() != null ? stats.getCurrentCancelled() : 0));
+
     BigDecimal avgOrderValueChangePercent =
         calculateChangePercent(previousAvgOrderValue, averageOrderValue);
 
     return OrderStatsResponse.builder()
-        .totalRevenue(totalRevenue)
-        .totalOrders(totalOrders)
-        .pendingOrders(pendingOrders)
-        .processingOrders(processingOrders)
-        .shippedOrders(shippedOrders)
-        .deliveredOrders(deliveredOrders)
-        .completedOrders(completedOrders)
-        .cancelledOrders(cancelledOrders)
+        .totalRevenue(stats.getCurrentRevenue())
+        .totalOrders(stats.getCurrentOrders())
+        .pendingOrders(stats.getCurrentPending())
+        .processingOrders(stats.getCurrentProcessing())
+        .shippedOrders(stats.getCurrentShipped())
+        .deliveredOrders(stats.getCurrentDelivered())
+        .completedOrders(stats.getCurrentCompleted())
+        .cancelledOrders(stats.getCurrentCancelled())
         .averageOrderValue(averageOrderValue)
         .revenueChangePercent(revenueChangePercent)
         .ordersChangePercent(ordersChangePercent)
@@ -124,18 +108,25 @@ public class OrderStatsServiceImpl implements OrderStatsService {
         .build();
   }
 
+  private BigDecimal calculateAverage(BigDecimal total, Long count) {
+    if (count == null || count == 0) {
+      return BigDecimal.ZERO;
+    }
+    return total.divide(BigDecimal.valueOf(count), 2, RoundingMode.HALF_UP);
+  }
+
   @Override
   public OrderStatsResponse getStatsWithDateRange(LocalDate fromDate, LocalDate toDate) {
-    LocalDateTime fromDateTime = fromDate.atStartOfDay();
-    LocalDateTime toDateTime = toDate.atTime(23, 59, 59);
+    Instant fromDateTime = Instant.from(fromDate.atStartOfDay());
+    Instant toDateTime = Instant.from(toDate.atTime(23, 59, 59));
 
     // Previous period (same duration before)
     long daysBetween = java.time.temporal.ChronoUnit.DAYS.between(fromDate, toDate) + 1;
     LocalDate previousFromDate = fromDate.minusDays(daysBetween);
     LocalDate previousToDate = fromDate.minusDays(1);
 
-    LocalDateTime previousFromDateTime = previousFromDate.atStartOfDay();
-    LocalDateTime previousToDateTime = previousToDate.atTime(23, 59, 59);
+    Instant previousFromDateTime = Instant.from(previousFromDate.atStartOfDay());
+    Instant previousToDateTime = Instant.from(previousToDate.atTime(23, 59, 59));
 
     // Current period stats
     BigDecimal totalRevenue = orderRepository.getTotalRevenueBetween(fromDateTime, toDateTime);

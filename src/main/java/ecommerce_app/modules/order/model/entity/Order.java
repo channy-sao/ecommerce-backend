@@ -17,13 +17,13 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.AllArgsConstructor;
@@ -37,12 +37,27 @@ import lombok.Setter;
 @NoArgsConstructor
 @Builder
 @Setter
-@Table(name = "orders")
+@Table(
+    name = "orders",
+    indexes = {
+      @Index(name = "idx_order_number", columnList = "order_number", unique = true),
+      @Index(name = "idx_order_date", columnList = "order_date"),
+      @Index(name = "idx_order_status", columnList = "order_status"),
+      @Index(name = "idx_order_date_status", columnList = "order_date, order_status"),
+      @Index(name = "idx_order_user", columnList = "user_id")
+    })
 @Entity
 public class Order extends UserAuditableEntity {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
+
+  /**
+   * Unique, human-readable order number shown to customers Format: ORD-YYYYMMDD-XXXX (e.g.,
+   * ORD-20240208-0001) Generated automatically before order creation
+   */
+  @Column(name = "order_number", unique = true, nullable = false, length = 20, updatable = false)
+  private String orderNumber;
 
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
   @JoinColumn(name = "user_id", nullable = false, referencedColumnName = "id")

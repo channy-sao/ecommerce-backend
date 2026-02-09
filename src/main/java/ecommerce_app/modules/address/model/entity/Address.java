@@ -8,6 +8,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
@@ -24,7 +25,12 @@ import lombok.ToString;
 @Getter
 @Setter
 @Entity
-@Table(name = "addresses")
+@Table(
+    name = "addresses",
+    indexes = {
+      @Index(name = "idx_address_user", columnList = "user_id"),
+      @Index(name = "idx_address_user_default", columnList = "user_id, is_default")
+    })
 @ToString(exclude = "user") // Exclude relationship
 public class Address {
   @Id

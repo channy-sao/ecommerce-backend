@@ -71,7 +71,7 @@ public class Product extends SoftDeletableEntity {
       fetch = FetchType.LAZY,
       optional = false,
       targetEntity = Category.class,
-      cascade = {CascadeType.MERGE, CascadeType.PERSIST})
+      cascade = CascadeType.MERGE) // remove persist it error when try fetch category to insert product
   @JoinColumn(name = "category_id", referencedColumnName = "id", nullable = false)
   @OnDelete(action = OnDeleteAction.CASCADE)
   @JsonIgnore

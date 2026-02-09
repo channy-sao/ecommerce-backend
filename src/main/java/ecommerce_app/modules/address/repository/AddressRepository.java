@@ -6,7 +6,7 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface AddressRepository extends JpaRepository<Address, Long> {
-  List<Address> getAddressesByUserId(long userId);
+  List<Address> getAddressesByUserId (long userId);
 
   Optional<Address> findByIdAndUserId(long addressId, long userId);
 }
