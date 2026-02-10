@@ -224,19 +224,20 @@ public class PromotionServiceImpl implements PromotionService {
     response.setStartAt(promotion.getStartAt());
     response.setEndAt(promotion.getEndAt());
     response.setMaxUsage(promotion.getMaxUsage());
+    response.setMinPurchaseAmount(promotion.getMinPurchaseAmount());
     response.setCreatedAt(promotion.getCreatedAt());
     response.setUpdatedAt(promotion.getUpdatedAt());
 
     // Get current usage
-    Long currentUsage = promotionUsageRepository.countByPromotionId(promotion.getId());
-    response.setCurrentUsage(currentUsage.intValue());
+    long currentUsage = promotionUsageRepository.countByPromotionId(promotion.getId());
+    response.setCurrentUsage((int) currentUsage);
 
     // Map products
     if (promotion.getProducts() != null) {
       List<ProductResponse> productInfos =
           promotion.getProducts().stream()
               .map(ProductMapper::toProductResponse)
-              .collect(Collectors.toList());
+              .toList();
       response.setProducts(productInfos);
     }
 

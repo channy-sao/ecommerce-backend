@@ -24,6 +24,7 @@ public class PromotionResponse {
     private LocalDateTime startAt;
     private LocalDateTime endAt;
     private Integer maxUsage;
+    private BigDecimal minPurchaseAmount;
     private Integer currentUsage;
     private List<ProductResponse> products;
     private Instant createdAt;
