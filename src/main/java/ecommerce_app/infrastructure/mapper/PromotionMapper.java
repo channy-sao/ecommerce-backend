@@ -15,7 +15,8 @@ import java.util.stream.Collectors;
 public class PromotionMapper {
 
   public MobilePromotionResponse toDetailResponse(Promotion promotion) {
-    MobilePromotionResponse response = MobilePromotionResponse.builder()
+    MobilePromotionResponse response =
+        MobilePromotionResponse.builder()
             .id(promotion.getId())
             .code(promotion.getCode())
             .name(promotion.getName())
@@ -40,9 +41,8 @@ public class PromotionMapper {
 
     // Add applicable products
     if (promotion.getProducts() != null && !promotion.getProducts().isEmpty()) {
-      List<MobilePromotionResponse.ProductSummary> productSummaries = promotion.getProducts().stream()
-              .map(this::toProductSummary)
-              .collect(Collectors.toList());
+      List<MobilePromotionResponse.ProductSummary> productSummaries =
+          promotion.getProducts().stream().map(this::toProductSummary).collect(Collectors.toList());
       response.setApplicableProducts(productSummaries);
     }
 
@@ -51,33 +51,34 @@ public class PromotionMapper {
 
   public MobilePromotionListResponse toListResponse(Promotion promotion) {
     return MobilePromotionListResponse.builder()
-            .id(promotion.getId())
-            .code(promotion.getCode())
-            .name(promotion.getName())
-            .discountType(promotion.getDiscountType().name())
-            .discountValue(promotion.getDiscountValue())
-            .buyQuantity(promotion.getBuyQuantity())
-            .getQuantity(promotion.getGetQuantity())
-            .active(promotion.getActive())
-            .startAt(promotion.getStartAt())
-            .endAt(promotion.getEndAt())
-            .minPurchaseAmount(promotion.getMinPurchaseAmount())
-            .displayText(getDisplayText(promotion))
-            .status(determineStatus(promotion))
-            .isCurrentlyValid(promotion.isCurrentlyValid())
-            .remainingUsage(promotion.getRemainingUsage())
-            .applicableProductsCount(promotion.getProducts() != null ? promotion.getProducts().size() : 0)
-            .build();
+        .id(promotion.getId())
+        .code(promotion.getCode())
+        .name(promotion.getName())
+        .discountType(promotion.getDiscountType().name())
+        .discountValue(promotion.getDiscountValue())
+        .buyQuantity(promotion.getBuyQuantity())
+        .getQuantity(promotion.getGetQuantity())
+        .active(promotion.getActive())
+        .startAt(promotion.getStartAt())
+        .endAt(promotion.getEndAt())
+        .minPurchaseAmount(promotion.getMinPurchaseAmount())
+        .displayText(getDisplayText(promotion))
+        .status(determineStatus(promotion))
+        .isCurrentlyValid(promotion.isCurrentlyValid())
+        .remainingUsage(promotion.getRemainingUsage())
+        .applicableProductsCount(
+            promotion.getProducts() != null ? promotion.getProducts().size() : 0)
+        .build();
   }
 
   private MobilePromotionResponse.ProductSummary toProductSummary(Product product) {
     return MobilePromotionResponse.ProductSummary.builder()
-            .id(product.getId())
-            .name(product.getName())
-            .image(product.getImage())
-            .price(product.getPrice())
-            .discountedPrice(product.getDiscountedPrice())
-            .build();
+        .id(product.getId())
+        .name(product.getName())
+        .image(product.getImage())
+        .price(product.getPrice())
+        .discountedPrice(product.getDiscountedPrice())
+        .build();
   }
 
   private String determineStatus(Promotion promotion) {
@@ -118,7 +119,11 @@ public class PromotionMapper {
         break;
       case BUY_X_GET_Y:
         if (promotion.getBuyQuantity() != null && promotion.getGetQuantity() != null) {
-          return "Buy " + promotion.getBuyQuantity() + " Get " + promotion.getGetQuantity() + " Free";
+          return "Buy "
+              + promotion.getBuyQuantity()
+              + " Get "
+              + promotion.getGetQuantity()
+              + " Free";
         }
         break;
       case FREE_SHIPPING:

@@ -15,25 +15,25 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class MobilePromotionListResponse {
-    
-    private Long id;
-    private String code;
-    private String name;
-    private String discountType;
-    private BigDecimal discountValue;
-    private Integer buyQuantity;
-    private Integer getQuantity;
-    private Boolean active;
-    private LocalDateTime startAt;
-    private LocalDateTime endAt;
-    private BigDecimal minPurchaseAmount;
-    
-    // Display fields
-    private String displayText; // e.g., "20% OFF", "Buy 2 Get 1 Free"
-    private String status; // ACTIVE, UPCOMING, EXPIRED, INACTIVE
-    private Boolean isCurrentlyValid;
-    private Integer remainingUsage;
-    
-    // Product count
-    private Integer applicableProductsCount;
+
+  private Long id;
+  private String code;
+  private String name;
+  private String discountType;
+  private BigDecimal discountValue;
+  private Integer buyQuantity;
+  private Integer getQuantity;
+  private Boolean active;
+  private LocalDateTime startAt;
+  private LocalDateTime endAt;
+  private BigDecimal minPurchaseAmount;
+
+  // Display fields
+  private String displayText; // e.g., "20% OFF", "Buy 2 Get 1 Free"
+  private String status; // ACTIVE, UPCOMING, EXPIRED, INACTIVE
+  private Boolean isCurrentlyValid;
+  private Integer remainingUsage;
+
+  // Product count
+  private Integer applicableProductsCount;
 }

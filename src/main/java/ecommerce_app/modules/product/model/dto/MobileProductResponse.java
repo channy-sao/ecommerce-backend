@@ -1,4 +1,4 @@
-package ecommerce_app.modules.product.model.dto.response;
+package ecommerce_app.modules.product.model.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -47,8 +48,8 @@ public class MobileProductResponse {
   private Boolean quickAddAvailable;
 
   // Timestamps
-  private LocalDateTime createdAt;
-  private LocalDateTime updatedAt;
+  private Instant createdAt;
+  private Instant updatedAt;
 
   @Data
   @Builder

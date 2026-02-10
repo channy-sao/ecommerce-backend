@@ -1,28 +1,18 @@
 package ecommerce_app.infrastructure.mapper;
 
 import ecommerce_app.modules.product.model.dto.MobileProductListResponse;
+import ecommerce_app.modules.product.model.dto.MobileProductResponse;
 import ecommerce_app.modules.product.model.entity.Product;
-import ecommerce_app.modules.promotion.model.dto.MobilePromotionListResponse;
-import ecommerce_app.modules.promotion.model.dto.MobilePromotionResponse;
 import ecommerce_app.modules.promotion.model.entity.Promotion;
-import java.time.LocalDateTime;
 import java.util.Comparator;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-import ecommerce_app.constant.enums.PromotionType;
 
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.stream.Collectors;
-
-@RequiredArgsConstructor
 @Component
-public class ProductMobileMapper {
+public class ProductMapper {
 
-  public ecommerce_app.modules.product.model.dto.response.MobileProductResponse toDetailResponse(
-      Product product) {
-    ecommerce_app.modules.product.model.dto.response.MobileProductResponse response =
-        ecommerce_app.modules.product.model.dto.response.MobileProductResponse.builder()
+  public MobileProductResponse toDetailResponse(Product product) {
+    MobileProductResponse response =
+        MobileProductResponse.builder()
             .id(product.getId())
             .uuid(product.getUuid())
             .name(product.getName())
@@ -40,8 +30,8 @@ public class ProductMobileMapper {
             .hasPromotion(product.getHasPromotion())
             .promotionBadge(product.getPromotionBadge())
             .quickAddAvailable(product.getQuickAddAvailable())
-            .createdAt(LocalDateTime.from(product.getCreatedAt()))
-            .updatedAt(LocalDateTime.from(product.getUpdatedAt()))
+            .createdAt(product.getCreatedAt())
+            .updatedAt(product.getUpdatedAt())
             .build();
 
     // Add category info
@@ -102,10 +92,8 @@ public class ProductMobileMapper {
     return response;
   }
 
-  private ecommerce_app.modules.product.model.dto.response.MobileProductResponse.PromotionDetails
-      toPromotionDetails(Promotion promotion) {
-    return ecommerce_app.modules.product.model.dto.response.MobileProductResponse.PromotionDetails
-        .builder()
+  private MobileProductResponse.PromotionDetails toPromotionDetails(Promotion promotion) {
+    return MobileProductResponse.PromotionDetails.builder()
         .id(promotion.getId())
         .code(promotion.getCode())
         .name(promotion.getName())
