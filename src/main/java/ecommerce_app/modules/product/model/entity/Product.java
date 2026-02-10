@@ -1,6 +1,7 @@
 package ecommerce_app.modules.product.model.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import ecommerce_app.constant.enums.PromotionType;
 import ecommerce_app.infrastructure.model.entity.SoftDeletableEntity;
 import ecommerce_app.modules.cart.model.entity.CartItem;
 import ecommerce_app.modules.category.model.entity.Category;
@@ -24,6 +25,8 @@ import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 import lombok.Getter;
@@ -71,7 +74,8 @@ public class Product extends SoftDeletableEntity {
       fetch = FetchType.LAZY,
       optional = false,
       targetEntity = Category.class,
-      cascade = CascadeType.MERGE) // remove persist it error when try fetch category to insert product
+      cascade =
+          CascadeType.MERGE) // remove persist it error when try fetch category to insert product
   @JoinColumn(name = "category_id", referencedColumnName = "id", nullable = false)
   @OnDelete(action = OnDeleteAction.CASCADE)
   @JsonIgnore
@@ -126,5 +130,100 @@ public class Product extends SoftDeletableEntity {
       return 0;
     }
     return stock.getQuantity();
+  }
+
+  @Transient
+  public String getShortDescription() {
+    if (description == null || description.length() <= 100) {
+      return description;
+    }
+    return description.substring(0, 97) + "...";
+  }
+
+  @Transient
+  public Boolean getInStock() {
+    return getStockQuantity() > 0;
+  }
+
+  @Transient
+  public String getStockStatus() {
+    int quantity = getStockQuantity();
+    if (quantity <= 0) return "OUT_OF_STOCK";
+    if (quantity <= 10) return "LOW_STOCK";
+    return "IN_STOCK";
+  }
+
+  @Transient
+  public BigDecimal getDiscountedPrice() {
+    if (promotions != null && !promotions.isEmpty()) {
+      Promotion activePromo =
+          promotions.stream()
+              .filter(Promotion::getActive)
+              .filter(Promotion::isCurrentlyValid)
+              .max(Comparator.comparing(Promotion::getDiscountValue))
+              .orElse(null);
+
+      if (activePromo != null && activePromo.getDiscountValue() != null) {
+        if (activePromo.getDiscountType() == PromotionType.PERCENTAGE) {
+          BigDecimal discount =
+              price
+                  .multiply(activePromo.getDiscountValue())
+                  .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+          return price.subtract(discount);
+        } else if (activePromo.getDiscountType() == PromotionType.FIXED_AMOUNT) {
+          return price.subtract(activePromo.getDiscountValue());
+        }
+      }
+    }
+    return price;
+  }
+
+  @Transient
+  public Integer getDiscountPercentage() {
+    BigDecimal discounted = getDiscountedPrice();
+    if (discounted.compareTo(price) < 0) {
+      return price
+          .subtract(discounted)
+          .divide(price, 2, RoundingMode.HALF_UP)
+          .multiply(BigDecimal.valueOf(100))
+          .intValue();
+    }
+    return null;
+  }
+
+  @Transient
+  public Boolean getHasPromotion() {
+    return promotions != null
+        && promotions.stream().anyMatch(p -> p.getActive() && p.isCurrentlyValid());
+  }
+
+  @Transient
+  public String getPromotionBadge() {
+    if (Boolean.FALSE.equals(getHasPromotion())) return null;
+
+    Promotion activePromo =
+        promotions.stream()
+            .filter(Promotion::getActive)
+            .filter(Promotion::isCurrentlyValid)
+            .findFirst()
+            .orElse(null);
+
+    if (activePromo != null) {
+      if (activePromo.getDiscountType() == PromotionType.BUY_X_GET_Y) {
+        return "BUY "
+            + activePromo.getBuyQuantity()
+            + " GET "
+            + activePromo.getGetQuantity()
+            + " FREE";
+      } else if (activePromo.getDiscountValue() != null) {
+        return activePromo.getDiscountValue() + "% OFF";
+      }
+    }
+    return "SALE";
+  }
+
+  @Transient
+  public Boolean getQuickAddAvailable() {
+    return getInStock() && !getHasPromotion(); // Quick add only for simple products
   }
 }
