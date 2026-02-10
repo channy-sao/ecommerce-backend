@@ -7,6 +7,7 @@ import ecommerce_app.modules.cart.model.entity.CartItem;
 import ecommerce_app.modules.category.model.entity.Category;
 import ecommerce_app.modules.order.model.entity.OrderItem;
 import ecommerce_app.modules.promotion.model.entity.Promotion;
+import ecommerce_app.modules.review.model.entity.Review;
 import ecommerce_app.modules.stock.model.entity.ProductImport;
 import ecommerce_app.modules.stock.model.entity.Stock;
 import jakarta.persistence.CascadeType;
@@ -123,6 +124,9 @@ public class Product extends SoftDeletableEntity {
   @ManyToMany(mappedBy = "products")
   @JsonIgnore
   private List<Promotion> promotions;
+
+  @OneToMany(mappedBy = "product", fetch = FetchType.LAZY)
+  private List<Review> reviews;
 
   @Transient
   public int getStockQuantity() {

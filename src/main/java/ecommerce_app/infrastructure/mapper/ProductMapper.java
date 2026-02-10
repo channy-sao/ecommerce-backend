@@ -42,21 +42,16 @@ public class ProductMapper {
 
     // Add active promotion details
     if (Boolean.TRUE.equals(product.getHasPromotion())) {
-      Promotion activePromo =
-          product.getPromotions().stream()
-              .filter(Promotion::getActive)
-              .filter(Promotion::isCurrentlyValid)
-              .max(
-                  Comparator.comparing(
-                      p ->
-                          p.getDiscountValue() != null
-                              ? p.getDiscountValue()
-                              : java.math.BigDecimal.ZERO))
-              .orElse(null);
-
-      if (activePromo != null) {
-        response.setActivePromotion(toPromotionDetails(activePromo));
-      }
+      product.getPromotions().stream()
+          .filter(Promotion::getActive)
+          .filter(Promotion::isCurrentlyValid)
+          .max(
+              Comparator.comparing(
+                  p ->
+                      p.getDiscountValue() != null
+                          ? p.getDiscountValue()
+                          : java.math.BigDecimal.ZERO))
+          .ifPresent(activePromo -> response.setActivePromotion(toPromotionDetails(activePromo)));
     }
 
     return response;

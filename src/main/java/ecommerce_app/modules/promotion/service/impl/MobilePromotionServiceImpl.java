@@ -1,11 +1,16 @@
 package ecommerce_app.modules.promotion.service.impl;
 
 import ecommerce_app.constant.enums.PromotionType;
+import ecommerce_app.infrastructure.exception.ResourceNotFoundException;
+import ecommerce_app.infrastructure.mapper.PromotionMapper;
+import ecommerce_app.modules.promotion.model.dto.MobilePromotionListResponse;
+import ecommerce_app.modules.promotion.model.dto.MobilePromotionResponse;
 import ecommerce_app.modules.promotion.model.dto.MobilePromotionValidationRequest;
 import ecommerce_app.modules.promotion.model.dto.MobilePromotionValidationResponse;
 import ecommerce_app.modules.promotion.model.entity.Promotion;
 import ecommerce_app.modules.promotion.repository.PromotionRepository;
 import ecommerce_app.modules.promotion.repository.PromotionUsageRepository;
+import ecommerce_app.modules.promotion.service.MobilePromotionService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -28,45 +33,56 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class MobilePromotionService {
+public class MobilePromotionServiceImpl implements MobilePromotionService {
 
   private final PromotionRepository promotionRepository;
   private final PromotionUsageRepository promotionUsageRepository;
+  private final PromotionMapper promotionMapper;
 
   /**
    * Get all active promotions for mobile app Returns promotions that are currently valid and active
    */
-  public Page<Promotion> getActivePromotions(Pageable pageable) {
+  public Page<MobilePromotionListResponse> getActivePromotions(Pageable pageable) {
     LocalDateTime now = LocalDateTime.now();
-    return promotionRepository.findActivePromotions(now, pageable);
+    var promotionPage = promotionRepository.findActivePromotions(now, pageable);
+    return promotionPage.map(promotionMapper::toListResponse);
   }
 
   /** Get promotion by ID Used when user taps on a promotion to see details */
-  public Promotion getPromotionById(Long id) {
-    return promotionRepository
-        .findById(id)
-        .orElseThrow(() -> new EntityNotFoundException("Promotion not found with id: " + id));
+  public MobilePromotionResponse getPromotionById(Long id) {
+    final var promotion =
+        promotionRepository
+            .findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Promotion" + id));
+    return promotionMapper.toDetailResponse(promotion);
   }
 
   /** Get promotion by code Used when user sees a promo code in marketing and searches for it */
-  public Promotion getPromotionByCode(String code) {
-    return promotionRepository
-        .findByCode(code)
-        .orElseThrow(() -> new EntityNotFoundException("Promotion not found with code: " + code));
+  public MobilePromotionResponse getPromotionByCode(String code) {
+    final var promotion =
+        promotionRepository
+            .findByCode(code)
+            .orElseThrow(
+                () -> new ResourceNotFoundException("Promotion not found with code: " + code));
+    return promotionMapper.toDetailResponse(promotion);
   }
 
   /** Get upcoming promotions Shows "Coming Soon" promotions in the app */
-  public List<Promotion> getUpcomingPromotions(int limit) {
+  public List<MobilePromotionListResponse> getUpcomingPromotions(int limit) {
     LocalDateTime now = LocalDateTime.now();
     Pageable pageable = PageRequest.of(0, limit);
-    return promotionRepository.findUpcomingPromotions(now, pageable).getContent();
+    return promotionRepository.findUpcomingPromotions(now, pageable).getContent().stream()
+        .map(promotionMapper::toListResponse)
+        .toList();
   }
 
   /** Get best/featured promotions Shows highest discount promotions on homepage */
-  public List<Promotion> getFeaturedPromotions(int limit) {
+  public List<MobilePromotionListResponse> getFeaturedPromotions(int limit) {
     LocalDateTime now = LocalDateTime.now();
     Pageable pageable = PageRequest.of(0, limit);
-    return promotionRepository.findBestPromotions(now, pageable).getContent();
+    return promotionRepository.findBestPromotions(now, pageable).getContent().stream()
+        .map(promotionMapper::toListResponse)
+        .toList();
   }
 
   /**
@@ -97,8 +113,12 @@ public class MobilePromotionService {
     // 1. Find promotion by code
     Promotion promotion;
     try {
-      promotion = getPromotionByCode(code);
-    } catch (EntityNotFoundException _) {
+      promotion =
+          promotionRepository
+              .findByCode(code)
+              .orElseThrow(
+                  () -> new ResourceNotFoundException("Promotion not found with code: " + code));
+    } catch (ResourceNotFoundException _) {
       return MobilePromotionValidationResponse.invalid(
           "Invalid promotion code. Please check and try again.");
     }
@@ -259,7 +279,10 @@ public class MobilePromotionService {
    */
   public boolean canUserUsePromotion(Long promotionId, Long userId, BigDecimal cartTotal) {
     try {
-      Promotion promotion = getPromotionById(promotionId);
+      Promotion promotion =
+          promotionRepository
+              .findById(promotionId)
+              .orElseThrow(() -> new ResourceNotFoundException("Promotion", promotionId));
 
       // Quick validation without full response
       if (Boolean.FALSE.equals(promotion.getActive())) return false;
@@ -275,7 +298,7 @@ public class MobilePromotionService {
       if (promotion.getMaxUsagePerUser() != null && userId != null) {
         long userUsageCount =
             promotionUsageRepository.countByPromotionIdAndUserId(promotionId, userId);
-          return userUsageCount < promotion.getMaxUsagePerUser();
+        return userUsageCount < promotion.getMaxUsagePerUser();
       }
 
       return true;

@@ -54,6 +54,7 @@ public class PromotionServiceImpl implements PromotionService {
       promotion.setProducts(allProducts);
     }
 
+    promotion.setMinPurchaseAmount(request.getMinPurchaseAmount());
     Promotion savedPromotion = promotionRepository.save(promotion);
     log.info("Created promotion: {}", savedPromotion.getName());
 
@@ -207,6 +208,7 @@ public class PromotionServiceImpl implements PromotionService {
     promotion.setStartAt(request.getStartAt());
     promotion.setEndAt(request.getEndAt());
     promotion.setMaxUsage(request.getMaxUsage());
+    promotion.setMinPurchaseAmount(request.getMinPurchaseAmount());
   }
 
   private PromotionResponse mapToResponse(Promotion promotion) {

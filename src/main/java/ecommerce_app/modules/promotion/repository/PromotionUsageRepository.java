@@ -30,7 +30,11 @@ public interface PromotionUsageRepository extends JpaRepository<PromotionUsage, 
 
   /** Get usage count by promotion and user */
   @Query(
-      "SELECT COUNT(pu) FROM PromotionUsage pu "
-          + "WHERE pu.promotion.id = :promotionId AND pu.userId = :userId")
+"""
+  SELECT COUNT(pu)
+  FROM PromotionUsage pu
+  WHERE pu.promotion.id = :promotionId
+    AND pu.user.id = :userId
+""")
   long getUserUsageCount(@Param("promotionId") Long promotionId, @Param("userId") Long userId);
 }

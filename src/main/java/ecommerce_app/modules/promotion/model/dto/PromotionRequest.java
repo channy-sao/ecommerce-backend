@@ -38,6 +38,8 @@ public class PromotionRequest {
 
   private List<Long> productIds;
 
+  @PositiveOrZero private BigDecimal minPurchaseAmount = BigDecimal.ZERO;
+
   // Validation method
   public void validate() {
     if (discountType == PromotionType.PERCENTAGE
