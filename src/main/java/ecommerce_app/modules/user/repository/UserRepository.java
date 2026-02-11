@@ -2,6 +2,8 @@ package ecommerce_app.modules.user.repository;
 
 import ecommerce_app.constant.enums.AuthProvider;
 import ecommerce_app.modules.user.model.entity.User;
+
+import java.time.LocalDateTime;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -16,11 +18,21 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
 
   Optional<User> findByEmailAndIsActive(String email, boolean status);
 
+  @Modifying
+  @Query(
+"""
+    UPDATE User u
+    SET u.lastLoginAt = :lastLoginAt
+    WHERE u.id = :userId
+""")
+  void updateLastLogin(@Param("userId") Long userId, @Param("lastLoginAt") LocalDateTime lastLogin);
+
   Optional<User> findByFirebaseUid(String uid);
 
   Optional<User> findByEmailAndAuthProviderNot(String email, AuthProvider authProvider);
 
-  @Query("SELECT u FROM User u WHERE u.email = :username and u.isActive = :status and u.authProvider <> ecommerce_app.constant.enums.AuthProvider.LOCAL")
+  @Query(
+      "SELECT u FROM User u WHERE u.email = :username and u.isActive = :status and u.authProvider <> ecommerce_app.constant.enums.AuthProvider.LOCAL")
   Optional<User> findUserInProviderAndStatus(String username, boolean status);
 
   @Query("SELECT u FROM User u LEFT JOIN FETCH u.roles WHERE u.id = :userId")

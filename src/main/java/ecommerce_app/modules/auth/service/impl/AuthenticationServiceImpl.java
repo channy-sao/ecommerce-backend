@@ -93,6 +93,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
       LoginResponse loginResponse = new LoginResponse();
       CustomUserDetails userDetails = authUserLoader.loadByEmail(user.getEmail());
 
+      userRepository.updateLastLogin(user.getId(), LocalDateTime.now());
+
       loginResponse.setAccessToken(jwtService.generateAccessToken(userDetails));
       loginResponse.setRefreshToken(jwtService.generateRefreshToken(user.getEmail(), false));
       loginResponse.setTokenType(TokenTypeConstant.BEARER);
@@ -127,6 +129,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
       log.info("Authentication is authenticated");
       CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
       SecurityContextHolder.getContext().setAuthentication(authentication);
+
+      // Update last login here
+      userRepository.updateLastLogin(userDetails.getId(), LocalDateTime.now());
 
       String refreshToken =
           jwtService.generateRefreshToken(userDetails.getUsername(), loginRequest.isRememberMe());

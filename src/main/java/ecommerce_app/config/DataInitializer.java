@@ -71,7 +71,7 @@ public class DataInitializer implements ApplicationRunner {
                       Role.builder()
                           .name(SUPER_ADMIN_ROLE)
                           .permissions(new HashSet<>(permissionRepository.findAll()))
-                              .isActive(true)
+                          .isActive(true)
                           .uid(UUID.randomUUID().toString())
                           .build()));
     } catch (Exception _) {
@@ -109,6 +109,7 @@ public class DataInitializer implements ApplicationRunner {
                       .authProvider(AuthProvider.LOCAL)
                       .rememberMe(true)
                       .emailVerifiedAt(LocalDateTime.now())
+                      .isEmailVerified(false)
                       .roles(Set.of(role))
                       .build();
 
