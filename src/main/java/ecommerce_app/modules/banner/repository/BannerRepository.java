@@ -1,0 +1,16 @@
+package ecommerce_app.modules.banner.repository;
+
+import ecommerce_app.modules.banner.model.entity.Banner;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Repository
+public interface BannerRepository extends JpaRepository<Banner, Long> {
+
+  List<Banner> findByActiveTrueAndStartAtBeforeAndEndAtAfterOrderByDisplayOrderAsc(
+      LocalDateTime startAt, LocalDateTime endAt, Pageable pageable);
+}
