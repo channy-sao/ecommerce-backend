@@ -19,18 +19,14 @@ public class MobileHomeController {
   private final MobileHomeService homeService;
 
   /**
-   * Get all home screen data in one request
-   * GET /api/client/v1/home
-   * 
-   * Returns:
-   * - Featured promotions (banners/carousel)
-   * - Featured products
-   * - New arrivals
-   * - Popular products
-   * - Categories (optional)
+   * Get all home screen data in one request GET /api/client/v1/home
+   *
+   * <p>Returns: - Featured promotions (banners/carousel) - Featured products - New arrivals -
+   * Popular products - Categories (optional)
    */
   @GetMapping
   public ResponseEntity<BaseBodyResponse> getHomeScreenData(
+      @RequestParam(defaultValue = "5") int bannersSize,
       @RequestParam(defaultValue = "5") int featuredPromotionsSize,
       @RequestParam(defaultValue = "10") int featuredProductsSize,
       @RequestParam(defaultValue = "10") int newArrivalsSize,
@@ -38,6 +34,7 @@ public class MobileHomeController {
 
     return BaseBodyResponse.success(
         homeService.getHomeScreenData(
+            bannersSize,
             featuredPromotionsSize,
             featuredProductsSize,
             newArrivalsSize,

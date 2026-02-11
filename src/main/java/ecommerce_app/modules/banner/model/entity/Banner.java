@@ -1,52 +1,70 @@
 package ecommerce_app.modules.banner.model.entity;
 
-import ecommerce_app.constant.enums.BannerType;
-import ecommerce_app.infrastructure.model.entity.SoftDeletableEntity;
+import ecommerce_app.infrastructure.model.entity.TimeAuditableEntity;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.SQLDelete;
-import org.hibernate.annotations.SQLRestriction;
 
 import java.time.LocalDateTime;
 
-@Getter
-@Setter
 @Entity
 @Table(
     name = "banners",
     indexes = {
-      @Index(name = "idx_banner_active", columnList = "active"),
-      @Index(name = "idx_banner_display_order", columnList = "display_order")
+      @Index(name = "idx_banner_active", columnList = "is_active"),
+      @Index(name = "idx_banner_display_order", columnList = "display_order"),
+      @Index(name = "idx_banner_start_date", columnList = "start_date"),
+      @Index(name = "idx_banner_end_date", columnList = "end_date")
     })
-@SQLDelete(sql = "UPDATE banners SET deleted = true WHERE id = ?")
-@SQLRestriction("deleted = false")
-public class Banner extends SoftDeletableEntity {
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class Banner extends TimeAuditableEntity {
 
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
-  @Column(length = 150)
+  @Column(nullable = false, length = 200)
   private String title;
 
-  @Column(nullable = false, length = 500)
+  @Column(length = 500)
+  private String description;
+
+  @Column(name = "image_url", nullable = false, length = 500)
   private String imageUrl;
 
-  @Column(length = 500)
-  private String redirectUrl;
+  @Column(name = "link_url", length = 500)
+  private String linkUrl; // Where banner links to (product, category, external)
 
-  @Enumerated(EnumType.STRING)
-  @Column(nullable = false, length = 30)
-  private BannerType type; // PRODUCT, CATEGORY, URL
+  @Column(name = "link_type", length = 50)
+  private String linkType; // PRODUCT, CATEGORY, EXTERNAL, NONE
 
-  @Column(nullable = false)
-  private Boolean active = true;
+  @Column(name = "link_id")
+  private Long linkId; // ID of product/category if applicable
 
-  @Column(name = "display_order")
+  @Column(name = "is_active", nullable = false)
+  @Builder.Default
+  private Boolean isActive = true;
+
+  @Column(name = "display_order", nullable = false)
+  @Builder.Default
   private Integer displayOrder = 0;
 
-  private LocalDateTime startAt;
+  @Column(name = "start_date")
+  private LocalDateTime startDate;
 
-  private LocalDateTime endAt;
+  @Column(name = "end_date")
+  private LocalDateTime endDate;
+
+  @Column(length = 50)
+  private String position; // HOME_CAROUSEL, CATEGORY_TOP, etc.
+
+  @Column(name = "background_color", length = 20)
+  private String backgroundColor; // Hex color for mobile app
 }

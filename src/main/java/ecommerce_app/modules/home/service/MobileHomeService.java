@@ -1,5 +1,6 @@
 package ecommerce_app.modules.home.service;
 
+import ecommerce_app.modules.banner.service.MobileBannerService;
 import ecommerce_app.modules.category.service.impl.MobileCategoryService;
 import ecommerce_app.modules.home.model.dto.MobileHomeScreenResponse;
 import ecommerce_app.modules.product.service.MobileProductService;
@@ -17,15 +18,20 @@ public class MobileHomeService {
   private final MobileProductService productService;
   private final MobilePromotionService promotionService;
   private final MobileCategoryService mobileCategoryService;
+  private final MobileBannerService bannerService;
   private final Executor taskExecutor;
 
   public MobileHomeScreenResponse getHomeScreenData(
+      int bannerSize,
       int featuredPromotionsSize,
       int featuredProductsSize,
       int newArrivalsSize,
       int popularProductsSize) {
 
     // Execute all queries in parallel - use proper return types
+    var bannersFuture =
+        CompletableFuture.supplyAsync(() -> bannerService.getHomeBanners(bannerSize), taskExecutor);
+
     var promotionsFuture =
         CompletableFuture.supplyAsync(
             () -> promotionService.getFeaturedPromotions(featuredPromotionsSize), taskExecutor);
@@ -55,6 +61,7 @@ public class MobileHomeService {
         .join();
 
     return MobileHomeScreenResponse.builder()
+        .banners(bannersFuture.join())
         .featuredPromotions(promotionsFuture.join())
         .featuredProducts(featuredProductsFuture.join())
         .newArrivals(newArrivalsFuture.join())
