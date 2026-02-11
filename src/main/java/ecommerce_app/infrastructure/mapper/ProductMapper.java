@@ -1,14 +1,19 @@
 package ecommerce_app.infrastructure.mapper;
 
+import ecommerce_app.infrastructure.io.service.StaticResourceService;
 import ecommerce_app.modules.product.model.dto.MobileProductListResponse;
 import ecommerce_app.modules.product.model.dto.MobileProductResponse;
 import ecommerce_app.modules.product.model.entity.Product;
 import ecommerce_app.modules.promotion.model.entity.Promotion;
 import java.util.Comparator;
+
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 @Component
+@RequiredArgsConstructor
 public class ProductMapper {
+  private final StaticResourceService staticResourceService;
 
   public MobileProductResponse toDetailResponse(Product product) {
     MobileProductResponse response =
@@ -21,7 +26,7 @@ public class ProductMapper {
             .price(product.getPrice())
             .discountedPrice(product.getDiscountedPrice())
             .discountPercentage(product.getDiscountPercentage())
-            .image(product.getImage())
+            .image(staticResourceService.getProductImageUrl(product.getImage()))
             .isFeature(product.getIsFeature())
             .favoritesCount(product.getFavoritesCount())
             .stockQuantity(product.getStockQuantity())
@@ -67,7 +72,7 @@ public class ProductMapper {
             .price(product.getPrice())
             .discountedPrice(product.getDiscountedPrice())
             .discountPercentage(product.getDiscountPercentage())
-            .image(product.getImage())
+            .image(staticResourceService.getProductImageUrl(product.getImage()))
             .isFeature(product.getIsFeature())
             .favoritesCount(product.getFavoritesCount())
             .stockQuantity(product.getStockQuantity())
