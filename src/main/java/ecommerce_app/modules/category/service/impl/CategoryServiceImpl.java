@@ -11,7 +11,6 @@ import ecommerce_app.modules.category.model.entity.Category;
 import ecommerce_app.modules.category.repository.CategoryRepository;
 import ecommerce_app.modules.category.service.CategoryService;
 import ecommerce_app.modules.category.specification.CategorySpecification;
-import ecommerce_app.util.AuditUserResolver;
 import ecommerce_app.util.FileUtils;
 import ecommerce_app.util.ProductMapper;
 import java.io.InputStream;
@@ -39,7 +38,6 @@ import org.springframework.web.multipart.MultipartFile;
 public class CategoryServiceImpl implements CategoryService {
   private final CategoryRepository categoryRepository;
   private final ModelMapper modelMapper;
-  private final AuditUserResolver auditUserResolver;
 
   @Transactional(readOnly = true)
   @Override
@@ -59,6 +57,9 @@ public class CategoryServiceImpl implements CategoryService {
   @Override
   public CategoryResponse saveCategory(CategoryRequest categoryRequest) {
     Category category = modelMapper.map(categoryRequest, Category.class);
+    if (category.getDisplayOrder() == null) {
+      category.setDisplayOrder(0);
+    }
     Category savedCategory = categoryRepository.save(category);
     return toCategoryResponse(savedCategory);
   }
@@ -103,6 +104,10 @@ public class CategoryServiceImpl implements CategoryService {
           CategoryRequest request = mapRowToProductRequest(row);
           // Map request → entity
           Category category = modelMapper.map(request, Category.class);
+          // Set default display order if not in Excel
+          if (category.getDisplayOrder() == null) {
+            category.setDisplayOrder(i); // Use row number as default order
+          }
           categoryRepository.save(category);
         }
       }
@@ -117,7 +122,31 @@ public class CategoryServiceImpl implements CategoryService {
     return CategoryRequest.builder()
         .name(getStringCell(row.getCell(0)))
         .description(getStringCell(row.getCell(1)))
+        .icon(getStringCell(row.getCell(2)))
+        .displayOrder(getIntegerCellValue(row))
         .build();
+  }
+
+  /** Helper method to safely get integer value from Excel cell */
+  private Integer getIntegerCellValue(Row row) {
+    try {
+      var cell = row.getCell(3);
+      if (cell == null) {
+        return null;
+      }
+
+      return switch (cell.getCellType()) {
+        case NUMERIC -> (int) cell.getNumericCellValue();
+        case STRING -> {
+          String value = cell.getStringCellValue().trim();
+          yield value.isEmpty() ? null : Integer.parseInt(value);
+        }
+        default -> null;
+      };
+    } catch (Exception e) {
+      log.warn("Error parsing integer from cell at index {}: {}", 3, e.getMessage());
+      return null;
+    }
   }
 
   @Transactional(rollbackFor = Exception.class)

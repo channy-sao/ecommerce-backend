@@ -24,7 +24,8 @@ import org.hibernate.annotations.OnDeleteAction;
     indexes = {
       @Index(columnList = "name", name = "name_index"),
       @Index(name = "idx_category_created", columnList = "created_at"),
-      @Index(name = "idx_category_updated", columnList = "updated_at")
+      @Index(name = "idx_category_updated", columnList = "updated_at"),
+      @Index(name = "idx_category_display_order", columnList = "display_order")
     })
 @Getter
 @Setter
@@ -37,8 +38,14 @@ public class Category extends TimeAuditableEntity {
   @Column(nullable = false, unique = true, length = 100, name = "name")
   private String name;
 
+  @Column(name = "icon", length = 10)
+  private String icon;
+
   @Column(length = 500, name = "description")
   private String description;
+
+  @Column(name = "display_order", nullable = false)
+  private Integer displayOrder = 0;
 
   @OneToMany(
       cascade = CascadeType.ALL,

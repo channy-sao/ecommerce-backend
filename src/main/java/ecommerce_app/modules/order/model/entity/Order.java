@@ -23,7 +23,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.AllArgsConstructor;
@@ -140,7 +140,7 @@ public class Order extends UserAuditableEntity {
   private BigDecimal subtotalAmount = BigDecimal.ZERO;
 
   @Column(name = "order_date", nullable = false)
-  private Instant orderDate = Instant.now();
+  private LocalDateTime orderDate = LocalDateTime.now();
 
   @OneToMany(
       mappedBy = "order",

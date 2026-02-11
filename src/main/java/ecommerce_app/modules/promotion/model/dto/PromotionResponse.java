@@ -5,7 +5,6 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import ecommerce_app.constant.enums.PromotionType;
 import ecommerce_app.modules.product.model.dto.ProductResponse;
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.Data;
@@ -27,6 +26,6 @@ public class PromotionResponse {
     private BigDecimal minPurchaseAmount;
     private Integer currentUsage;
     private List<ProductResponse> products;
-    private Instant createdAt;
-    private Instant updatedAt;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 }

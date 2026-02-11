@@ -3,7 +3,6 @@ package ecommerce_app.modules.product.model.dto;
 import ecommerce_app.infrastructure.model.response.AuditUserDto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
@@ -52,12 +51,12 @@ public class ProductResponse {
   private Integer favoritesCount;
 
   @Schema(description = "Timestamp when the product was created", example = "2025-06-01T12:34:56")
-  private Instant createdAt;
+  private LocalDateTime createdAt;
 
   @Schema(
       description = "Timestamp when the product was last updated",
       example = "2025-06-04T15:00:00")
-  private Instant updatedAt;
+  private LocalDateTime updatedAt;
 
   @Schema(description = "ID of the user who created the product")
   private AuditUserDto createdBy;

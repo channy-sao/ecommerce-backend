@@ -225,7 +225,10 @@ public class MobileProductServiceImpl implements MobileProductService {
     return relatedPage.getContent().stream()
         .filter(p -> !p.getId().equals(productId))
         .limit(limit)
-        .toList().stream().map(productMapper::toListResponse).toList();
+        .toList()
+        .stream()
+        .map(productMapper::toListResponse)
+        .toList();
   }
 
   /**
@@ -253,12 +256,7 @@ public class MobileProductServiceImpl implements MobileProductService {
    * @return List of most popular products
    */
   public List<MobileProductListResponse> getPopularProducts(int limit) {
-    Pageable pageable =
-        PageRequest.of(
-            0,
-            limit,
-            Sort.by(
-                Sort.Direction.DESC, "favoritesCount"));
+    Pageable pageable = PageRequest.of(0, limit, Sort.by(Sort.Direction.DESC, "favoritesCount"));
     return productRepository.findAll(pageable).getContent().stream()
         .map(productMapper::toListResponse)
         .toList();
@@ -273,13 +271,12 @@ public class MobileProductServiceImpl implements MobileProductService {
   public List<MobileProductListResponse> getLowStockProducts(int limit) {
     // This would need a custom query in repository
     // For now, get all and filter
-    Pageable pageable = PageRequest.of(0, 100);
-    final var lowStocks =
-        productRepository.findAll(pageable).getContent().stream()
-            .filter(p -> "LOW_STOCK".equals(p.getStockStatus()))
-            .limit(limit)
-            .toList();
-    return lowStocks.stream().map(productMapper::toListResponse).toList();
+    Pageable pageable = PageRequest.of(0, limit);
+
+    return productRepository
+        .findLowStockProducts(10, pageable) // 10 = low stock threshold
+        .map(productMapper::toListResponse)
+        .getContent();
   }
 
   /**

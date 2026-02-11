@@ -1,10 +1,9 @@
 package ecommerce_app.modules.category.model.dto;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import ecommerce_app.infrastructure.model.response.AuditUserDto;
 import ecommerce_app.modules.product.model.dto.ProductResponse;
 import io.swagger.v3.oas.annotations.media.Schema;
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -27,20 +26,28 @@ public class CategoryResponse {
   @Schema(description = "Name of the category", example = "Electronics", nullable = true)
   private String name;
 
+  @Schema(description = "Emoji icon representing the category", example = "📱", nullable = true)
+  private String icon;
+
+  @Schema(description = "Display order of the category", example = "1")
+  private Integer displayOrder;
+
   @Schema(
       description = "Detailed description of the category",
       example = "Devices and gadgets including phones, laptops, etc.")
   private String description;
 
-//  @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd:MM:yyyy HH:mm:ss")
-  @Schema(description = "Timestamp when the category was created", example = "2025-06-01T12:34:56.123Z")
-  private Instant createdAt;
+  //  @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd:MM:yyyy HH:mm:ss")
+  @Schema(
+      description = "Timestamp when the category was created",
+      example = "2025-06-01T12:34:56.123Z")
+  private LocalDateTime createdAt;
 
-//  @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd:MM:yyyy HH:mm:ss")
+  //  @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd:MM:yyyy HH:mm:ss")
   @Schema(
       description = "Timestamp when the category was last updated",
       example = "2025-06-01T12:34:56.123Z")
-  private Instant updatedAt;
+  private LocalDateTime updatedAt;
 
   @Schema(description = "ID of the user who created the category")
   private AuditUserDto createdBy;

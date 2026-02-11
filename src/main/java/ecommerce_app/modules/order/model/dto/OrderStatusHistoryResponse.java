@@ -2,7 +2,7 @@ package ecommerce_app.modules.order.model.dto;
 
 import ecommerce_app.constant.enums.OrderStatus;
 import ecommerce_app.infrastructure.model.response.AuditUserDto;
-import java.time.Instant;
+import java.time.LocalDateTime;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
@@ -13,6 +13,6 @@ import lombok.Setter;
 public class OrderStatusHistoryResponse {
   private Long id;
   private OrderStatus status;
-  private Instant createdAt;
+  private LocalDateTime createdAt;
   private AuditUserDto createdBy;
 }

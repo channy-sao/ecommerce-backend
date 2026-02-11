@@ -5,7 +5,8 @@ import ecommerce_app.modules.order.model.entity.Order;
 import ecommerce_app.modules.order.model.entity.OrderItem;
 import ecommerce_app.modules.order.model.projection.OrderStatsProjection;
 import java.math.BigDecimal;
-import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Pageable;
@@ -27,61 +28,61 @@ public interface OrderRepository
   BigDecimal getTotalRevenue();
 
   @Query("SELECT COALESCE(SUM(o.totalAmount), 0) FROM Order o WHERE o.orderDate >= :startDate")
-  BigDecimal getTotalRevenueSince(@Param("startDate") Instant startDate);
+  BigDecimal getTotalRevenueSince(@Param("startDate") LocalDateTime startDate);
 
   @Query("SELECT COUNT(o) FROM Order o")
   Long getTotalOrderCount();
 
   @Query("SELECT COUNT(o) FROM Order o WHERE o.orderDate >= :startDate")
-  Long getOrderCountSince(@Param("startDate") Instant startDate);
+  Long getOrderCountSince(@Param("startDate") LocalDateTime startDate);
 
   @Query("SELECT COUNT(o) FROM Order o WHERE o.orderStatus = :status")
   Long getOrderCountByStatus(@Param("status") OrderStatus status);
 
   @Query("SELECT COUNT(o) FROM Order o WHERE o.orderStatus = :status AND o.orderDate >= :startDate")
   Long getOrderCountByStatusSince(
-      @Param("status") OrderStatus status, @Param("startDate") Instant startDate);
+      @Param("status") OrderStatus status, @Param("startDate") LocalDateTime startDate);
 
   @Query("SELECT COALESCE(AVG(o.totalAmount), 0) FROM Order o")
   BigDecimal getAverageOrderValue();
 
   @Query("SELECT COALESCE(AVG(o.totalAmount), 0) FROM Order o WHERE o.orderDate >= :startDate")
-  BigDecimal getAverageOrderValueSince(@Param("startDate") Instant startDate);
+  BigDecimal getAverageOrderValueSince(@Param("startDate") LocalDateTime startDate);
 
   // Get stats for a specific period (for percentage calculations)
   @Query(
       "SELECT COALESCE(SUM(o.totalAmount), 0) FROM Order o WHERE o.orderDate BETWEEN :startDate AND :endDate")
   BigDecimal getTotalRevenueBetween(
-      @Param("startDate") Instant startDate, @Param("endDate") Instant endDate);
+      @Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
 
   @Query("SELECT COUNT(o) FROM Order o WHERE o.orderDate BETWEEN :startDate AND :endDate")
   Long getOrderCountBetween(
-      @Param("startDate") Instant startDate, @Param("endDate") Instant endDate);
+      @Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
 
   @Query(
       "SELECT COALESCE(AVG(o.totalAmount), 0) FROM Order o WHERE o.orderDate BETWEEN :startDate AND :endDate")
   BigDecimal getAverageOrderValueBetween(
-      @Param("startDate") Instant startDate, @Param("endDate") Instant endDate);
+      @Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
 
   @Query(
       "SELECT COUNT(o) FROM Order o WHERE o.orderStatus = :status AND o.orderDate BETWEEN :startDate AND :endDate")
   Long getOrderCountByStatusBetween(
       @Param("status") OrderStatus status,
-      @Param("startDate") Instant startDate,
-      @Param("endDate") Instant endDate);
+      @Param("startDate") LocalDateTime startDate,
+      @Param("endDate") LocalDateTime endDate);
 
   // Get orders by date range
   // This avoids the DATE() function that causes type conversion issues
   @Query("SELECT o FROM Order o WHERE o.orderDate BETWEEN :fromDate AND :toDate")
   List<Order> findOrdersByDateRange(
-      @Param("fromDate") Instant fromDate, @Param("toDate") Instant toDate);
+      @Param("fromDate") LocalDateTime fromDate, @Param("toDate") LocalDateTime toDate);
 
   // Get orders by date range with pagination
   @Query(
       "SELECT o FROM Order o WHERE o.orderDate BETWEEN :fromDate AND :toDate "
           + "ORDER BY o.orderDate DESC")
   List<Order> findOrdersByDateRange(
-      @Param("fromDate") Instant fromDate, @Param("toDate") Instant toDate, Pageable pageable);
+      @Param("fromDate") LocalDateTime fromDate, @Param("toDate") LocalDateTime toDate, Pageable pageable);
 
   // Get order items by date range
   @Query(
@@ -89,7 +90,7 @@ public interface OrderRepository
           + "JOIN oi.order o "
           + "WHERE o.orderDate BETWEEN :fromDate AND :toDate")
   List<OrderItem> findOrderItemsByDateRange(
-      @Param("fromDate") Instant fromDate, @Param("toDate") Instant toDate);
+      @Param("fromDate") LocalDateTime fromDate, @Param("toDate") LocalDateTime toDate);
 
   @Query(
       """
@@ -111,7 +112,7 @@ public interface OrderRepository
     WHERE o.orderDate >= :previousStart
     """)
   OrderStatsProjection getAggregatedDashboardStats(
-      @Param("previousStart") Instant previousStart, @Param("currentStart") Instant currentStart);
+      @Param("previousStart") LocalDateTime previousStart, @Param("currentStart") LocalDateTime currentStart);
 
   @Query(
       """
@@ -133,10 +134,10 @@ public interface OrderRepository
     WHERE o.orderDate BETWEEN :previousStart AND :currentEnd
     """)
   OrderStatsProjection getAggregatedStatsForDateRange(
-      @Param("previousStart") Instant previousStart,
-      @Param("previousEnd") Instant previousEnd,
-      @Param("currentStart") Instant currentStart,
-      @Param("currentEnd") Instant currentEnd);
+      @Param("previousStart") LocalDateTime previousStart,
+      @Param("previousEnd") LocalDateTime previousEnd,
+      @Param("currentStart") LocalDateTime currentStart,
+      @Param("currentEnd") LocalDateTime currentEnd);
 
   // Find order by order number
   Optional<Order> findByOrderNumber(String orderNumber);
@@ -146,5 +147,5 @@ public interface OrderRepository
 
   // Count orders created today (for order number generation)
   @Query("SELECT COUNT(o) FROM Order o WHERE CAST(o.orderDate AS date) = CAST(:date AS date)")
-  Long countOrdersCreatedToday(@Param("date") Instant date);
+  Long countOrdersCreatedToday(@Param("date") LocalDate date);
 }

@@ -2,9 +2,8 @@ package ecommerce_app.modules.order.service.impl;
 
 import ecommerce_app.modules.order.model.entity.Order;
 import ecommerce_app.modules.order.repository.OrderRepository;
-
-import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,7 +39,7 @@ public class OrderNumberGenerator {
     String datePrefix = today.format(DATE_FORMATTER);
     
     // Get count of orders created today
-    Long todayCount = orderRepository.countOrdersCreatedToday(Instant.from(today));
+    Long todayCount = orderRepository.countOrdersCreatedToday(today);
     
     // Generate sequential number for today (1-based)
     long sequenceNumber = (todayCount != null ? todayCount : 0L) + 1;

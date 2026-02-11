@@ -26,4 +26,9 @@ public class ExcelCellUtils {
     if (cell == null) return false;
     return Boolean.valueOf(cell.getStringCellValue());
   }
+
+  public static Boolean getIntegerCell(Cell cell) {
+    if (cell == null) return false;
+    return Boolean.valueOf(cell.getStringCellValue());
+  }
 }

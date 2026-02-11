@@ -1,6 +1,5 @@
 package ecommerce_app.modules.order.model.dto;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import ecommerce_app.constant.enums.OrderStatus;
 import ecommerce_app.constant.enums.PaymentMethod;
@@ -8,7 +7,7 @@ import ecommerce_app.constant.enums.PaymentStatus;
 import ecommerce_app.constant.enums.ShippingMethod;
 import ecommerce_app.modules.product.model.dto.ProductResponse;
 import java.math.BigDecimal;
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -25,7 +24,7 @@ public class OrderResponse {
   private String orderNumber;
   private UserOrderResponse user;
 
-  private Instant orderDate;
+  private LocalDateTime orderDate;
 
   private OrderStatus orderStatus;
   private PaymentStatus paymentStatus;

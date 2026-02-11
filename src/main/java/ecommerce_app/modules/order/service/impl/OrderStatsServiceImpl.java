@@ -17,10 +17,9 @@ import ecommerce_app.modules.order.service.OrderStatsService;
 import ecommerce_app.modules.product.model.entity.Product;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -45,9 +44,9 @@ public class OrderStatsServiceImpl implements OrderStatsService {
   @Override
   public OrderStatsResponse getDashboardStats() {
     try {
-      Instant now = Instant.now();
-      Instant thirtyDaysAgo = now.minus(30, ChronoUnit.DAYS);
-      Instant previousPeriodStart = thirtyDaysAgo.minus(30, ChronoUnit.DAYS);
+      LocalDateTime now = LocalDateTime.now();
+      LocalDateTime thirtyDaysAgo = now.minusDays(30);
+      LocalDateTime previousPeriodStart = thirtyDaysAgo.minusDays(30);
 
       // Single database query instead of 15+
       OrderStatsProjection stats =
@@ -125,16 +124,16 @@ public class OrderStatsServiceImpl implements OrderStatsService {
 
   @Override
   public OrderStatsResponse getStatsWithDateRange(LocalDate fromDate, LocalDate toDate) {
-    Instant fromDateTime = fromDate.atStartOfDay(ZoneId.systemDefault()).toInstant();
-    Instant toDateTime = Instant.from(toDate.atTime(23, 59, 59));
+    LocalDateTime fromDateTime = fromDate.atStartOfDay();
+    LocalDateTime toDateTime = toDate.atTime(23, 59, 59);
 
     // Previous period (same duration before)
     long daysBetween = java.time.temporal.ChronoUnit.DAYS.between(fromDate, toDate) + 1;
     LocalDate previousFromDate = fromDate.minusDays(daysBetween);
     LocalDate previousToDate = fromDate.minusDays(1);
 
-    Instant previousFromDateTime = Instant.from(previousFromDate.atStartOfDay());
-    Instant previousToDateTime = Instant.from(previousToDate.atTime(23, 59, 59));
+    LocalDateTime previousFromDateTime = previousFromDate.atStartOfDay();
+    LocalDateTime previousToDateTime = previousToDate.atTime(23, 59, 59);
 
     // Current period stats
     BigDecimal totalRevenue = orderRepository.getTotalRevenueBetween(fromDateTime, toDateTime);
@@ -198,9 +197,9 @@ public class OrderStatsServiceImpl implements OrderStatsService {
   @Override
   public List<RevenueTrendResponse> getRevenueTrend(LocalDate fromDate, LocalDate toDate) {
     // Get all orders in date range
-    Instant fromInstant = fromDate.atStartOfDay(ZoneId.systemDefault()).toInstant();
-    Instant toInstant = toDate.atTime(23, 59, 59).atZone(ZoneId.systemDefault()).toInstant();
-    List<Order> orders = orderRepository.findOrdersByDateRange(fromInstant, toInstant);
+    LocalDateTime from = fromDate.atStartOfDay();
+    LocalDateTime to = toDate.atTime(23, 59, 59);
+    List<Order> orders = orderRepository.findOrdersByDateRange(from, to);
     // Group by date and calculate
     Map<LocalDate, RevenueTrendResponse> trendMap = new TreeMap<>();
 
@@ -236,10 +235,10 @@ public class OrderStatsServiceImpl implements OrderStatsService {
   public List<StatusDistributionResponse> getStatusDistribution(
       LocalDate fromDate, LocalDate toDate) {
     // Get all orders in date range
-    Instant fromInstant = fromDate.atStartOfDay(ZoneId.systemDefault()).toInstant();
-    Instant toInstant = toDate.atTime(23, 59, 59).atZone(ZoneId.systemDefault()).toInstant();
+    LocalDateTime from = fromDate.atStartOfDay();
+    LocalDateTime to = toDate.atTime(23, 59, 59);
 
-    List<Order> orders = orderRepository.findOrdersByDateRange(fromInstant, toInstant);
+    List<Order> orders = orderRepository.findOrdersByDateRange(from, to);
 
     // Group by status
     Map<String, Long> statusCountMap =
@@ -266,10 +265,10 @@ public class OrderStatsServiceImpl implements OrderStatsService {
   @Override
   public List<TopProductResponse> getTopProducts(LocalDate fromDate, LocalDate toDate, int limit) {
     // Get all order items in date range
-    Instant fromInstant = fromDate.atStartOfDay(ZoneId.systemDefault()).toInstant();
-    Instant toInstant = toDate.atTime(23, 59, 59).atZone(ZoneId.systemDefault()).toInstant();
+    LocalDateTime from = fromDate.atStartOfDay();
+    LocalDateTime to = toDate.atTime(23, 59, 59);
 
-    List<OrderItem> orderItems = orderRepository.findOrderItemsByDateRange(fromInstant, toInstant);
+    List<OrderItem> orderItems = orderRepository.findOrderItemsByDateRange(from, to);
 
     // Filter out cancelled/refunded orders
     orderItems =
@@ -326,12 +325,12 @@ public class OrderStatsServiceImpl implements OrderStatsService {
   public List<RecentOrderResponse> getRecentOrders(
       LocalDate fromDate, LocalDate toDate, int limit) {
     // Get recent orders with pagination
-    Instant fromInstant = fromDate.atStartOfDay(ZoneId.systemDefault()).toInstant();
-    Instant toInstant = toDate.atTime(23, 59, 59).atZone(ZoneId.systemDefault()).toInstant();
+    LocalDateTime from = fromDate.atStartOfDay();
+    LocalDateTime to = toDate.atTime(23, 59, 59);
 
     List<Order> orders =
         orderRepository.findOrdersByDateRange(
-            fromInstant, toInstant, PageRequest.of(0, limit, Sort.by("orderDate").descending()));
+            from, to, PageRequest.of(0, limit, Sort.by("orderDate").descending()));
 
     // Convert to response
     return orders.stream().map(this::convertToRecentOrderResponse).toList();

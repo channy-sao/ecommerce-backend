@@ -2,7 +2,7 @@ package ecommerce_app.infrastructure.model.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.MappedSuperclass;
-import java.time.Instant;
+import java.time.LocalDateTime;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -16,14 +16,14 @@ public abstract class SoftDeletableEntity
   private boolean deleted = false;
 
   @Column(name = "deleted_at")
-  private Instant deletedAt;
+  private LocalDateTime deletedAt;
 
   @Column(name = "deleted_by")
   private Long deletedBy;
 
   public void softDelete(Long userId) {
     this.deleted = true;
-    this.deletedAt = Instant.now();
+    this.deletedAt = LocalDateTime.now();
     this.deletedBy = userId;
   }
 

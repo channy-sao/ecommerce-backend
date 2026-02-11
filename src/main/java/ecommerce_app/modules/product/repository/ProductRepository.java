@@ -55,4 +55,16 @@ public interface ProductRepository
       "SELECT CASE WHEN COUNT(p) > 0 THEN true ELSE false END FROM Product p "
           + "WHERE p.name = :name AND p.id != :id")
   boolean existsByNameAndIdNot(@Param("name") String name, @Param("id") Long id);
+
+  @Query("""
+       SELECT p FROM Product p
+       JOIN p.stock s
+       WHERE s.quantity > 0
+       AND s.quantity <= :threshold
+       """)
+  Page<Product> findLowStockProducts(
+          @Param("threshold") int threshold,
+          Pageable pageable
+  );
+
 }

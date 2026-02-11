@@ -3,7 +3,6 @@ package ecommerce_app.modules.stock.model.dto;
 import ecommerce_app.infrastructure.model.response.AuditUserDto;
 import ecommerce_app.modules.product.model.dto.ProductResponse;
 import io.swagger.v3.oas.annotations.media.Schema;
-import java.time.Instant;
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -42,5 +41,5 @@ public class StockResponse {
   @Schema(
       description = "Timestamp when the stock record was last updated",
       example = "2024-07-15T15:30:00")
-  private Instant updatedAt;
+  private LocalDateTime updatedAt;
 }

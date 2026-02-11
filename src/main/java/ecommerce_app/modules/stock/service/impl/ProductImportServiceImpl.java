@@ -19,7 +19,6 @@ import ecommerce_app.modules.stock.service.StockService;
 import ecommerce_app.modules.stock.specification.ProductImportSpecification;
 import ecommerce_app.util.ProductMapper;
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
@@ -160,7 +159,7 @@ public class ProductImportServiceImpl implements ProductImportService {
 
     // history
     // Group imports by date and create response map
-    Map<Instant, ProductImportResponse> productImports =
+    Map<LocalDateTime, ProductImportResponse> productImports =
         productImportHistory.stream()
             .collect(
                 Collectors.toMap(

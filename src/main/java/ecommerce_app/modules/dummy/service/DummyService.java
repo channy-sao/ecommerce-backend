@@ -80,7 +80,7 @@ public class DummyService {
         role.setPermissions(permissionSet);
         role.setUid(UUID.randomUUID().toString());
         roleRepository.save(role);
-      } catch (DataIntegrityViolationException ex) {
+      } catch (DataIntegrityViolationException _) {
         // maybe duplicate name
         log.warn("existing role name {} , Now resolved it", role.getName());
         role.setName(faker.job().position() + "-" + faker.job().keySkills());
@@ -125,7 +125,7 @@ public class DummyService {
         user.setRoles(roleSet);
         user.setUuid(UUID.randomUUID());
         userRepository.save(user);
-      } catch (DataIntegrityViolationException ex) {
+      } catch (DataIntegrityViolationException _) {
         log.warn("Existing user name {} already exist , Now use difference", user.getEmail());
         user.setEmail(faker.name().firstName().concat(".").concat(faker.internet().emailAddress()));
         userRepository.save(user);
@@ -157,8 +157,10 @@ public class DummyService {
       try {
         category.setName(faker.commerce().department());
         category.setDescription(faker.lorem().fixedString(100));
+        category.setIcon("📁");
+        category.setDisplayOrder(faker.number().numberBetween(1, 100));
         categoryRepository.save(category);
-      } catch (DataIntegrityViolationException ex) {
+      } catch (DataIntegrityViolationException _) {
         log.warn("existing Category name {} , Now resolved it", category.getName());
         category.setName(faker.commerce().department().concat("-" + faker.commerce().department()));
         categoryRepository.save(category);
