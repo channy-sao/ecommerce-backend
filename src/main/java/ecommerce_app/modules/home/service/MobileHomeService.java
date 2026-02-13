@@ -1,6 +1,6 @@
 package ecommerce_app.modules.home.service;
 
-import ecommerce_app.modules.banner.service.MobileBannerService;
+import ecommerce_app.modules.banner.service.impl.MobileBannerServiceImpl;
 import ecommerce_app.modules.category.service.impl.MobileCategoryService;
 import ecommerce_app.modules.home.model.dto.MobileHomeScreenResponse;
 import ecommerce_app.modules.product.service.MobileProductService;
@@ -18,7 +18,7 @@ public class MobileHomeService {
   private final MobileProductService productService;
   private final MobilePromotionService promotionService;
   private final MobileCategoryService mobileCategoryService;
-  private final MobileBannerService bannerService;
+  private final MobileBannerServiceImpl bannerService;
   private final Executor taskExecutor;
 
   public MobileHomeScreenResponse getHomeScreenData(

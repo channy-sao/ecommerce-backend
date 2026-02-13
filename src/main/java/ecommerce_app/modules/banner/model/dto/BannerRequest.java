@@ -7,6 +7,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 
@@ -27,9 +28,8 @@ public class BannerRequest {
   private String description;
 
   @NotBlank(message = "Image URL is required")
-  @Size(max = 500)
-  @Schema(description = "Banner image URL", example = "https://cdn.example.com/banner.jpg")
-  private String imageUrl;
+  @Schema(description = "Banner image")
+  private MultipartFile image;
 
   @Size(max = 500)
   @Schema(description = "Link URL", example = "https://example.com/sale")

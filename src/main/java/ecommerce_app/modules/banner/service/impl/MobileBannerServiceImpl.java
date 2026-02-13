@@ -1,4 +1,4 @@
-package ecommerce_app.modules.banner.service;
+package ecommerce_app.modules.banner.service.impl;
 
 import ecommerce_app.infrastructure.mapper.BannerMapper;
 import ecommerce_app.modules.banner.model.dto.BannerResponse;
@@ -11,12 +11,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class MobileBannerService {
+public class MobileBannerServiceImpl {
 
   private final BannerRepository bannerRepository;
   private final BannerMapper bannerMapper;
@@ -40,7 +39,7 @@ public class MobileBannerService {
     return banners.stream()
         .limit(limit)
         .map(bannerMapper::toResponse)
-        .collect(Collectors.toList());
+        .toList();
   }
 
   /**
@@ -51,6 +50,6 @@ public class MobileBannerService {
     return bannerRepository.findAllActive()
         .stream()
         .map(bannerMapper::toResponse)
-        .collect(Collectors.toList());
+        .toList();
   }
 }

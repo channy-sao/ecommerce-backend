@@ -22,7 +22,7 @@ public class AdminBannerController {
   private final ModelMapper modelMapper;
 
   @PostMapping
-  public ResponseEntity<BaseBodyResponse> createBanner(@Valid @RequestBody BannerRequest request) {
+  public ResponseEntity<BaseBodyResponse> createBanner(@Valid @ModelAttribute BannerRequest request) {
 
     Banner banner = modelMapper.map(request, Banner.class);
     Banner saved = bannerRepository.save(banner);
@@ -32,7 +32,7 @@ public class AdminBannerController {
 
   @PutMapping("/{id}")
   public ResponseEntity<BaseBodyResponse> updateBanner(
-      @PathVariable Long id, @Valid @RequestBody BannerRequest request) {
+      @PathVariable Long id, @Valid @ModelAttribute BannerRequest request) {
 
     Banner banner =
         bannerRepository
