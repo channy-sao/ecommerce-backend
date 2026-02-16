@@ -36,8 +36,8 @@ public class Banner extends TimeAuditableEntity {
   @Column(length = 500)
   private String description;
 
-  @Column(name = "image_url", nullable = false, length = 500)
-  private String imageUrl;
+  @Column(name = "image", nullable = false, length = 500)
+  private String image;
 
   @Column(name = "link_url", length = 500)
   private String linkUrl; // Where banner links to (product, category, external)

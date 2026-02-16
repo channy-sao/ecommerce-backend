@@ -1,6 +1,7 @@
 package ecommerce_app.infrastructure.mapper;
 
 import ecommerce_app.infrastructure.io.service.FileManagerService;
+import ecommerce_app.infrastructure.io.service.StorageConfig;
 import ecommerce_app.infrastructure.property.StorageConfigProperty;
 import ecommerce_app.modules.user.model.dto.RoleResponse;
 import ecommerce_app.modules.user.model.dto.UserResponse;
@@ -26,7 +27,7 @@ import org.springframework.util.CollectionUtils;
 @RequiredArgsConstructor
 public class UserMapper {
 
-  private final StorageConfigProperty storageConfigProperty;
+  private final StorageConfig storageConfig;
   private final FileManagerService fileManagerService;
 
   /**
@@ -103,6 +104,6 @@ public class UserMapper {
     }
 
     // else get from our storage with concatenated url
-    return fileManagerService.getResourceUrl(storageConfigProperty.getAvatar(), avatar);
+    return fileManagerService.getResourceUrl(storageConfig.getAvatarPath(), avatar);
   }
 }

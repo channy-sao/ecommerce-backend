@@ -8,6 +8,7 @@ import static ecommerce_app.util.ExcelCellUtils.getStringCell;
 import ecommerce_app.infrastructure.exception.BadRequestException;
 import ecommerce_app.infrastructure.exception.ResourceNotFoundException;
 import ecommerce_app.infrastructure.io.service.FileManagerService;
+import ecommerce_app.infrastructure.io.service.StorageConfig;
 import ecommerce_app.infrastructure.property.StorageConfigProperty;
 import ecommerce_app.modules.category.model.entity.Category;
 import ecommerce_app.modules.category.repository.CategoryRepository;
@@ -50,7 +51,7 @@ public class ProductServiceImpl implements ProductService {
   private final CategoryRepository categoryRepository;
   private final ModelMapper modelMapper;
   private final FileManagerService fileManagerService;
-  private final StorageConfigProperty storageConfigProperty;
+  private final StorageConfig storageConfig;
 
   @Transactional(rollbackFor = Exception.class)
   @Override
@@ -68,7 +69,7 @@ public class ProductServiceImpl implements ProductService {
       if (productRequest.getImage() != null) {
         String imagePath =
             fileManagerService.saveFile(
-                productRequest.getImage(), storageConfigProperty.getProduct());
+                productRequest.getImage(), storageConfig.getProductPath());
 
         if (imagePath != null) {
           product.setImage(imagePath);
@@ -114,18 +115,18 @@ public class ProductServiceImpl implements ProductService {
         // Scenario 1: New image file provided
         log.info("Image: REPLACING with new file");
         if (existingImage != null) {
-          this.fileManagerService.deleteFile(storageConfigProperty.getProduct(), existingImage);
+          this.fileManagerService.deleteFile(storageConfig.getProductPath(), existingImage);
         }
         String savedProductImage =
             fileManagerService.saveFile(
-                productRequest.getImage(), storageConfigProperty.getProduct());
+                productRequest.getImage(), storageConfig.getProductPath());
         existingProduct.setImage(savedProductImage);
 
       } else if (isImageEmpty) {
         // Scenario 2: Empty file explicitly sent (user removed image)
         log.info("Image: REMOVING (empty file received)");
         if (existingImage != null) {
-          this.fileManagerService.deleteFile(storageConfigProperty.getProduct(), existingImage);
+          this.fileManagerService.deleteFile(storageConfig.getProductPath(), existingImage);
         }
         existingProduct.setImage(null);
 

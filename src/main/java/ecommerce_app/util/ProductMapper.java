@@ -1,6 +1,7 @@
 package ecommerce_app.util;
 
 import ecommerce_app.infrastructure.io.service.FileManagerService;
+import ecommerce_app.infrastructure.io.service.StorageConfig;
 import ecommerce_app.infrastructure.property.StorageConfigProperty;
 import ecommerce_app.modules.product.model.dto.ProductResponse;
 import ecommerce_app.modules.product.model.entity.Product;
@@ -15,15 +16,17 @@ public class ProductMapper {
   private static FileManagerService fileManagerService;
   private static StorageConfigProperty storageConfigProperty;
   private static AuditUserResolver auditUserResolver;
+  private static StorageConfig storageConfig;
 
   public static void setProperties(
       ModelMapper modelMapper,
       FileManagerService fileManagerService,
-      StorageConfigProperty storageConfigProperty,
+      StorageConfigProperty storageConfigProperty, StorageConfig storageConfig,
       AuditUserResolver auditUserResolver) {
     ProductMapper.modelMapper = modelMapper;
     ProductMapper.fileManagerService = fileManagerService;
     ProductMapper.storageConfigProperty = storageConfigProperty;
+    ProductMapper.storageConfig = storageConfig;
     ProductMapper.auditUserResolver = auditUserResolver;
   }
 
@@ -33,7 +36,7 @@ public class ProductMapper {
         product.getImage() == null || product.getImage().isEmpty()
             ? null
             : fileManagerService.getResourceUrl(
-                storageConfigProperty.getProduct(), product.getImage());
+                storageConfig.getProductPath(), product.getImage());
     final var auditUserMap =
         auditUserResolver.resolve(List.of(product.getCreatedBy(), product.getUpdatedBy()));
     response.setImage(image);

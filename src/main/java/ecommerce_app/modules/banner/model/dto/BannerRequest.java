@@ -27,7 +27,6 @@ public class BannerRequest {
   @Schema(description = "Banner description", example = "Get up to 50% off")
   private String description;
 
-  @NotBlank(message = "Image URL is required")
   @Schema(description = "Banner image")
   private MultipartFile image;
 

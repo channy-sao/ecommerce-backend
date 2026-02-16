@@ -1,6 +1,7 @@
 package ecommerce_app.config;
 
 import ecommerce_app.infrastructure.io.service.FileManagerService;
+import ecommerce_app.infrastructure.io.service.StorageConfig;
 import ecommerce_app.infrastructure.property.StorageConfigProperty;
 import ecommerce_app.modules.product.model.dto.ProductRequest;
 import ecommerce_app.modules.product.model.entity.Product;
@@ -26,10 +27,11 @@ public class ModelMapperConfig {
   public ModelMapper modelMapper(
       FileManagerService fileManagerService,
       StorageConfigProperty storageConfigProperty,
+      StorageConfig  storageConfig,
       AuditUserResolver auditUserResolver) {
     ModelMapper modelMapper = new ModelMapper();
     ProductMapper.setProperties(
-        modelMapper, fileManagerService, storageConfigProperty, auditUserResolver);
+        modelMapper, fileManagerService, storageConfigProperty, storageConfig, auditUserResolver);
 
     // Converter to prepend full path
     Converter<String, String> avatarPathConverter =
@@ -37,7 +39,7 @@ public class ModelMapperConfig {
             ctx.getSource() == null
                 ? null
                 : fileManagerService.getResourceUrl(
-                    storageConfigProperty.getAvatar(), ctx.getSource());
+                    storageConfig.getAvatarPath(), ctx.getSource());
 
     // Apply the converter
     modelMapper

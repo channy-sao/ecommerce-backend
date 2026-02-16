@@ -6,6 +6,7 @@ import ecommerce_app.infrastructure.exception.BadRequestException;
 import ecommerce_app.infrastructure.exception.ForbiddenException;
 import ecommerce_app.infrastructure.exception.ResourceNotFoundException;
 import ecommerce_app.infrastructure.io.service.FileManagerService;
+import ecommerce_app.infrastructure.io.service.StorageConfig;
 import ecommerce_app.infrastructure.mapper.UserMapper;
 import ecommerce_app.infrastructure.property.StorageConfigProperty;
 import ecommerce_app.modules.user.model.dto.CreateUserRequest;
@@ -45,7 +46,7 @@ public class UserServiceImpl implements UserService {
   private final RoleRepository roleRepository;
   private final ModelMapper modelMapper;
   private final PasswordEncoder passwordEncoder;
-  private final StorageConfigProperty storageConfigProperty;
+  private final StorageConfig storageConfig;
   private final FileManagerService fileManagerService;
   private final UserMapper userMapper;
   private final EntityManager entityManager;
@@ -111,7 +112,7 @@ public class UserServiceImpl implements UserService {
 
         // save new file
         String saveFile =
-            fileManagerService.saveFile(request.getProfile(), storageConfigProperty.getAvatar());
+            fileManagerService.saveFile(request.getProfile(), storageConfig.getAvatarPath());
         user.setAvatar(saveFile);
       }
       userRepository.save(user);
@@ -139,7 +140,7 @@ public class UserServiceImpl implements UserService {
         log.info("Uploading file: {}", createUserRequest.getProfile().getOriginalFilename());
         String avatarPath =
             fileManagerService.saveFile(
-                createUserRequest.getProfile(), storageConfigProperty.getAvatar());
+                createUserRequest.getProfile(), storageConfig.getAvatarPath());
         if (avatarPath != null) {
           log.info("Uploading avatar: {}", avatarPath);
           savedUser.setAvatar(avatarPath);
@@ -329,7 +330,7 @@ public class UserServiceImpl implements UserService {
   @Async
   public void deleteAvatarFile(String avatarPath) {
     try {
-      fileManagerService.deleteFile(storageConfigProperty.getAvatar(), avatarPath);
+      fileManagerService.deleteFile(storageConfig.getAvatarPath(), avatarPath);
       log.info("Deleted avatar file: {}", avatarPath);
     } catch (Exception e) {
       log.error("Failed to delete avatar file {}: {}", avatarPath, e.getMessage());
@@ -339,7 +340,7 @@ public class UserServiceImpl implements UserService {
   /** Clean up failed upload */
   private void cleanupFailedUpload(String avatarPath) {
     try {
-      fileManagerService.deleteFile(storageConfigProperty.getAvatar(), avatarPath);
+      fileManagerService.deleteFile(storageConfig.getAvatarPath(), avatarPath);
       log.warn("Cleaned up failed upload: {}", avatarPath);
     } catch (Exception e) {
       log.error("Failed to cleanup failed upload {}: {}", avatarPath, e.getMessage());

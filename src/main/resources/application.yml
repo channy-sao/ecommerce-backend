@@ -134,9 +134,7 @@ app:
     access-expired-in-minute: ${JWT_ACCESS_EXPIRES_MINUTE}
     refresh-expired-in-minute: ${JWT_REFRESH_EXPIRES_MINUTE}
   storage:
-    upload:
-      avatar: ./storage/upload/avatar
-      product: ./storage/upload/product
+    upload: ./storage/upload
 
   # Custom I18n Configuration
 

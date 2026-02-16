@@ -6,12 +6,11 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
-@ConfigurationProperties(prefix = "app.storage.upload")
+@ConfigurationProperties(prefix = "app.storage")
 @Component
 @Lazy
 @Getter
 @Setter
 public class StorageConfigProperty {
-  private String avatar;
-  private String product;
+  private String upload;
 }
