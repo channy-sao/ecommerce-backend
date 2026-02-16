@@ -27,7 +27,7 @@ public class BannerRequest {
   @Schema(description = "Banner description", example = "Get up to 50% off")
   private String description;
 
-  @Schema(description = "Banner image")
+  @Schema(description = "Banner image", name = "image", type = "string", format = "binary")
   private MultipartFile image;
 
   @Size(max = 500)

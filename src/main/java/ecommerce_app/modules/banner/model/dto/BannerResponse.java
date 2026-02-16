@@ -22,6 +22,7 @@ public class BannerResponse {
   private String linkUrl;
   private String linkType; // PRODUCT, CATEGORY, EXTERNAL, NONE
   private Long linkId;
+  private String position; // HOME_CAROUSEL, SIDEBAR, FOOTER, etc.
   private Integer displayOrder;
   private String backgroundColor;
 

@@ -18,8 +18,7 @@ public class AdminBannerController {
   private final BannerService bannerService;
 
   @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-  public ResponseEntity<BaseBodyResponse> createBanner(
-      @Valid @ModelAttribute BannerRequest request) {
+  public ResponseEntity<BaseBodyResponse> createBanner(@ModelAttribute BannerRequest request) {
 
     return BaseBodyResponse.success(
         bannerService.createBanner(request), "Banner created successfully");
@@ -27,7 +26,7 @@ public class AdminBannerController {
 
   @PutMapping("/{id}")
   public ResponseEntity<BaseBodyResponse> updateBanner(
-      @PathVariable Long id, @Valid @ModelAttribute BannerRequest request) {
+      @PathVariable Long id, @ModelAttribute BannerRequest request) {
     return BaseBodyResponse.success(
         bannerService.updateBanner(id, request), "Banner updated successfully");
   }

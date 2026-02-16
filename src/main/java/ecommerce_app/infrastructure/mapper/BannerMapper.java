@@ -21,6 +21,7 @@ public class BannerMapper {
         .title(banner.getTitle())
         .description(banner.getDescription())
         .imageUrl(staticResourceService.getBannerImageUrl(banner.getImage()))
+        .position(banner.getPosition())
         .linkUrl(banner.getLinkUrl())
         .linkType(banner.getLinkType())
         .linkId(banner.getLinkId())

@@ -5,6 +5,7 @@ import ecommerce_app.infrastructure.exception.ResourceNotFoundException;
 import ecommerce_app.infrastructure.io.service.FileManagerService;
 import ecommerce_app.infrastructure.io.service.StaticResourceService;
 import ecommerce_app.infrastructure.io.service.StorageConfig;
+import ecommerce_app.infrastructure.mapper.BannerMapper;
 import ecommerce_app.infrastructure.property.StorageConfigProperty;
 import ecommerce_app.modules.banner.model.dto.BannerRequest;
 import ecommerce_app.modules.banner.model.dto.BannerResponse;
@@ -31,6 +32,7 @@ public class BannerServiceImpl implements BannerService {
   private final ModelMapper modelMapper;
   private final FileManagerService fileManagerService;
   private final StorageConfig storageConfig;
+  private final BannerMapper bannerMapper;
 
   @Transactional
   @Override
@@ -46,7 +48,8 @@ public class BannerServiceImpl implements BannerService {
         }
       }
       var saved = bannerRepository.save(banner);
-      return modelMapper.map(saved, BannerResponse.class);
+      log.info("Created new banner: id={}", saved.getId());
+      return bannerMapper.toResponse(saved);
     } catch (DataIntegrityViolationException ex) {
       log.error(ex.getMessage(), ex);
       throw new BadRequestException(ex.getMessage());
@@ -65,6 +68,7 @@ public class BannerServiceImpl implements BannerService {
     log.info("Deleting banner request");
     try {
       bannerRepository.deleteById(bannerId);
+      log.info("Deleted banner: id={}", bannerId);
     } catch (Exception ex) {
       log.error(ex.getMessage(), ex);
       throw new BadRequestException(ex.getMessage());
@@ -74,37 +78,41 @@ public class BannerServiceImpl implements BannerService {
   @Transactional
   @Override
   public BannerResponse getBannerById(Long bannerId) {
+    log.info("Getting banner by id: {}", bannerId);
     var banner =
         bannerRepository
             .findById(bannerId)
             .orElseThrow(() -> new ResourceNotFoundException("Banner", bannerId));
-    return modelMapper.map(banner, BannerResponse.class);
+    return bannerMapper.toResponse(banner);
   }
 
   @Transactional
   @Override
   public void toggleBannerStatus(Long bannerId) {
+    log.info("Toggling banner status: id={}", bannerId);
     final var banner =
         bannerRepository
             .findById(bannerId)
             .orElseThrow(() -> new ResourceNotFoundException("Banner", bannerId));
     banner.setIsActive(!banner.getIsActive());
+    bannerRepository.save(banner);
+    log.info("Toggled banner status: id={}, newStatus={}", bannerId, banner.getIsActive());
   }
 
   @Transactional(readOnly = true)
   @Override
   public List<BannerResponse> getAllBanners() {
-    return bannerRepository.findAll().stream()
-        .map(b -> modelMapper.map(b, BannerResponse.class))
-        .toList();
+    log.info("Getting all banners");
+    return bannerRepository.findAll().stream().map(bannerMapper::toResponse).toList();
   }
 
   @Transactional(readOnly = true)
   @Override
   public Page<BannerResponse> getBanners(int page, int pageSize) {
+    log.info("Getting banners with pagination: page={}, pageSize={}", page, pageSize);
     // start from 0
     Pageable pageable = PageRequest.of(page - 1, pageSize);
     final var bannerPage = bannerRepository.findAll(pageable);
-    return bannerPage.map(b -> modelMapper.map(b, BannerResponse.class));
+    return bannerPage.map(bannerMapper::toResponse);
   }
 }
