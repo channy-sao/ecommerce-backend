@@ -3,9 +3,12 @@ package ecommerce_app.api.client;
 import ecommerce_app.infrastructure.model.response.body.BaseBodyResponse;
 import ecommerce_app.modules.auth.custom.CustomUserDetails;
 import ecommerce_app.modules.order.model.dto.CheckoutRequest;
+import ecommerce_app.modules.order.model.dto.OrderDetailResponse;
+import ecommerce_app.modules.order.model.dto.OrderResponse;
 import ecommerce_app.modules.order.service.OrderService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -24,7 +27,7 @@ public class OrderController {
   private final OrderService orderService;
 
   @PostMapping("/checkout")
-  public ResponseEntity<BaseBodyResponse> checkout(
+  public ResponseEntity<BaseBodyResponse<OrderResponse>> checkout(
       @RequestBody @Valid CheckoutRequest checkoutRequest,
       @AuthenticationPrincipal CustomUserDetails userDetails) {
     return BaseBodyResponse.success(
@@ -32,14 +35,14 @@ public class OrderController {
   }
 
   @GetMapping
-  public ResponseEntity<BaseBodyResponse> getOrders(
+  public ResponseEntity<BaseBodyResponse<List<OrderResponse>>> getOrders(
       @AuthenticationPrincipal CustomUserDetails userDetails) {
     return BaseBodyResponse.success(
         orderService.getOrders(userDetails.getId()), "Orders successful");
   }
 
   @GetMapping("/{orderId}")
-  public ResponseEntity<BaseBodyResponse> getOrderDetail(
+  public ResponseEntity<BaseBodyResponse<OrderDetailResponse>> getOrderDetail(
       @PathVariable(value = "orderId", name = "orderId") Long orderId,
       @AuthenticationPrincipal CustomUserDetails userDetails) {
     return BaseBodyResponse.success(

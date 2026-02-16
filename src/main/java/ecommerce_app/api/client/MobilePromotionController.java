@@ -2,10 +2,13 @@ package ecommerce_app.api.client;
 
 import ecommerce_app.infrastructure.mapper.PromotionMapper;
 import ecommerce_app.infrastructure.model.response.body.BaseBodyResponse;
+import ecommerce_app.modules.promotion.model.dto.MobilePromotionListResponse;
+import ecommerce_app.modules.promotion.model.dto.MobilePromotionResponse;
 import ecommerce_app.modules.promotion.model.dto.MobilePromotionValidationRequest;
 import ecommerce_app.modules.promotion.model.dto.MobilePromotionValidationResponse;
 import ecommerce_app.modules.promotion.service.MobilePromotionService;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -32,7 +35,7 @@ public class MobilePromotionController {
    * Get all active promotions for mobile app GET /api/mobile/v1/promotions/active?page=0&size=20
    */
   @GetMapping("/active")
-  public ResponseEntity<BaseBodyResponse> getActivePromotions(
+  public ResponseEntity<BaseBodyResponse<List<MobilePromotionListResponse>>> getActivePromotions(
       @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
 
     Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
@@ -43,7 +46,8 @@ public class MobilePromotionController {
 
   /** Get promotion detail by ID GET /api/mobile/v1/promotions/{id} */
   @GetMapping("/{id}")
-  public ResponseEntity<BaseBodyResponse> getPromotionById(@PathVariable Long id) {
+  public ResponseEntity<BaseBodyResponse<MobilePromotionResponse>> getPromotionById(
+      @PathVariable Long id) {
 
     return BaseBodyResponse.success(
         promotionService.getPromotionById(id), "Get promotion by ID successfully");
@@ -51,7 +55,8 @@ public class MobilePromotionController {
 
   /** Get promotion detail by code GET /api/mobile/v1/promotions/code/{code} */
   @GetMapping("/code/{code}")
-  public ResponseEntity<BaseBodyResponse> getPromotionByCode(@PathVariable String code) {
+  public ResponseEntity<BaseBodyResponse<MobilePromotionResponse>> getPromotionByCode(
+      @PathVariable String code) {
 
     return BaseBodyResponse.success(
         promotionService.getPromotionByCode(code), "Get promotion by code successfully");
@@ -59,7 +64,7 @@ public class MobilePromotionController {
 
   /** Validate promotion code for cart POST /api/mobile/v1/promotions/validate */
   @PostMapping("/validate")
-  public ResponseEntity<BaseBodyResponse> validatePromotion(
+  public ResponseEntity<BaseBodyResponse<MobilePromotionValidationResponse>> validatePromotion(
       @RequestBody MobilePromotionValidationRequest request) {
 
     MobilePromotionValidationResponse validation =
@@ -71,7 +76,7 @@ public class MobilePromotionController {
 
   /** Get upcoming promotions GET /api/mobile/v1/promotions/upcoming?size=10 */
   @GetMapping("/upcoming")
-  public ResponseEntity<BaseBodyResponse> getUpcomingPromotions(
+  public ResponseEntity<BaseBodyResponse<List<MobilePromotionListResponse>>> getUpcomingPromotions(
       @RequestParam(defaultValue = "10") int size) {
 
     return BaseBodyResponse.success(
@@ -80,7 +85,7 @@ public class MobilePromotionController {
 
   /** Get featured/ the best promotions GET /api/mobile/v1/promotions/featured?size=5 */
   @GetMapping("/featured")
-  public ResponseEntity<BaseBodyResponse> getFeaturedPromotions(
+  public ResponseEntity<BaseBodyResponse<List<MobilePromotionListResponse>>> getFeaturedPromotions(
       @RequestParam(defaultValue = "5") int size) {
 
     return BaseBodyResponse.success(

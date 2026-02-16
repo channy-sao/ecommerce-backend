@@ -2,6 +2,7 @@ package ecommerce_app.api.admin;
 
 import ecommerce_app.infrastructure.model.response.body.BaseBodyResponse;
 import ecommerce_app.modules.banner.model.dto.BannerRequest;
+import ecommerce_app.modules.banner.model.dto.BannerResponse;
 import ecommerce_app.modules.banner.service.BannerService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -9,6 +10,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin/v1/banners")
@@ -18,33 +21,34 @@ public class AdminBannerController {
   private final BannerService bannerService;
 
   @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-  public ResponseEntity<BaseBodyResponse> createBanner(@ModelAttribute BannerRequest request) {
+  public ResponseEntity<BaseBodyResponse<BannerResponse>> createBanner(
+      @ModelAttribute BannerRequest request) {
 
     return BaseBodyResponse.success(
         bannerService.createBanner(request), "Banner created successfully");
   }
 
   @PutMapping("/{id}")
-  public ResponseEntity<BaseBodyResponse> updateBanner(
+  public ResponseEntity<BaseBodyResponse<BannerResponse>> updateBanner(
       @PathVariable Long id, @ModelAttribute BannerRequest request) {
     return BaseBodyResponse.success(
         bannerService.updateBanner(id, request), "Banner updated successfully");
   }
 
   @DeleteMapping("/{id}")
-  public ResponseEntity<BaseBodyResponse> deleteBanner(@PathVariable Long id) {
+  public ResponseEntity<BaseBodyResponse<Void>> deleteBanner(@PathVariable Long id) {
     bannerService.deleteBanner(id);
-    return BaseBodyResponse.success(null, "Banner deleted successfully");
+    return BaseBodyResponse.success("Banner deleted successfully");
   }
 
   @GetMapping
-  public ResponseEntity<BaseBodyResponse> getAllBanners() {
+  public ResponseEntity<BaseBodyResponse<List<BannerResponse>>> getAllBanners() {
     return BaseBodyResponse.success(bannerService.getAllBanners(), "Get all banners successfully");
   }
 
   @PatchMapping("/{id}/toggle")
-  public ResponseEntity<BaseBodyResponse> toggleBannerStatus(@PathVariable Long id) {
+  public ResponseEntity<BaseBodyResponse<Void>> toggleBannerStatus(@PathVariable Long id) {
     bannerService.toggleBannerStatus(id);
-    return BaseBodyResponse.success(null, "Banner status toggled successfully");
+    return BaseBodyResponse.success("Banner status toggled successfully");
   }
 }

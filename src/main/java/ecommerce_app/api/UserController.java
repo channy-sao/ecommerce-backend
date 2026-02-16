@@ -6,11 +6,13 @@ import ecommerce_app.modules.user.model.dto.AssignRoleToUserRequest;
 import ecommerce_app.modules.user.model.dto.CreateUserRequest;
 import ecommerce_app.modules.user.model.dto.UpdatePasswordRequest;
 import ecommerce_app.modules.user.model.dto.UpdateUserRequest;
+import ecommerce_app.modules.user.model.dto.UserResponse;
 import ecommerce_app.modules.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Sort;
@@ -56,7 +58,7 @@ public class UserController {
    */
   @PreAuthorize("hasAuthority('USER_CREATE')")
   @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-  public ResponseEntity<BaseBodyResponse> createUser(
+  public ResponseEntity<BaseBodyResponse<UserResponse>> createUser(
       @ModelAttribute CreateUserRequest createUserRequest) {
     return BaseBodyResponse.success(
         this.userService.create(createUserRequest), ResponseMessageConstant.CREATE_SUCCESSFULLY);
@@ -64,10 +66,10 @@ public class UserController {
 
   @Operation(summary = "Change user password")
   @PutMapping("change-password")
-  public ResponseEntity<BaseBodyResponse> changePassword(
+  public ResponseEntity<BaseBodyResponse<Void>> changePassword(
       @Valid @RequestBody UpdatePasswordRequest updateRequest) {
     this.userService.changePassword(updateRequest);
-    return BaseBodyResponse.success(null, "Password changed successfully");
+    return BaseBodyResponse.success("Password changed successfully");
   }
 
   /**
@@ -79,11 +81,11 @@ public class UserController {
    */
   @PreAuthorize("hasAuthority('USER_UPDATE')")
   @PatchMapping("/{id}/status")
-  public ResponseEntity<BaseBodyResponse> updateStatus(
+  public ResponseEntity<BaseBodyResponse<Void>> updateStatus(
       @PathVariable(value = "id") Long userId,
       @RequestParam @Parameter(name = "status") Boolean status) {
     this.userService.updateStatus(userId, status);
-    return BaseBodyResponse.success(null, ResponseMessageConstant.UPDATE_SUCCESSFULLY);
+    return BaseBodyResponse.success(ResponseMessageConstant.UPDATE_SUCCESSFULLY);
   }
 
   /**
@@ -94,9 +96,10 @@ public class UserController {
    */
   @PreAuthorize("hasAuthority('USER_DELETE')")
   @DeleteMapping("/{id}")
-  public ResponseEntity<BaseBodyResponse> deleteUser(@PathVariable(value = "id") Long userId) {
+  public ResponseEntity<BaseBodyResponse<Void>> deleteUser(
+      @PathVariable(value = "id") Long userId) {
     this.userService.deleteUser(userId);
-    return BaseBodyResponse.success(null, ResponseMessageConstant.DELETE_SUCCESSFULLY);
+    return BaseBodyResponse.success(ResponseMessageConstant.DELETE_SUCCESSFULLY);
   }
 
   /**
@@ -107,7 +110,8 @@ public class UserController {
    */
   @PreAuthorize("hasAuthority('USER_READ')")
   @GetMapping("/{id}")
-  public ResponseEntity<BaseBodyResponse> getById(@PathVariable(value = "id") Long userId) {
+  public ResponseEntity<BaseBodyResponse<UserResponse>> getById(
+      @PathVariable(value = "id") Long userId) {
     return BaseBodyResponse.success(
         userService.findById(userId), ResponseMessageConstant.FIND_ONE_SUCCESSFULLY);
   }
@@ -120,7 +124,8 @@ public class UserController {
    */
   @PreAuthorize("hasAuthority('USER_READ')")
   @GetMapping("/phone/{phone}")
-  public ResponseEntity<BaseBodyResponse> getByPhone(@PathVariable(value = "phone") String phone) {
+  public ResponseEntity<BaseBodyResponse<UserResponse>> getByPhone(
+      @PathVariable(value = "phone") String phone) {
     return BaseBodyResponse.success(
         userService.findByPhone(phone), ResponseMessageConstant.FIND_ONE_SUCCESSFULLY);
   }
@@ -133,7 +138,8 @@ public class UserController {
    */
   @PreAuthorize("hasAuthority('USER_READ')")
   @GetMapping("/email/{email}")
-  public ResponseEntity<BaseBodyResponse> getByEmail(@PathVariable(value = "email") String email) {
+  public ResponseEntity<BaseBodyResponse<UserResponse>> getByEmail(
+      @PathVariable(value = "email") String email) {
     return BaseBodyResponse.success(
         userService.findByEmail(email), ResponseMessageConstant.FIND_ONE_SUCCESSFULLY);
   }
@@ -147,14 +153,14 @@ public class UserController {
    */
   @PreAuthorize("hasAuthority('USER_UPDATE')")
   @PutMapping("/{id}")
-  public ResponseEntity<BaseBodyResponse> updateUser(
+  public ResponseEntity<BaseBodyResponse<Void>> updateUser(
       @Parameter(description = "User update form data", required = true) @ModelAttribute @Valid
           UpdateUserRequest updateUserRequest,
       @Parameter(description = "User ID", required = true, example = "123")
           @PathVariable(value = "id")
           Long userId) {
     this.userService.updateUser(updateUserRequest, userId);
-    return BaseBodyResponse.success(null, ResponseMessageConstant.UPDATE_SUCCESSFULLY);
+    return BaseBodyResponse.success(ResponseMessageConstant.UPDATE_SUCCESSFULLY);
   }
 
   /**
@@ -171,7 +177,7 @@ public class UserController {
    */
   @PreAuthorize("hasAuthority('USER_READ')")
   @GetMapping
-  public ResponseEntity<BaseBodyResponse> filter(
+  public ResponseEntity<BaseBodyResponse<List<UserResponse>>> filter(
       @RequestParam(value = "isPaged", defaultValue = "true") boolean isPaged,
       @RequestParam(value = "page", defaultValue = "1") int page,
       @RequestParam(value = "pageSize", defaultValue = "10") int pageSize,
@@ -185,10 +191,10 @@ public class UserController {
 
   @PreAuthorize("hasAuthority('USER_UPDATE')")
   @PutMapping("/{userId}/roles")
-  public ResponseEntity<BaseBodyResponse> updateUserRoles(
+  public ResponseEntity<BaseBodyResponse<Void>> updateUserRoles(
       @PathVariable(value = "userId") Long userId, @RequestBody AssignRoleToUserRequest request) {
 
     userService.assignRoles(userId, request.getRoleIds());
-    return BaseBodyResponse.success(null, "Roles updated successfully");
+    return BaseBodyResponse.success("Roles updated successfully");
   }
 }

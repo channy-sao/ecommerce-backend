@@ -3,8 +3,12 @@ package ecommerce_app.api.client;
 import ecommerce_app.infrastructure.model.response.body.BaseBodyResponse;
 import ecommerce_app.modules.auth.custom.CustomUserDetails;
 import ecommerce_app.modules.review.model.dto.CreateReviewRequest;
+import ecommerce_app.modules.review.model.dto.ProductReviewSummaryResponse;
+import ecommerce_app.modules.review.model.dto.ReviewCountResponse;
+import ecommerce_app.modules.review.model.dto.ReviewResponse;
 import ecommerce_app.modules.review.service.ReviewService;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -20,30 +24,31 @@ public class ReviewController {
 
   // ================= CREATE REVIEW =================
   @PostMapping
-  public ResponseEntity<BaseBodyResponse> createReview(
+  public ResponseEntity<BaseBodyResponse<Void>> createReview(
       @PathVariable Long productId,
       @RequestBody CreateReviewRequest request,
       @AuthenticationPrincipal CustomUserDetails user) {
 
     reviewService.createReview(productId, request, user.getId());
 
-    return BaseBodyResponse.success(null, "Review submitted and awaiting approval");
+    return BaseBodyResponse.success("Review submitted and awaiting approval");
   }
 
   // ================= GET PAGINATED REVIEWS =================
   @GetMapping
-  public ResponseEntity<BaseBodyResponse> getReviews(
+  public ResponseEntity<BaseBodyResponse<List<ReviewResponse>>> getReviews(
       @PathVariable Long productId,
       @RequestParam(defaultValue = "0") int page,
       @RequestParam(defaultValue = "10") int size) {
 
-    return BaseBodyResponse.success(
+    return BaseBodyResponse.pageSuccess(
         reviewService.getReviews(productId, page, size), "Get reviews successfully");
   }
 
   // ================= GET REVIEW SUMMARY =================
   @GetMapping("/summary")
-  public ResponseEntity<BaseBodyResponse> getReviewSummary(@PathVariable Long productId) {
+  public ResponseEntity<BaseBodyResponse<ProductReviewSummaryResponse>> getReviewSummary(
+      @PathVariable Long productId) {
 
     return BaseBodyResponse.success(
         reviewService.getSummary(productId), "Get review summary successfully");
@@ -51,17 +56,18 @@ public class ReviewController {
 
   // ================= GET FULL REVIEW COUNT (BREAKDOWN) =================
   @GetMapping("/count")
-  public ResponseEntity<BaseBodyResponse> getReviewCount(@PathVariable Long productId) {
+  public ResponseEntity<BaseBodyResponse<ReviewCountResponse>> getReviewCount(
+      @PathVariable Long productId) {
 
     return BaseBodyResponse.success(
         reviewService.getReviewCount(productId), "Get review count successfully");
   }
 
   @PutMapping("/{reviewId}/approve")
-  public ResponseEntity<BaseBodyResponse> approveReview(@PathVariable Long reviewId) {
+  public ResponseEntity<BaseBodyResponse<Void>> approveReview(@PathVariable Long reviewId) {
 
     reviewService.approveReview(reviewId);
 
-    return BaseBodyResponse.success(null, "Review approved successfully");
+    return BaseBodyResponse.success("Review approved successfully");
   }
 }

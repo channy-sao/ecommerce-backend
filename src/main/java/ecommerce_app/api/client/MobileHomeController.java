@@ -1,6 +1,7 @@
 package ecommerce_app.api.client;
 
 import ecommerce_app.infrastructure.model.response.body.BaseBodyResponse;
+import ecommerce_app.modules.home.model.dto.MobileHomeScreenResponse;
 import ecommerce_app.modules.home.service.MobileHomeService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -25,7 +26,7 @@ public class MobileHomeController {
    * Popular products - Categories (optional)
    */
   @GetMapping
-  public ResponseEntity<BaseBodyResponse> getHomeScreenData(
+  public ResponseEntity<BaseBodyResponse<MobileHomeScreenResponse>> getHomeScreenData(
       @RequestParam(defaultValue = "5") int bannersSize,
       @RequestParam(defaultValue = "5") int featuredPromotionsSize,
       @RequestParam(defaultValue = "10") int featuredProductsSize,

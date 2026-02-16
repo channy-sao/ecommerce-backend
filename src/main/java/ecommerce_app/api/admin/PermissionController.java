@@ -1,8 +1,10 @@
 package ecommerce_app.api.admin;
 
 import ecommerce_app.infrastructure.model.response.body.BaseBodyResponse;
+import ecommerce_app.modules.user.model.entity.Permission;
 import ecommerce_app.modules.user.service.PermissionService;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -19,7 +21,7 @@ public class PermissionController {
   private final PermissionService permissionService;
 
   @GetMapping
-  public ResponseEntity<BaseBodyResponse> getPermissions() {
+  public ResponseEntity<BaseBodyResponse<Set<Permission>>> getPermissions() {
     return BaseBodyResponse.success(permissionService.getAllPermissions(), "Get all permissions");
   }
 }

@@ -55,20 +55,20 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
   }
 
   @ExceptionHandler(BadRequestException.class)
-  public ResponseEntity<BaseBodyResponse> handleBadRequestException(BadRequestException ex) {
+  public ResponseEntity<BaseBodyResponse<Void>> handleBadRequestException(BadRequestException ex) {
     log.error(ex.getMessage(), ex);
     return BaseBodyResponse.failed(HttpStatus.BAD_REQUEST, ex.getMessage());
   }
 
   @ExceptionHandler(IllegalArgumentException.class)
-  public ResponseEntity<BaseBodyResponse> handleIllegalArgumentException(
+  public ResponseEntity<BaseBodyResponse<Void>> handleIllegalArgumentException(
       IllegalArgumentException ex) {
     log.error(ex.getMessage(), ex);
     return BaseBodyResponse.failed(HttpStatus.BAD_REQUEST, ex.getMessage());
   }
 
   @ExceptionHandler(ResourceNotFoundException.class)
-  public ResponseEntity<BaseBodyResponse> handleResourceNotFoundException(
+  public ResponseEntity<BaseBodyResponse<Void>> handleResourceNotFoundException(
       ResourceNotFoundException ex) {
     log.error(ex.getMessage(), ex);
     String message = messageSourceService.getMessage("error.resource.notfound");
@@ -76,20 +76,20 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
   }
 
   @ExceptionHandler(TransactionSystemException.class)
-  public ResponseEntity<BaseBodyResponse> handleTransactionSystemException(
+  public ResponseEntity<BaseBodyResponse<Void>> handleTransactionSystemException(
       TransactionSystemException ex) {
     log.error(ex.getMessage(), ex);
     return BaseBodyResponse.failed(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage());
   }
 
   @ExceptionHandler(IllegalStateException.class)
-  public ResponseEntity<BaseBodyResponse> handleIllegalStateException(IllegalStateException ex) {
+  public ResponseEntity<BaseBodyResponse<Void>> handleIllegalStateException(IllegalStateException ex) {
     log.error(ex.getMessage(), ex);
     return BaseBodyResponse.failed(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage());
   }
 
   @ExceptionHandler(InternalServerErrorException.class)
-  public ResponseEntity<BaseBodyResponse> handleInternalServerErrorException(
+  public ResponseEntity<BaseBodyResponse<Void>> handleInternalServerErrorException(
       InternalServerErrorException ex) {
     log.error(ex.getMessage(), ex);
     return BaseBodyResponse.failed(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage());

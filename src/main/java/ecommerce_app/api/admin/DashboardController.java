@@ -9,10 +9,9 @@ import ecommerce_app.modules.order.model.dto.RevenueTrendResponse;
 import ecommerce_app.modules.order.model.dto.StatusDistributionResponse;
 import ecommerce_app.modules.order.model.dto.TopProductResponse;
 import ecommerce_app.modules.order.service.impl.OrderStatsServiceImpl;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import java.time.LocalDate;
 import java.util.List;
-
-import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -23,7 +22,9 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/admin/v1/order-stats")
 @RequiredArgsConstructor
 @Slf4j
-@Tag(name = "Order Statistics Controller", description = "For admin manage statistics virtualization")
+@Tag(
+    name = "Order Statistics Controller",
+    description = "For admin manage statistics virtualization")
 // @PreAuthorize("hasRole('ADMIN')")
 public class DashboardController {
 
@@ -31,7 +32,7 @@ public class DashboardController {
 
   /** Get dashboard statistics (last 30 days) GET /api/v1/orders/stats/dashboard */
   @GetMapping("/stats/dashboard")
-  public ResponseEntity<BaseBodyResponse> getDashboardStats() {
+  public ResponseEntity<BaseBodyResponse<OrderStatsResponse>> getDashboardStats() {
     log.info("Fetching dashboard statistics");
     OrderStatsResponse stats = orderStatsService.getDashboardStats();
     return BaseBodyResponse.success(stats, "Dashboard statistics fetched successfully");
@@ -42,7 +43,7 @@ public class DashboardController {
    * /api/v1/orders/stats?fromDate=2024-01-01&toDate=2024-01-31
    */
   @GetMapping("/stats")
-  public ResponseEntity<BaseBodyResponse> getOrderStats(
+  public ResponseEntity<BaseBodyResponse<OrderStatsResponse>> getOrderStats(
       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
           LocalDate fromDate,
       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
@@ -61,7 +62,7 @@ public class DashboardController {
 
   /** Get today's statistics GET /api/v1/orders/stats/today */
   @GetMapping("/stats/today")
-  public ResponseEntity<BaseBodyResponse> getTodayStats() {
+  public ResponseEntity<BaseBodyResponse<OrderStatsResponse>> getTodayStats() {
     LocalDate today = LocalDate.now();
     OrderStatsResponse stats = orderStatsService.getStatsWithDateRange(today, today);
     return BaseBodyResponse.success(stats, "Today's statistics fetched successfully");
@@ -69,7 +70,7 @@ public class DashboardController {
 
   /** Get this week's statistics GET /api/v1/orders/stats/week */
   @GetMapping("/stats/week")
-  public ResponseEntity<BaseBodyResponse> getWeekStats() {
+  public ResponseEntity<BaseBodyResponse<OrderStatsResponse>> getWeekStats() {
     LocalDate today = LocalDate.now();
     LocalDate weekStart = today.minusDays(today.getDayOfWeek().getValue() - 1); // Monday
     OrderStatsResponse stats = orderStatsService.getStatsWithDateRange(weekStart, today);
@@ -78,7 +79,7 @@ public class DashboardController {
 
   /** Get this month's statistics GET /api/v1/orders/stats/month */
   @GetMapping("/stats/month")
-  public ResponseEntity<BaseBodyResponse> getMonthStats() {
+  public ResponseEntity<BaseBodyResponse<OrderStatsResponse>> getMonthStats() {
 
     LocalDate today = LocalDate.now();
     LocalDate monthStart = today.withDayOfMonth(1);
@@ -88,7 +89,7 @@ public class DashboardController {
 
   /** Get revenue trend for dashboard */
   @GetMapping("/revenue-trend")
-  public ResponseEntity<BaseBodyResponse> getRevenueTrend(
+  public ResponseEntity<BaseBodyResponse<List<RevenueTrendResponse>>> getRevenueTrend(
       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
           LocalDate fromDate,
       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
@@ -108,7 +109,7 @@ public class DashboardController {
 
   /** Get status distribution for dashboard */
   @GetMapping("/status-distribution")
-  public ResponseEntity<BaseBodyResponse> getStatusDistribution(
+  public ResponseEntity<BaseBodyResponse<List<StatusDistributionResponse>>> getStatusDistribution(
       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
           LocalDate fromDate,
       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
@@ -129,7 +130,7 @@ public class DashboardController {
 
   /** Get top products for dashboard */
   @GetMapping("/top-products")
-  public ResponseEntity<BaseBodyResponse> getTopProducts(
+  public ResponseEntity<BaseBodyResponse<List<TopProductResponse>>> getTopProducts(
       @RequestParam(defaultValue = "5") int limit,
       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
           LocalDate fromDate,
@@ -151,7 +152,7 @@ public class DashboardController {
 
   /** Get recent orders for dashboard */
   @GetMapping("/recent-orders")
-  public ResponseEntity<BaseBodyResponse> getRecentOrders(
+  public ResponseEntity<BaseBodyResponse<List<RecentOrderResponse>>> getRecentOrders(
       @RequestParam(defaultValue = "10") int limit,
       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
           LocalDate fromDate,
@@ -173,7 +174,7 @@ public class DashboardController {
 
   /** Get all dashboard data in one call */
   @GetMapping("/dashboard-overview")
-  public ResponseEntity<BaseBodyResponse> getDashboardOverview() {
+  public ResponseEntity<BaseBodyResponse<DashboardOverviewResponse>> getDashboardOverview() {
     log.info("Fetching complete dashboard overview");
 
     // Default to last 30 days

@@ -18,6 +18,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/v1/notifications")
 @RequiredArgsConstructor
@@ -29,7 +31,7 @@ public class NotificationController {
 
   /** Create and send notification POST /api/v1/notifications */
   @PostMapping
-  public ResponseEntity<BaseBodyResponse> createNotification(
+  public ResponseEntity<BaseBodyResponse<NotificationResponse>> createNotification(
       @Valid @RequestBody NotificationRequest request) {
 
     NotificationResponse response = notificationService.createAndSendNotification(request);
@@ -38,7 +40,7 @@ public class NotificationController {
 
   /** Get user notifications with pagination GET /api/v1/notifications */
   @GetMapping
-  public ResponseEntity<BaseBodyResponse> getUserNotifications(
+  public ResponseEntity<BaseBodyResponse<List<NotificationResponse>>> getUserNotifications(
       @AuthenticationPrincipal @Parameter(hidden = true) CustomUserDetails userDetails,
       @RequestParam(defaultValue = "0") int page,
       @RequestParam(defaultValue = "50") int size) {
@@ -52,7 +54,7 @@ public class NotificationController {
 
   /** Get unread notification count GET /api/v1/notifications/unread-count */
   @GetMapping("/unread-count")
-  public ResponseEntity<BaseBodyResponse> getUnreadCount(
+  public ResponseEntity<BaseBodyResponse<Long>> getUnreadCount(
       @AuthenticationPrincipal @Parameter(hidden = true) CustomUserDetails userDetails) {
     Long count = notificationService.getUnreadCount(userDetails.getId());
     return BaseBodyResponse.success(count, "Unread count retrieved successfully");
@@ -60,55 +62,57 @@ public class NotificationController {
 
   /** Mark notification as read PUT /api/v1/notifications/{id}/read */
   @PutMapping("/{id}/read")
-  public ResponseEntity<BaseBodyResponse> markAsRead(@PathVariable Long id) {
+  public ResponseEntity<BaseBodyResponse<Void>> markAsRead(@PathVariable Long id) {
     notificationService.markAsRead(id);
-    return BaseBodyResponse.success(null, "Notification marked as read");
+    return BaseBodyResponse.success("Notification marked as read");
   }
 
   /** Mark all notifications as read PUT /api/v1/notifications/read-all */
   @PutMapping("/read-all")
-  public ResponseEntity<BaseBodyResponse> markAllAsRead(@AuthenticationPrincipal @Parameter(hidden = true) CustomUserDetails userDetails) {
+  public ResponseEntity<BaseBodyResponse<Void>> markAllAsRead(
+      @AuthenticationPrincipal @Parameter(hidden = true) CustomUserDetails userDetails) {
     notificationService.markAllAsRead(userDetails.getId());
-    return BaseBodyResponse.success(null, "All notifications marked as read");
+    return BaseBodyResponse.success("All notifications marked as read");
   }
 
   /** Register device token POST /api/v1/notifications/device-token */
   @PostMapping("/device-token")
-  public ResponseEntity<BaseBodyResponse> registerDeviceToken(
-      @Valid @RequestBody DeviceTokenRequest request, @AuthenticationPrincipal @Parameter(hidden = true) CustomUserDetails userDetails) {
+  public ResponseEntity<BaseBodyResponse<Void>> registerDeviceToken(
+      @Valid @RequestBody DeviceTokenRequest request,
+      @AuthenticationPrincipal @Parameter(hidden = true) CustomUserDetails userDetails) {
 
     deviceTokenService.registerDeviceToken(request, userDetails.getId());
-    return BaseBodyResponse.success(null, "Device token registered successfully");
+    return BaseBodyResponse.success("Device token registered successfully");
   }
 
   /**
    * Deactivate device token (logout) DELETE /api/v1/notifications/device-token/{token}/deactivate
    */
   @DeleteMapping("/device-token/{token}/deactivate")
-  public ResponseEntity<BaseBodyResponse> deactivateDeviceToken(@PathVariable String token) {
+  public ResponseEntity<BaseBodyResponse<Void>> deactivateDeviceToken(@PathVariable String token) {
     deviceTokenService.deactivateDeviceToken(token);
-    return BaseBodyResponse.success(null, "Device token deactivated successfully");
+    return BaseBodyResponse.success("Device token deactivated successfully");
   }
 
   /** Delete device token permanently DELETE /api/v1/notifications/device-token/{token} */
   @DeleteMapping("/device-token/{token}")
-  public ResponseEntity<BaseBodyResponse> deleteDeviceToken(@PathVariable String token) {
+  public ResponseEntity<BaseBodyResponse<Void>> deleteDeviceToken(@PathVariable String token) {
     deviceTokenService.deleteDeviceToken(token);
-    return BaseBodyResponse.success(null, "Device token deleted successfully");
+    return BaseBodyResponse.success("Device token deleted successfully");
   }
 
   /** Send broadcast notification to all users (Admin only) POST /api/v1/notifications/broadcast */
   @PostMapping("/broadcast")
-  public ResponseEntity<BaseBodyResponse> sendBroadcast(
+  public ResponseEntity<BaseBodyResponse<Void>> sendBroadcast(
       @Valid @RequestBody NotificationRequest request) {
     notificationService.sendBroadcastNotification(request);
-    return BaseBodyResponse.success(null, "Broadcast notification initiated");
+    return BaseBodyResponse.success("Broadcast notification initiated");
   }
 
   /** Retry failed notifications (Admin only) POST /api/v1/notifications/retry-failed */
   @PostMapping("/retry-failed")
-  public ResponseEntity<BaseBodyResponse> retryFailed() {
+  public ResponseEntity<BaseBodyResponse<Void>> retryFailed() {
     notificationService.retryFailedNotifications();
-    return BaseBodyResponse.success(null, "Retry initiated for failed notifications");
+    return BaseBodyResponse.success("Retry initiated for failed notifications");
   }
 }

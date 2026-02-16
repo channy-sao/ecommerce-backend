@@ -5,14 +5,17 @@ import ecommerce_app.infrastructure.exception.BadRequestException;
 import ecommerce_app.infrastructure.model.response.body.BaseBodyResponse;
 import ecommerce_app.modules.category.model.dto.BulkCategoryRequest;
 import ecommerce_app.modules.category.model.dto.CategoryRequest;
+import ecommerce_app.modules.category.model.dto.CategoryResponse;
 import ecommerce_app.modules.category.service.CategoryExcelTemplateService;
 import ecommerce_app.modules.category.service.CategoryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
-import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
@@ -31,10 +34,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.List;
-
 @RestController
 @RequestMapping("/api/admin/v1/categories")
 @RequiredArgsConstructor
@@ -45,7 +44,7 @@ public class CategoryController {
   private final CategoryExcelTemplateService categoryExcelTemplateService;
 
   @PostMapping
-  public ResponseEntity<BaseBodyResponse> createCategory(
+  public ResponseEntity<BaseBodyResponse<CategoryResponse>> createCategory(
       @RequestBody CategoryRequest categoryRequest) {
     return BaseBodyResponse.success(
         this.categoryService.saveCategory(categoryRequest),
@@ -53,19 +52,21 @@ public class CategoryController {
   }
 
   @DeleteMapping("/{id}")
-  public ResponseEntity<BaseBodyResponse> deleteCategory(@PathVariable(value = "id") Long id) {
+  public ResponseEntity<BaseBodyResponse<Void>> deleteCategory(
+      @PathVariable(value = "id") Long id) {
     this.categoryService.deleteCategory(id);
-    return BaseBodyResponse.success(null, ResponseMessageConstant.DELETE_SUCCESSFULLY);
+    return BaseBodyResponse.success(ResponseMessageConstant.DELETE_SUCCESSFULLY);
   }
 
   @GetMapping("/{id}")
-  public ResponseEntity<BaseBodyResponse> getById(@PathVariable(value = "id") Long id) {
+  public ResponseEntity<BaseBodyResponse<CategoryResponse>> getById(
+      @PathVariable(value = "id") Long id) {
     return BaseBodyResponse.success(
         categoryService.getCategoryById(id), ResponseMessageConstant.FIND_ONE_SUCCESSFULLY);
   }
 
   @PutMapping("/{id}")
-  public ResponseEntity<BaseBodyResponse> updateCategory(
+  public ResponseEntity<BaseBodyResponse<CategoryResponse>> updateCategory(
       @RequestBody CategoryRequest categoryRequest, @PathVariable(value = "id") Long id) {
     return BaseBodyResponse.success(
         categoryService.updateCategory(categoryRequest, id),
@@ -73,13 +74,14 @@ public class CategoryController {
   }
 
   @GetMapping("/name/{name}")
-  public ResponseEntity<BaseBodyResponse> getByName(@PathVariable(value = "name") String name) {
+  public ResponseEntity<BaseBodyResponse<CategoryResponse>> getByName(
+      @PathVariable(value = "name") String name) {
     return BaseBodyResponse.success(
         categoryService.getCategoryByName(name), ResponseMessageConstant.FIND_ONE_SUCCESSFULLY);
   }
 
   @GetMapping
-  public ResponseEntity<BaseBodyResponse> filter(
+  public ResponseEntity<BaseBodyResponse<List<CategoryResponse>>> filter(
       @RequestParam(value = "isPaged", defaultValue = "true") boolean isPaged,
       @RequestParam(value = "page", defaultValue = "1") int page,
       @RequestParam(value = "pageSize", defaultValue = "10") int pageSize,
@@ -92,19 +94,19 @@ public class CategoryController {
   }
 
   @PostMapping(path = "/import-from-excel", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-  public ResponseEntity<BaseBodyResponse> importCategoriesFromExcel(
+  public ResponseEntity<BaseBodyResponse<Void>> importCategoriesFromExcel(
       @RequestParam("file") MultipartFile file) {
     // Implementation for importing categories from an Excel file
     this.categoryService.importCategoriesFromExcel(file);
-    return BaseBodyResponse.success(null, ResponseMessageConstant.SUCCESS);
+    return BaseBodyResponse.success(ResponseMessageConstant.SUCCESS);
   }
 
   @PostMapping("/bulk-insert")
-  public ResponseEntity<BaseBodyResponse> bulkInsertCategories(
+  public ResponseEntity<BaseBodyResponse<Void>> bulkInsertCategories(
       @RequestBody @Valid BulkCategoryRequest bulkCategoryRequest) {
     // Implementation for importing categories from an Excel file
     this.categoryService.bulkInsertCategories(bulkCategoryRequest.getCategories());
-    return BaseBodyResponse.success(null, ResponseMessageConstant.SUCCESS);
+    return BaseBodyResponse.success(ResponseMessageConstant.SUCCESS);
   }
 
   /** Download Excel template for category import with dynamic sample data */

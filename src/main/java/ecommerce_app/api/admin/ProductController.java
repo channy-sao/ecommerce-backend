@@ -4,14 +4,18 @@ import ecommerce_app.constant.enums.ExportFormat;
 import ecommerce_app.constant.message.ResponseMessageConstant;
 import ecommerce_app.infrastructure.exception.BadRequestException;
 import ecommerce_app.infrastructure.model.response.body.BaseBodyResponse;
+import ecommerce_app.modules.product.model.dto.ImportProductFromExcelResponse;
 import ecommerce_app.modules.product.model.dto.ProductRequest;
+import ecommerce_app.modules.product.model.dto.ProductResponse;
 import ecommerce_app.modules.product.service.ProductExcelTemplateService;
 import ecommerce_app.modules.product.service.ProductService;
 import ecommerce_app.modules.reports.ProductReportService;
-import ecommerce_app.util.ExcelTemplateService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.ByteArrayResource;
@@ -20,7 +24,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -31,10 +34,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.io.IOException;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 
 @RestController
 @RequestMapping("/api/admin/v1/products")
@@ -47,7 +46,7 @@ public class ProductController {
   private final ProductReportService productReportService;
 
   @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-  public ResponseEntity<BaseBodyResponse> createProduct(
+  public ResponseEntity<BaseBodyResponse<ProductResponse>> createProduct(
       @ModelAttribute ProductRequest productRequest) {
     return BaseBodyResponse.success(
         this.productService.saveProduct(productRequest),
@@ -55,19 +54,20 @@ public class ProductController {
   }
 
   @DeleteMapping("/{id}")
-  public ResponseEntity<BaseBodyResponse> deleteProduct(@PathVariable(value = "id") Long id) {
+  public ResponseEntity<BaseBodyResponse<Void>> deleteProduct(@PathVariable(value = "id") Long id) {
     this.productService.deleteProduct(id);
-    return BaseBodyResponse.success(null, ResponseMessageConstant.DELETE_SUCCESSFULLY);
+    return BaseBodyResponse.success(ResponseMessageConstant.DELETE_SUCCESSFULLY);
   }
 
   @GetMapping("/{id}")
-  public ResponseEntity<BaseBodyResponse> getById(@PathVariable(value = "id") Long id) {
+  public ResponseEntity<BaseBodyResponse<ProductResponse>> getById(
+      @PathVariable(value = "id") Long id) {
     return BaseBodyResponse.success(
         productService.getProductById(id), ResponseMessageConstant.FIND_ONE_SUCCESSFULLY);
   }
 
   @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-  public ResponseEntity<BaseBodyResponse> updateCategory(
+  public ResponseEntity<BaseBodyResponse<ProductResponse>> updateCategory(
       @ModelAttribute ProductRequest productRequest, @PathVariable(value = "id") Long id) {
     return BaseBodyResponse.success(
         productService.updateProduct(productRequest, id),
@@ -75,13 +75,13 @@ public class ProductController {
   }
 
   @GetMapping
-  public ResponseEntity<BaseBodyResponse> getProducts() {
+  public ResponseEntity<BaseBodyResponse<List<ProductResponse>>> getProducts() {
     return BaseBodyResponse.success(
         this.productService.getProducts(), ResponseMessageConstant.FIND_ALL_SUCCESSFULLY);
   }
 
   @GetMapping("/filter")
-  public ResponseEntity<BaseBodyResponse> filter(
+  public ResponseEntity<BaseBodyResponse<List<ProductResponse>>> filter(
       @RequestParam(value = "isPaged", defaultValue = "true") boolean isPaged,
       @RequestParam(value = "page", defaultValue = "1") int page,
       @RequestParam(value = "pageSize", defaultValue = "10") int pageSize,
@@ -95,7 +95,7 @@ public class ProductController {
   }
 
   @PostMapping(value = "/import-from-excel", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-  public ResponseEntity<BaseBodyResponse> importFromExcel(
+  public ResponseEntity<BaseBodyResponse<ImportProductFromExcelResponse>> importFromExcel(
       @RequestParam("file") MultipartFile file) {
     return BaseBodyResponse.success(
         productService.importProductFromExcel(file), "Imported product from Excel File");

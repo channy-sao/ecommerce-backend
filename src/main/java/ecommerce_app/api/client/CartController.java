@@ -2,6 +2,7 @@ package ecommerce_app.api.client;
 
 import ecommerce_app.infrastructure.model.response.body.BaseBodyResponse;
 import ecommerce_app.modules.auth.custom.CustomUserDetails;
+import ecommerce_app.modules.cart.model.dto.CartResponse;
 import ecommerce_app.modules.cart.service.CartService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +25,7 @@ public class CartController {
   private final CartService cartService;
 
   @PostMapping("/add-to-cart")
-  public ResponseEntity<BaseBodyResponse> addCart(
+  public ResponseEntity<BaseBodyResponse<CartResponse>> addCart(
       @RequestParam Long productId, @AuthenticationPrincipal CustomUserDetails userDetails) {
     return BaseBodyResponse.success(
         this.cartService.addNewProductToCart(productId, userDetails.getId()),
@@ -32,7 +33,7 @@ public class CartController {
   }
 
   @PostMapping("/items/{itemId}/increment")
-  public ResponseEntity<BaseBodyResponse> increment(
+  public ResponseEntity<BaseBodyResponse<CartResponse>> increment(
       @PathVariable(value = "itemId", name = "itemId") Long itemId,
       @AuthenticationPrincipal CustomUserDetails userDetails) {
     return BaseBodyResponse.success(
@@ -41,7 +42,7 @@ public class CartController {
   }
 
   @PostMapping("/items/{itemId}/decrement")
-  public ResponseEntity<BaseBodyResponse> decrement(
+  public ResponseEntity<BaseBodyResponse<CartResponse>> decrement(
       @PathVariable(name = "itemId", value = "itemId") Long itemId,
       @AuthenticationPrincipal CustomUserDetails userDetails) {
     return BaseBodyResponse.success(
@@ -50,7 +51,7 @@ public class CartController {
   }
 
   @GetMapping
-  public ResponseEntity<BaseBodyResponse> getCart(
+  public ResponseEntity<BaseBodyResponse<CartResponse>> getCart(
       @AuthenticationPrincipal CustomUserDetails userDetails) {
     return BaseBodyResponse.success(
         this.cartService.getCart(userDetails.getId()), "Successfully get cart.");

@@ -4,6 +4,7 @@ import ecommerce_app.infrastructure.model.response.body.BaseBodyResponse;
 import ecommerce_app.modules.auth.custom.CustomUserDetails;
 import ecommerce_app.modules.product.service.FavoriteService;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -22,31 +23,31 @@ public class FavoriteController {
   private final FavoriteService favoriteService;
 
   @PostMapping("/products/{productId}")
-  public ResponseEntity<BaseBodyResponse> favorite(
+  public ResponseEntity<BaseBodyResponse<Void>> favorite(
       @PathVariable(value = "productId") Long productId,
       @AuthenticationPrincipal CustomUserDetails user) {
     favoriteService.favorite(user.getId(), productId);
-    return BaseBodyResponse.success(null, "Product added to favorites");
+    return BaseBodyResponse.success("Product added to favorites");
   }
 
   @DeleteMapping("/products/{productId}")
-  public ResponseEntity<BaseBodyResponse> unfavorite(
+  public ResponseEntity<BaseBodyResponse<Void>> unfavorite(
       @PathVariable(value = "productId") Long productId,
       @AuthenticationPrincipal CustomUserDetails user) {
     favoriteService.unfavorite(user.getId(), productId);
-    return BaseBodyResponse.success(null, "Product removed from favorites");
+    return BaseBodyResponse.success("Product removed from favorites");
   }
 
   @PostMapping("/products/{productId}/toggle")
-  public ResponseEntity<BaseBodyResponse> toggle(
+  public ResponseEntity<BaseBodyResponse<Void>> toggle(
       @PathVariable(value = "productId") Long productId,
       @AuthenticationPrincipal CustomUserDetails user) {
     favoriteService.toggleFavorite(user.getId(), productId);
-    return BaseBodyResponse.success(null, "Product favorite status toggled");
+    return BaseBodyResponse.success("Product favorite status toggled");
   }
 
   @GetMapping("/products")
-  public ResponseEntity<BaseBodyResponse> getFavoriteProducts(
+  public ResponseEntity<BaseBodyResponse<List<Long>>> getFavoriteProducts(
       @AuthenticationPrincipal CustomUserDetails user) {
     return BaseBodyResponse.success(
         favoriteService.getFavoriteProductIds(user.getId()),
@@ -54,14 +55,14 @@ public class FavoriteController {
   }
 
   @GetMapping("/products/{productId}/count")
-  public ResponseEntity<BaseBodyResponse> countFavorites(
+  public ResponseEntity<BaseBodyResponse<Long>> countFavorites(
       @PathVariable(value = "productId") Long productId) {
     return BaseBodyResponse.success(
         favoriteService.countFavorites(productId), "Favorite count retrieved successfully");
   }
 
   @GetMapping("/products/{productId}/is-favorite")
-  public ResponseEntity<BaseBodyResponse> isFavorite(
+  public ResponseEntity<BaseBodyResponse<Boolean>> isFavorite(
       @PathVariable(value = "productId") Long productId,
       @AuthenticationPrincipal CustomUserDetails user) {
     return BaseBodyResponse.success(

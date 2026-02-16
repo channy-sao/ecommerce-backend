@@ -1,8 +1,11 @@
 package ecommerce_app.api.client;
 
 import ecommerce_app.infrastructure.model.response.body.BaseBodyResponse;
+import ecommerce_app.modules.product.model.dto.MobileProductListResponse;
+import ecommerce_app.modules.product.model.dto.MobileProductResponse;
 import ecommerce_app.modules.product.service.MobileProductService;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -32,7 +35,7 @@ public class MobileProductController {
    * <p>Main product listing endpoint with filters
    */
   @GetMapping
-  public ResponseEntity<BaseBodyResponse> getProducts(
+  public ResponseEntity<BaseBodyResponse<List<MobileProductListResponse>>> getProducts(
       @RequestParam(value = "page", defaultValue = "0") int page,
       @RequestParam(value = "pageSize", defaultValue = "20") int pageSide,
       @RequestParam(value = "categoryId", required = false) Long categoryId,
@@ -59,7 +62,8 @@ public class MobileProductController {
    * <p>Used when user taps on a product card
    */
   @GetMapping("/{id}")
-  public ResponseEntity<BaseBodyResponse> getProductById(@PathVariable Long id) {
+  public ResponseEntity<BaseBodyResponse<MobileProductResponse>> getProductById(
+      @PathVariable Long id) {
     return BaseBodyResponse.success(
         mobileProductService.getProductById(id), "Get product by ID successfully");
   }
@@ -70,7 +74,8 @@ public class MobileProductController {
    * <p>Used for deep linking and product sharing
    */
   @GetMapping("/uuid/{uuid}")
-  public ResponseEntity<BaseBodyResponse> getProductByUuid(@PathVariable UUID uuid) {
+  public ResponseEntity<BaseBodyResponse<MobileProductResponse>> getProductByUuid(
+      @PathVariable UUID uuid) {
 
     return BaseBodyResponse.success(
         mobileProductService.getProductByUuid(uuid), "Get product by UUID successfully");
@@ -82,7 +87,7 @@ public class MobileProductController {
    * <p>Shows highlighted products on homepage
    */
   @GetMapping("/featured")
-  public ResponseEntity<BaseBodyResponse> getFeaturedProducts(
+  public ResponseEntity<BaseBodyResponse<List<MobileProductListResponse>>> getFeaturedProducts(
       @RequestParam(defaultValue = "10") int size) {
 
     return BaseBodyResponse.success(
@@ -95,7 +100,7 @@ public class MobileProductController {
    * <p>Shows products currently on sale
    */
   @GetMapping("/promotions")
-  public ResponseEntity<BaseBodyResponse> getPromotionalProducts(
+  public ResponseEntity<BaseBodyResponse<List<MobileProductListResponse>>> getPromotionalProducts(
       @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
 
     Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
@@ -111,7 +116,7 @@ public class MobileProductController {
    * <p>Used for category browsing screen
    */
   @GetMapping("/category/{categoryId}")
-  public ResponseEntity<BaseBodyResponse> getProductsByCategory(
+  public ResponseEntity<BaseBodyResponse<List<MobileProductListResponse>>> getProductsByCategory(
       @PathVariable Long categoryId,
       @RequestParam(defaultValue = "0") int page,
       @RequestParam(defaultValue = "20") int size) {
@@ -129,7 +134,7 @@ public class MobileProductController {
    * <p>Main search functionality
    */
   @GetMapping("/search")
-  public ResponseEntity<BaseBodyResponse> searchProducts(
+  public ResponseEntity<BaseBodyResponse<List<MobileProductListResponse>>> searchProducts(
       @RequestParam(value = "query") String query,
       @RequestParam(value = "page", defaultValue = "0") int page,
       @RequestParam(value = "pageSize", defaultValue = "20") int pageSize) {
@@ -145,7 +150,7 @@ public class MobileProductController {
    * <p>Shows recently added products
    */
   @GetMapping("/new")
-  public ResponseEntity<BaseBodyResponse> getNewArrivals(
+  public ResponseEntity<BaseBodyResponse<List<MobileProductListResponse>>> getNewArrivals(
       @RequestParam(defaultValue = "10") int size) {
 
     return BaseBodyResponse.success(
@@ -158,7 +163,7 @@ public class MobileProductController {
    * <p>Shows most-liked products
    */
   @GetMapping("/popular")
-  public ResponseEntity<BaseBodyResponse> getPopularProducts(
+  public ResponseEntity<BaseBodyResponse<List<MobileProductListResponse>>> getPopularProducts(
       @RequestParam(defaultValue = "10") int size) {
 
     return BaseBodyResponse.success(
@@ -171,7 +176,7 @@ public class MobileProductController {
    * <p>Shows "You may also like" section on product detail page
    */
   @GetMapping("/{id}/related")
-  public ResponseEntity<BaseBodyResponse> getRelatedProducts(
+  public ResponseEntity<BaseBodyResponse<List<MobileProductListResponse>>> getRelatedProducts(
       @PathVariable Long id, @RequestParam(defaultValue = "5") int size) {
 
     return BaseBodyResponse.success(
@@ -184,9 +189,9 @@ public class MobileProductController {
    * <p>Increments favorites count when user likes a product
    */
   @PostMapping("/{id}/favorite")
-  public ResponseEntity<BaseBodyResponse> addToFavorites(@PathVariable Long id) {
+  public ResponseEntity<BaseBodyResponse<Void>> addToFavorites(@PathVariable Long id) {
     mobileProductService.addToFavorites(id);
-    return BaseBodyResponse.success(null, "Product added to favorites");
+    return BaseBodyResponse.success("Product added to favorites");
   }
 
   /**
@@ -195,8 +200,8 @@ public class MobileProductController {
    * <p>Decrements favorites count when user unlikes a product
    */
   @DeleteMapping("/{id}/favorite")
-  public ResponseEntity<BaseBodyResponse> removeFromFavorites(@PathVariable Long id) {
+  public ResponseEntity<BaseBodyResponse<Void>> removeFromFavorites(@PathVariable Long id) {
     mobileProductService.removeFromFavorites(id);
-    return BaseBodyResponse.success(null, "Product removed from favorites");
+    return BaseBodyResponse.success("Product removed from favorites");
   }
 }

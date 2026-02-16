@@ -2,6 +2,7 @@ package ecommerce_app.api.admin;
 
 import ecommerce_app.infrastructure.model.response.body.BaseBodyResponse;
 import ecommerce_app.modules.user.model.dto.CreateRoleRequest;
+import ecommerce_app.modules.user.model.dto.RoleResponse;
 import ecommerce_app.modules.user.model.dto.UpdateRoleRequest;
 import ecommerce_app.modules.user.service.RoleService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -16,6 +17,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Set;
 
 /**
  * Admin Role Management API.
@@ -54,11 +58,11 @@ public class RoleController {
       content = @Content(schema = @Schema(implementation = BaseBodyResponse.class)))
   @PreAuthorize("hasRole('SUPER_ADMIN')")
   @PostMapping
-  public ResponseEntity<BaseBodyResponse> createRole(
+  public ResponseEntity<BaseBodyResponse<Void>> createRole(
       @Valid @RequestBody CreateRoleRequest createRoleRequest) {
 
     roleService.createRole(createRoleRequest);
-    return BaseBodyResponse.success(null, "Create Role Successfully");
+    return BaseBodyResponse.success("Create Role Successfully");
   }
 
   /**
@@ -77,11 +81,11 @@ public class RoleController {
       content = @Content(schema = @Schema(implementation = BaseBodyResponse.class)))
   @PreAuthorize("hasAuthority('ROLE_UPDATE')")
   @PutMapping("/{id}")
-  public ResponseEntity<BaseBodyResponse> updateRole(
+  public ResponseEntity<BaseBodyResponse<Void>> updateRole(
       @Valid @RequestBody UpdateRoleRequest updateRoleRequest, @PathVariable("id") Long roleId) {
 
     roleService.updateRole(updateRoleRequest, roleId);
-    return BaseBodyResponse.success(null, "Update Role Successfully");
+    return BaseBodyResponse.success("Update Role Successfully");
   }
 
   /**
@@ -100,27 +104,29 @@ public class RoleController {
       content = @Content(schema = @Schema(implementation = BaseBodyResponse.class)))
   @PreAuthorize("hasRole('SUPER_ADMIN') or hasAuthority('ROLE_UPDATE')")
   @PatchMapping("/{id}")
-  public ResponseEntity<BaseBodyResponse> toggleStatus(@PathVariable("id") Long roleId) {
+  public ResponseEntity<BaseBodyResponse<Void>> toggleStatus(@PathVariable("id") Long roleId) {
 
     roleService.toggleStatus(roleId);
-    return BaseBodyResponse.success(null, "Toggle Status Role Successfully");
+    return BaseBodyResponse.success("Toggle Status Role Successfully");
   }
 
   @PreAuthorize("hasRole('ADMIN') or hasAuthority('USER_CREATE')")
   @GetMapping("/{id}")
-  public ResponseEntity<BaseBodyResponse> getRoleById(@PathVariable(value = "id") long roleId) {
+  public ResponseEntity<BaseBodyResponse<RoleResponse>> getRoleById(
+      @PathVariable(value = "id") long roleId) {
     return BaseBodyResponse.success(roleService.getRole(roleId), "Get Role Successfully");
   }
 
   @PreAuthorize("hasAuthority('ROLE_READ')")
   @GetMapping
-  public ResponseEntity<BaseBodyResponse> getRoles() {
+  public ResponseEntity<BaseBodyResponse<Set<RoleResponse>>> getRoles() {
     return BaseBodyResponse.success(roleService.getRoles(), "Get Roles Successfully");
   }
 
   @PreAuthorize("hasAuthority('ROLE_READ')")
   @GetMapping("/search")
-  public ResponseEntity<BaseBodyResponse> searchRole(@Parameter(name = "role") String roleName) {
+  public ResponseEntity<BaseBodyResponse<Set<RoleResponse>>> searchRole(
+      @Parameter(name = "role") String roleName) {
     return BaseBodyResponse.success(roleService.searchRole(roleName), "Get Roles Successfully");
   }
 }

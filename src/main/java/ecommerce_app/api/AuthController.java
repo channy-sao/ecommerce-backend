@@ -4,7 +4,10 @@ import ecommerce_app.infrastructure.model.response.body.BaseBodyResponse;
 import ecommerce_app.modules.auth.dto.request.LoginRequest;
 import ecommerce_app.modules.auth.dto.request.RefreshTokenRequest;
 import ecommerce_app.modules.auth.dto.request.SignupRequest;
+import ecommerce_app.modules.auth.dto.response.LoginResponse;
+import ecommerce_app.modules.auth.dto.response.RefreshTokenResponse;
 import ecommerce_app.modules.auth.service.AuthenticationService;
+import ecommerce_app.modules.user.model.dto.UserResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -24,27 +27,28 @@ public class AuthController {
   private final AuthenticationService authenticationService;
 
   @PostMapping("/login/firebase")
-  public ResponseEntity<BaseBodyResponse> loginWithFirebase(
+  public ResponseEntity<BaseBodyResponse<LoginResponse>> loginWithFirebase(
       @RequestHeader(value = "idToken") String idToken) {
     return BaseBodyResponse.success(
         authenticationService.loginWithFirebase(idToken), "Login successful");
   }
 
   @PostMapping("/signup")
-  public ResponseEntity<BaseBodyResponse> signup(@RequestBody @Valid SignupRequest signupRequest) {
+  public ResponseEntity<BaseBodyResponse<LoginResponse>> signup(
+      @RequestBody @Valid SignupRequest signupRequest) {
     return BaseBodyResponse.success(
         authenticationService.signupWithFirebase(signupRequest), "Signup successful");
   }
 
   @PostMapping("/login/local")
-  public ResponseEntity<BaseBodyResponse> loginLocal(
+  public ResponseEntity<BaseBodyResponse<LoginResponse>> loginLocal(
       @RequestBody @Valid LoginRequest loginRequest) {
     return BaseBodyResponse.success(
         authenticationService.loginLocal(loginRequest), "Login successful");
   }
 
   @PostMapping("/refresh-token")
-  public ResponseEntity<BaseBodyResponse> refreshToken(
+  public ResponseEntity<BaseBodyResponse<RefreshTokenResponse>> refreshToken(
       @RequestBody @Valid RefreshTokenRequest refreshTokenRequest) {
     return BaseBodyResponse.success(
         authenticationService.refreshToken(refreshTokenRequest.getRefreshToken()),
@@ -52,13 +56,13 @@ public class AuthController {
   }
 
   @PostMapping("/logout")
-  public ResponseEntity<BaseBodyResponse> logout() {
+  public ResponseEntity<BaseBodyResponse<Void>> logout() {
     this.authenticationService.logout();
-    return BaseBodyResponse.success(null, "Logout successful");
+    return BaseBodyResponse.success("Logout successful");
   }
 
   @GetMapping("/me")
-  public ResponseEntity<BaseBodyResponse> getCurrentUser() {
+  public ResponseEntity<BaseBodyResponse<UserResponse>> getCurrentUser() {
     return BaseBodyResponse.success(
         authenticationService.getCurrentUser(), "Current user successful");
   }

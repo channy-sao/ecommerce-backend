@@ -26,74 +26,74 @@ public class DummyController {
   }
 
   @PostMapping
-  public ResponseEntity<BaseBodyResponse> dummyData() {
+  public ResponseEntity<BaseBodyResponse<Void>> dummyData() {
     this.dummyService.dummyAll();
-    return BaseBodyResponse.success(null, "Dummy all data created successfully");
+    return BaseBodyResponse.success("Dummy all data created successfully");
   }
 
   @PostMapping("/role")
-  public ResponseEntity<BaseBodyResponse> dummyRoles() {
+  public ResponseEntity<BaseBodyResponse<Void>> dummyRoles() {
     this.dummyService.dummyRole();
-    return BaseBodyResponse.success(null, "Dummy roles data created successfully");
+    return BaseBodyResponse.success("Dummy roles data created successfully");
   }
 
   @PostMapping("/user")
-  public ResponseEntity<BaseBodyResponse> dummyUsers() {
+  public ResponseEntity<BaseBodyResponse<Void>> dummyUsers() {
     this.dummyService.dummyUser();
-    return BaseBodyResponse.success(null, "Dummy users data created successfully");
+    return BaseBodyResponse.success("Dummy users data created successfully");
   }
 
   @PostMapping("/role-and-user")
-  public ResponseEntity<BaseBodyResponse> dummyRolesAndUsers() {
+  public ResponseEntity<BaseBodyResponse<Void>> dummyRolesAndUsers() {
     this.dummyService.dummyRoleAndUser();
-    return BaseBodyResponse.success(null, "Dummy role & user data created successfully");
+    return BaseBodyResponse.success("Dummy role & user data created successfully");
   }
 
   @PostMapping("/category")
-  public ResponseEntity<BaseBodyResponse> dummyCategories() {
+  public ResponseEntity<BaseBodyResponse<Void>> dummyCategories() {
     this.dummyService.dummyCategory();
-    return BaseBodyResponse.success(null, "Dummy category data created successfully");
+    return BaseBodyResponse.success("Dummy category data created successfully");
   }
 
   @PostMapping("/product")
-  public ResponseEntity<BaseBodyResponse> dummyProducts() {
+  public ResponseEntity<BaseBodyResponse<Void>> dummyProducts() {
     this.dummyService.dummyProduct();
-    return BaseBodyResponse.success(null, "Dummy product data created successfully");
+    return BaseBodyResponse.success("Dummy product data created successfully");
   }
 
   @PostMapping("/category-and-product")
-  public ResponseEntity<BaseBodyResponse> dummyCategoriesAndProducts() {
+  public ResponseEntity<BaseBodyResponse<Void>> dummyCategoriesAndProducts() {
     this.dummyService.dummyCategoryAndProduct();
-    return BaseBodyResponse.success(null, "Dummy category & product data created successfully");
+    return BaseBodyResponse.success("Dummy category & product data created successfully");
   }
 
   @PostMapping("/stock")
-  public ResponseEntity<BaseBodyResponse> dummyStock() {
+  public ResponseEntity<BaseBodyResponse<Void>> dummyStock() {
     this.dummyService.dummyStock();
-    return BaseBodyResponse.success(null, "Dummy stock data created successfully");
+    return BaseBodyResponse.success("Dummy stock data created successfully");
   }
 
   @PostMapping("/address")
-  public ResponseEntity<BaseBodyResponse> dummyAddress() {
+  public ResponseEntity<BaseBodyResponse<Void>> dummyAddress() {
     this.dummyService.dummyAddress();
-    return BaseBodyResponse.success(null, "Dummy address data created successfully");
+    return BaseBodyResponse.success("Dummy address data created successfully");
   }
 
   @PostMapping("/cart")
-  public ResponseEntity<BaseBodyResponse> dummyCart() {
+  public ResponseEntity<BaseBodyResponse<Void>> dummyCart() {
     this.dummyService.dummyCart();
-    return BaseBodyResponse.success(null, "Dummy cart data created successfully");
+    return BaseBodyResponse.success("Dummy cart data created successfully");
   }
 
   @PostMapping("/order")
-  public ResponseEntity<BaseBodyResponse> dummyOrder() {
+  public ResponseEntity<BaseBodyResponse<Void>> dummyOrder() {
     this.dummyService.dummyOrder();
-    return BaseBodyResponse.success(null, "Dummy order process data created successfully");
+    return BaseBodyResponse.success("Dummy order process data created successfully");
   }
 
   @PostMapping("/cart-and-order")
-  public ResponseEntity<BaseBodyResponse> dummyCartAndOrder() {
+  public ResponseEntity<BaseBodyResponse<Void>> dummyCartAndOrder() {
     this.dummyService.dummyCardAndOrder();
-    return BaseBodyResponse.success(null, "Dummy all data created successfully");
+    return BaseBodyResponse.success("Dummy all data created successfully");
   }
 }

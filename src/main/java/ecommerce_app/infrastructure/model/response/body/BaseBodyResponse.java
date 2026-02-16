@@ -27,6 +27,8 @@ import static ecommerce_app.constant.app.AppConstant.REQUEST_ID;
  * <p>This class provides a unified response structure for successful and failed HTTP responses,
  * including metadata such as timestamp, trace ID, and request path.
  *
+ * <p>Supports generic type parameter T for type-safe response data.
+ *
  * <p>Typical response structure:
  *
  * <ul>
@@ -38,16 +40,18 @@ import static ecommerce_app.constant.app.AppConstant.REQUEST_ID;
  *   <li>{@code traceId} - request trace identifier
  *   <li>{@code path} - request URI path
  * </ul>
+ *
+ * @param <T> the type of the response data
  */
 @Getter
 @Setter
-public class BaseBodyResponse implements Serializable {
+public class BaseBodyResponse<T> implements Serializable {
 
   @JsonInclude(JsonInclude.Include.NON_NULL)
   private Boolean success;
 
   @JsonInclude(JsonInclude.Include.NON_NULL)
-  private Object data;
+  private T data;
 
   @JsonInclude(JsonInclude.Include.NON_NULL)
   private PageResponse meta;
@@ -64,18 +68,19 @@ public class BaseBodyResponse implements Serializable {
   private String path;
 
   /* =========================
-   * Success Responses
+   * Success Responses - Type Safe
    * ========================= */
 
   /**
-   * Creates a successful response containing a data payload.
+   * Creates a successful response containing a data payload with type safety.
    *
    * @param data the response body data
    * @param message optional success message
+   * @param <T> the type of the data
    * @return {@link ResponseEntity} wrapping {@link BaseBodyResponse}
    */
-  public static ResponseEntity<BaseBodyResponse> success(Object data, String message) {
-    BaseBodyResponse response = buildSuccess(message);
+  public static <T> ResponseEntity<BaseBodyResponse<T>> success(T data, String message) {
+    BaseBodyResponse<T> response = buildSuccess(message);
     response.setData(data);
     return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(response);
   }
@@ -85,11 +90,12 @@ public class BaseBodyResponse implements Serializable {
    *
    * @param data the list of response body data
    * @param message optional success message
+   * @param <T> the type of elements in the list
    * @return {@link ResponseEntity} wrapping {@link BaseBodyResponse}
    */
-  public static ResponseEntity<BaseBodyResponse> success(List<?> data, String message) {
+  public static <T> ResponseEntity<BaseBodyResponse<List<T>>> success(List<T> data, String message) {
     short statusCode = 200;
-    BaseBodyResponse baseBodyResponse = new BaseBodyResponse();
+    BaseBodyResponse<List<T>> baseBodyResponse = new BaseBodyResponse<>();
 
     StatusResponse statusResponse =
             new StatusResponse(statusCode, message != null ? message : ResponseMessageConstant.SUCCESS);
@@ -107,8 +113,8 @@ public class BaseBodyResponse implements Serializable {
    * @param message optional success message
    * @return {@link ResponseEntity} wrapping {@link BaseBodyResponse}
    */
-  public static ResponseEntity<BaseBodyResponse> success(String message) {
-    BaseBodyResponse response = buildSuccess(message);
+  public static ResponseEntity<BaseBodyResponse<Void>> success(String message) {
+    BaseBodyResponse<Void> response = buildSuccess(message);
     return ResponseEntity.ok(response);
   }
 
@@ -117,10 +123,11 @@ public class BaseBodyResponse implements Serializable {
    *
    * @param page the Spring {@link Page} result
    * @param message optional success message
+   * @param <T> the type of elements in the page
    * @return {@link ResponseEntity} wrapping {@link BaseBodyResponse}
    */
-  public static ResponseEntity<BaseBodyResponse> pageSuccess(Page<?> page, String message) {
-    BaseBodyResponse response = buildSuccess(message);
+  public static <T> ResponseEntity<BaseBodyResponse<List<T>>> pageSuccess(Page<T> page, String message) {
+    BaseBodyResponse<List<T>> response = buildSuccess(message);
     response.setData(page.getContent());
     response.setMeta(page.getPageable().isUnpaged() ? null : new PageResponse(page));
     return ResponseEntity.ok(response);
@@ -137,8 +144,8 @@ public class BaseBodyResponse implements Serializable {
    * @param message error message
    * @return {@link ResponseEntity} wrapping {@link BaseBodyResponse}
    */
-  public static ResponseEntity<BaseBodyResponse> failed(HttpStatusCode status, String message) {
-    BaseBodyResponse response = buildFailure(status, message);
+  public static ResponseEntity<BaseBodyResponse<Void>> failed(HttpStatusCode status, String message) {
+    BaseBodyResponse<Void> response = buildFailure(status, message);
     return ResponseEntity.status(status).body(response);
   }
 
@@ -150,7 +157,7 @@ public class BaseBodyResponse implements Serializable {
    * @return {@link BaseBodyResponse}
    */
   // USING WHEN THROW EXCEPTION IN CONTROLLER ADVICE
-  public static BaseBodyResponse bodyFailed(HttpStatusCode status, String message) {
+  public static <T> BaseBodyResponse<T> bodyFailed(HttpStatusCode status, String message) {
     return buildFailure(status, message);
   }
 
@@ -158,8 +165,8 @@ public class BaseBodyResponse implements Serializable {
    * Internal Builders
    * ========================= */
 
-  private static BaseBodyResponse buildSuccess(String message) {
-    BaseBodyResponse response = new BaseBodyResponse();
+  private static <T> BaseBodyResponse<T> buildSuccess(String message) {
+    BaseBodyResponse<T> response = new BaseBodyResponse<>();
     response.setSuccess(true);
     response.setStatus(
             new StatusResponse(
@@ -168,8 +175,8 @@ public class BaseBodyResponse implements Serializable {
     return response;
   }
 
-  private static BaseBodyResponse buildFailure(HttpStatusCode status, String message) {
-    BaseBodyResponse response = new BaseBodyResponse();
+  private static <T> BaseBodyResponse<T> buildFailure(HttpStatusCode status, String message) {
+    BaseBodyResponse<T> response = new BaseBodyResponse<>();
     response.setSuccess(false);
     response.setStatus(StatusResponseUtils.createStatusResponse(status, message));
     populateTraceAndPath(response);
@@ -188,7 +195,7 @@ public class BaseBodyResponse implements Serializable {
    *
    * @param response the response object to populate with trace ID, path, and timestamp
    */
-  private static void populateTraceAndPath(BaseBodyResponse response) {
+  private static void populateTraceAndPath(BaseBodyResponse<?> response) {
     ServletRequestAttributes attrs =
             (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
     if (attrs != null) {

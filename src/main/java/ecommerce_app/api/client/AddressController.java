@@ -2,9 +2,11 @@ package ecommerce_app.api.client;
 
 import ecommerce_app.infrastructure.model.response.body.BaseBodyResponse;
 import ecommerce_app.modules.address.model.dto.AddressRequest;
+import ecommerce_app.modules.address.model.dto.AddressResponse;
 import ecommerce_app.modules.address.service.AddressService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -24,39 +26,40 @@ public class AddressController {
   private final AddressService addressService;
 
   @GetMapping("/{addressId}")
-  public ResponseEntity<BaseBodyResponse> getAddressById(
+  public ResponseEntity<BaseBodyResponse<AddressResponse>> getAddressById(
       @PathVariable(value = "addressId") Long id) {
     return BaseBodyResponse.success(
         addressService.getAddressById(id), "Fetch address successfully");
   }
 
   @GetMapping("/list")
-  public ResponseEntity<BaseBodyResponse> getAllAddresses() {
+  public ResponseEntity<BaseBodyResponse<List<AddressResponse>>> getAllAddresses() {
     return BaseBodyResponse.success(addressService.getAllAddresses(), "Fetch all addresses");
   }
 
   @GetMapping("/users/{userId}")
-  public ResponseEntity<BaseBodyResponse> getAddressByUserId(
+  public ResponseEntity<BaseBodyResponse<List<AddressResponse>>> getAddressByUserId(
       @PathVariable(value = "userId") Long userId) {
     return BaseBodyResponse.success(
         addressService.getAddressesByUserId(userId), "Fetch address successfully");
   }
 
   @PostMapping("/users")
-  public ResponseEntity<BaseBodyResponse> saveAddress(
+  public ResponseEntity<BaseBodyResponse<AddressResponse>> saveAddress(
       @RequestBody @Valid AddressRequest addressRequest) {
     return BaseBodyResponse.success(
         addressService.save(addressRequest), "Save address successfully");
   }
 
   @DeleteMapping("/{addressId}")
-  public ResponseEntity<BaseBodyResponse> deleteAddress(@PathVariable("addressId") Long addressId) {
+  public ResponseEntity<BaseBodyResponse<Void>> deleteAddress(
+      @PathVariable("addressId") Long addressId) {
     this.addressService.deleteAddressById(addressId);
-    return BaseBodyResponse.success(null, " Delete address successfully");
+    return BaseBodyResponse.success(" Delete address successfully");
   }
 
   @PutMapping("/{addressId}")
-  public ResponseEntity<BaseBodyResponse> updateAddress(
+  public ResponseEntity<BaseBodyResponse<AddressResponse>> updateAddress(
       @RequestBody @Valid AddressRequest updateRequest,
       @PathVariable(value = "addressId") Long addressId) {
     return BaseBodyResponse.success(

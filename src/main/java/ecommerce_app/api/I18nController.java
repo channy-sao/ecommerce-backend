@@ -24,13 +24,13 @@ public class I18nController {
   }
 
   @GetMapping("/greeting")
-  public ResponseEntity<BaseBodyResponse> greeting() {
+  public ResponseEntity<BaseBodyResponse<String>> greeting() {
     String message = messageService.getMessage("greeting.message");
     return BaseBodyResponse.success(message, "Successfully retrieved greeting message");
   }
 
   @GetMapping("/welcome/{name}")
-  public ResponseEntity<BaseBodyResponse> welcome(@PathVariable String name) {
+  public ResponseEntity<BaseBodyResponse<String>> welcome(@PathVariable String name) {
     String message = messageService.getMessage("welcome.message", new Object[] {name});
     return BaseBodyResponse.success(message, "Successfully retrieved welcome message");
   }
