@@ -19,5 +19,5 @@ public interface BannerService {
 
   List<BannerResponse> getAllBanners();
 
-  Page<BannerResponse> getBanners(int page, int pageSize, String filter);
+  Page<BannerResponse> getBanners(int page, int pageSize, String filter, String activeFilter);
 }

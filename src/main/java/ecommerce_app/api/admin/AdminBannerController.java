@@ -44,8 +44,10 @@ public class AdminBannerController {
   @GetMapping
   public ResponseEntity<BaseBodyResponse<List<BannerResponse>>> getBanners(
       @RequestParam(value = "page", defaultValue = "1") int page,
-      @RequestParam(value = "pageSize", defaultValue = "10") int pageSize, @RequestParam(value = "filter") String filter) {
-    return BaseBodyResponse.pageSuccess(bannerService.getBanners(page, pageSize, filter), "Get all banners successfully");
+      @RequestParam(value = "pageSize", defaultValue = "10") int pageSize,
+      @RequestParam(value = "activeFilter") String activeFilter,
+      @RequestParam(value = "filter") String filter) {
+    return BaseBodyResponse.pageSuccess(bannerService.getBanners(page, pageSize, filter, activeFilter), "Get all banners successfully");
   }
 
   @PatchMapping("/{id}/toggle-status")

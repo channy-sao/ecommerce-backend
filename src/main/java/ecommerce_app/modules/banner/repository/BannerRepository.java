@@ -43,6 +43,13 @@ public interface BannerRepository extends JpaRepository<Banner, Long> {
   @Query("""
     SELECT b
     FROM Banner b
+    WHERE LOWER(b.title) LIKE LOWER(CONCAT('%', :filter, '%')) and b.isActive=:isActive
+""")
+  Page<Banner> findAllByTitleLike(@Param("filter") String filter, @Param("isActive") boolean isActive, Pageable pageable);
+
+  @Query("""
+    SELECT b
+    FROM Banner b
     WHERE LOWER(b.title) LIKE LOWER(CONCAT('%', :filter, '%'))
 """)
   Page<Banner> findAllByTitleLike(@Param("filter") String filter, Pageable pageable);
