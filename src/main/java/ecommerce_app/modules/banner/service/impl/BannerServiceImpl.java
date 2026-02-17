@@ -59,7 +59,27 @@ public class BannerServiceImpl implements BannerService {
   @Transactional
   @Override
   public BannerResponse updateBanner(Long bannerId, BannerRequest bannerRequest) {
-    return null;
+    log.info("Updating banner request: id={}", bannerId);
+    try {
+      final var existingBanner =
+          bannerRepository
+              .findById(bannerId)
+              .orElseThrow(() -> new ResourceNotFoundException("Banner", bannerId));
+        this.prepareBannerEntity(bannerRequest, existingBanner);
+        if (bannerRequest.getImage() != null) {
+            String imagePath =
+                fileManagerService.saveFile(bannerRequest.getImage(), storageConfig.getBannerPath());
+            if (imagePath != null) {
+                existingBanner.setImage(imagePath);
+            }
+        }
+      Banner updated = bannerRepository.save(existingBanner);
+      return bannerMapper.toResponse(updated);
+    }
+    catch (Exception ex) {
+      log.error(ex.getMessage(), ex);
+      throw new BadRequestException(ex.getMessage());
+    }
   }
 
   @Transactional
@@ -114,5 +134,18 @@ public class BannerServiceImpl implements BannerService {
     Pageable pageable = PageRequest.of(page - 1, pageSize);
     final var bannerPage = bannerRepository.findAllByTitleLike(filter, pageable);
     return bannerPage.map(bannerMapper::toResponse);
+  }
+
+  private void prepareBannerEntity(final BannerRequest bannerRequest, final Banner banner) {
+    banner.setTitle(bannerRequest.getTitle());
+    banner.setDescription(bannerRequest.getDescription());
+    banner.setIsActive(bannerRequest.getIsActive());
+    banner.setBackgroundColor(bannerRequest.getBackgroundColor());
+    banner.setDisplayOrder(bannerRequest.getDisplayOrder());
+    banner.setEndDate(bannerRequest.getEndDate());
+    banner.setStartDate(bannerRequest.getStartDate());
+    banner.setLinkId(bannerRequest.getLinkId());
+    banner.setLinkType(bannerRequest.getLinkType());
+    banner.setPosition(bannerRequest.getPosition());
   }
 }
