@@ -6,8 +6,11 @@ import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Contact;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.info.License;
+import io.swagger.v3.oas.models.media.StringSchema;
+import io.swagger.v3.oas.models.parameters.Parameter;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
+import org.springdoc.core.customizers.OpenApiCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -45,5 +48,29 @@ public class SwaggerOpenApiConfig {
         .bearerFormat(AppConstant.JWT_BEARER_FORMAT)
         .description("E-Commerce security with JWT")
         .in(SecurityScheme.In.HEADER);
+  }
+
+  @Bean
+  public OpenApiCustomizer globalHeaderCustomizer() {
+    return openApi -> {
+      // Create Accept-Language header parameter
+      Parameter acceptLanguageHeader = new Parameter()
+              .in("header")
+              .name("Language")
+              .description("Language preference for response")
+              .required(false)
+              .schema(new StringSchema()
+                      .addEnumItem("en")
+                      .addEnumItem("kh")
+                      ._default("en"))
+              .example("kh");
+
+      // Add to all operations
+      openApi.getPaths().values().forEach(pathItem ->
+              pathItem.readOperations().forEach(operation ->
+                      operation.addParametersItem(acceptLanguageHeader)
+              )
+      );
+    };
   }
 }
