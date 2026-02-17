@@ -108,11 +108,11 @@ public class BannerServiceImpl implements BannerService {
 
   @Transactional(readOnly = true)
   @Override
-  public Page<BannerResponse> getBanners(int page, int pageSize) {
+  public Page<BannerResponse> getBanners(int page, int pageSize, String filter) {
     log.info("Getting banners with pagination: page={}, pageSize={}", page, pageSize);
     // start from 0
     Pageable pageable = PageRequest.of(page - 1, pageSize);
-    final var bannerPage = bannerRepository.findAll(pageable);
+    final var bannerPage = bannerRepository.findAllByTitleLike(filter, pageable);
     return bannerPage.map(bannerMapper::toResponse);
   }
 }

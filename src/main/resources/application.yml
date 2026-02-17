@@ -1,6 +1,8 @@
 server:
   port: ${SERVER_PORT:8080}
   address: 0.0.0.0
+  tomcat:
+    max-part-count: 100
 
 logging:
   file:

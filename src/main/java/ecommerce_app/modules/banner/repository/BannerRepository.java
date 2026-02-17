@@ -1,6 +1,8 @@
 package ecommerce_app.modules.banner.repository;
 
 import ecommerce_app.modules.banner.model.entity.Banner;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -37,4 +39,11 @@ public interface BannerRepository extends JpaRepository<Banner, Long> {
       ORDER BY b.displayOrder ASC
       """)
   List<Banner> findAllActive();
+
+  @Query("""
+    SELECT b
+    FROM Banner b
+    WHERE LOWER(b.title) LIKE LOWER(CONCAT('%', :filter, '%'))
+""")
+  Page<Banner> findAllByTitleLike(@Param("filter") String filter, Pageable pageable);
 }
