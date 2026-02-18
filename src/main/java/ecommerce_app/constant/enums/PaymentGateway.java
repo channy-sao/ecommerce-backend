@@ -4,11 +4,7 @@ import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
-public enum PaymentStatus {
-  PENDING,
-  COMPLETED,
-  CANCELLED,
-  REFUNDED,
-  PAID,
-  FAILED
+public enum PaymentGateway {
+  BAKONG,
+  STRIPE
 }

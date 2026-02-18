@@ -130,7 +130,6 @@ springdoc:
 
 app:
   baseUrl: ${APP_BASE_URL:http://localhost:8080}
-  firebaseApiKey: AIzaSyCUyK9i5mknwnAIJc6Gl-bYDZ0MijHQTRg
   jwt:
     secretKey: ${JWT_SECRET}
     access-expired-in-minute: ${JWT_ACCESS_EXPIRES_MINUTE}
@@ -150,3 +149,19 @@ app:
       - km
     param-name: lang
     cache-seconds: -1 # Disable cache in dev for hot reload
+
+# Bakong (NBC Cambodia) Open API
+bakong:
+  api:
+    #base-url: https://api-bakong.nbc.gov.kh       # Production
+    base-url: https://api-sandbox.nbc.gov.kh    # Sandbox
+    token: ""   # JWT from POST /v1/verify (see Bakong API setup)
+  app:
+    icon-url: https://yourapp.com/icon.png
+    name: Channy Shop
+
+# Stripe
+stripe:
+  secret-key: sk_test_XXXXXXXXXXXXXXXXXXXX         # Replace with your key
+  webhook-secret: whsec_XXXXXXXXXXXXXXXXXXXX       # From Stripe Dashboard → Webhooks
+  currency: usd
