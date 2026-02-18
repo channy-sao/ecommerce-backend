@@ -9,7 +9,7 @@ import ecommerce_app.modules.product.model.entity.Product;
 import ecommerce_app.modules.product.model.entity.ProductImage;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Objects;
+
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import org.modelmapper.ModelMapper;
@@ -64,6 +64,13 @@ public class ProductMapper {
     response.setFavoritesCount(product.getFavoritesCount());
     response.setCreatedBy(auditUserMap.get(product.getCreatedBy()));
     response.setUpdatedBy(auditUserMap.get(product.getUpdatedBy()));
+    response.setInStock(product.getInStock());
+    response.setStockQuantity(product.getStockQuantity());
+    response.setStockStatus(product.getStockStatus());
+    response.setHasPromotion(product.getHasPromotion());
+    response.setQuickAddAvailable(product.getQuickAddAvailable());
+    response.setDiscountedPrice(product.getDiscountedPrice());
+    response.setPromotionBadge(product.getPromotionBadge());
     return response;
   }
 }

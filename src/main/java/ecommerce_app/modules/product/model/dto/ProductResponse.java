@@ -63,4 +63,17 @@ public class ProductResponse {
 
   @Schema(description = "User who last updated the product")
   private AuditUserDto updatedBy;
+
+  // Stock info
+  private Integer stockQuantity;
+  private Boolean inStock;
+  private String stockStatus;
+
+  // Promotion badges
+  private Boolean hasPromotion;
+  private String promotionBadge;
+
+  // Quick actions
+  private Boolean quickAddAvailable;
+  private BigDecimal discountedPrice;
 }
