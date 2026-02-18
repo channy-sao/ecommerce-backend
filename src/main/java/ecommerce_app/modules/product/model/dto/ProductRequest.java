@@ -2,11 +2,8 @@ package ecommerce_app.modules.product.model.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import java.util.List;
+import lombok.*;
 import org.springframework.web.multipart.MultipartFile;
 
 @Getter
@@ -28,8 +25,15 @@ public class ProductRequest {
   @Schema(description = "Price of the product", example = "1299.99")
   private BigDecimal price;
 
-  @Schema(description = "Image file for the product", type = "string", format = "binary")
-  private MultipartFile image;
+  // CHANGED: List<MultipartFile> instead of single MultipartFile
+  @Schema(description = "Image files for the product", type = "array", format = "binary")
+  private List<MultipartFile> images;
+
+  // IDs of existing images to remove
+  private List<Long> removeImageIds;
+
+  // Full ordered list of existing image IDs (after removals) for reordering
+  private List<Long> imageOrder;
 
   @Schema(description = "ID of the category the product belongs to", example = "1")
   private Long categoryId;

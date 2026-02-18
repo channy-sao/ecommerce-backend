@@ -16,6 +16,7 @@ import ecommerce_app.modules.dummy.repository.DummyRepository;
 import ecommerce_app.modules.order.model.dto.CheckoutRequest;
 import ecommerce_app.modules.order.service.OrderService;
 import ecommerce_app.modules.product.model.entity.Product;
+import ecommerce_app.modules.product.model.entity.ProductImage;
 import ecommerce_app.modules.product.repository.ProductRepository;
 import ecommerce_app.modules.stock.model.dto.ProductImportRequest;
 import ecommerce_app.modules.stock.service.ProductImportService;
@@ -28,6 +29,7 @@ import ecommerce_app.modules.user.repository.UserRepository;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -183,7 +185,6 @@ public class DummyService {
     }
 
     List<Category> categories = categoryRepository.findAll();
-
     if (categories.isEmpty()) {
       throw new IllegalStateException("No categories found. Run dummyCategory first.");
     }
@@ -195,11 +196,14 @@ public class DummyService {
         product.setName(faker.commerce().productName());
         product.setDescription(faker.lorem().fixedString(150));
         product.setPrice(BigDecimal.valueOf(faker.number().numberBetween(100, 2000)));
-        product.setImage(faker.internet().image());
         product.setCategory(category);
         product.setFavoritesCount(faker.number().numberBetween(0, 2000));
         product.setIsFeature(faker.bool().bool());
         product.setUuid(UUID.randomUUID());
+
+        // CHANGED: build ProductImage list instead of setImage()
+        product.setImages(buildDummyImages(product));
+
         productRepository.save(product);
       } catch (DataIntegrityViolationException ex) {
         log.error(ex.getMessage(), ex);
@@ -207,12 +211,27 @@ public class DummyService {
         product.setDescription(faker.lorem().fixedString(120));
       }
     }
+
     Dummy dummy = new Dummy();
     dummy.setName("Dummy Products");
     dummy.setNumRows(250L);
     dummy.setDummyDescription("Dummy Products 250 rows");
     dummyRepository.save(dummy);
     log.info("Finish dummy product");
+  }
+
+  // Generate 1-3 fake images per product
+  private List<ProductImage> buildDummyImages(Product product) {
+    int imageCount = faker.number().numberBetween(1, 4); // 1 to 3
+    List<ProductImage> images = new ArrayList<>();
+    for (int j = 0; j < imageCount; j++) {
+      ProductImage img = new ProductImage();
+      img.setImagePath(faker.internet().image()); // raw filename/url as before
+      img.setSortOrder(j);                        // 0 = primary
+      img.setProduct(product);
+      images.add(img);
+    }
+    return images;
   }
 
   public void dummyCategoryAndProduct() {

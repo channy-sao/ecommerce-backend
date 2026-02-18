@@ -3,7 +3,10 @@ package ecommerce_app.modules.product.model.dto;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
+
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -24,7 +27,10 @@ public class MobileProductResponse {
   private BigDecimal price;
   private BigDecimal discountedPrice;
   private Integer discountPercentage;
-  private String image;
+
+  @Schema(description = "All product image URLs in sort order")
+  private List<String> images; // add this alongside existing `image` field
+
   private Boolean isFeature;
   private Integer favoritesCount;
 

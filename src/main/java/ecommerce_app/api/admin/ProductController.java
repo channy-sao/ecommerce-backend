@@ -12,6 +12,8 @@ import ecommerce_app.modules.product.service.ProductService;
 import ecommerce_app.modules.reports.ProductReportService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -46,6 +48,14 @@ public class ProductController {
   private final ProductReportService productReportService;
 
   @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+  @Operation(
+      summary = "Create product",
+      requestBody =
+          @io.swagger.v3.oas.annotations.parameters.RequestBody(
+              content =
+                  @Content(
+                      mediaType = MediaType.MULTIPART_FORM_DATA_VALUE,
+                      schema = @Schema(implementation = ProductRequest.class))))
   public ResponseEntity<BaseBodyResponse<ProductResponse>> createProduct(
       @ModelAttribute ProductRequest productRequest) {
     return BaseBodyResponse.success(
@@ -67,7 +77,15 @@ public class ProductController {
   }
 
   @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-  public ResponseEntity<BaseBodyResponse<ProductResponse>> updateCategory(
+  @Operation(
+      summary = "Update product",
+      requestBody =
+          @io.swagger.v3.oas.annotations.parameters.RequestBody(
+              content =
+                  @Content(
+                      mediaType = MediaType.MULTIPART_FORM_DATA_VALUE,
+                      schema = @Schema(implementation = ProductRequest.class))))
+  public ResponseEntity<BaseBodyResponse<ProductResponse>> updateProduct(
       @ModelAttribute ProductRequest productRequest, @PathVariable(value = "id") Long id) {
     return BaseBodyResponse.success(
         productService.updateProduct(productRequest, id),

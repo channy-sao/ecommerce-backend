@@ -10,23 +10,10 @@ import ecommerce_app.modules.promotion.model.entity.Promotion;
 import ecommerce_app.modules.review.model.entity.Review;
 import ecommerce_app.modules.stock.model.entity.ProductImport;
 import ecommerce_app.modules.stock.model.entity.Stock;
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Index;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToMany;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.OneToOne;
-import jakarta.persistence.Table;
-import jakarta.persistence.Transient;
+import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
@@ -49,6 +36,7 @@ import org.hibernate.annotations.SQLRestriction;
 @SQLDelete(sql = "UPDATE products SET deleted = true WHERE id = ?")
 @SQLRestriction("deleted = false")
 public class Product extends SoftDeletableEntity {
+
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
@@ -62,8 +50,9 @@ public class Product extends SoftDeletableEntity {
   @Column(nullable = false, name = "price")
   private BigDecimal price;
 
-  @Column(nullable = false, name = "image", length = 500)
-  private String image;
+  // REMOVED: single image field
+  // @Column(nullable = false, name = "image", length = 500)
+  // private String image;
 
   @Column(nullable = false, name = "is_feature")
   private Boolean isFeature;
@@ -75,8 +64,7 @@ public class Product extends SoftDeletableEntity {
       fetch = FetchType.LAZY,
       optional = false,
       targetEntity = Category.class,
-      cascade =
-          CascadeType.MERGE) // remove persist it error when try fetch category to insert product
+      cascade = CascadeType.MERGE)
   @JoinColumn(name = "category_id", referencedColumnName = "id", nullable = false)
   @OnDelete(action = OnDeleteAction.CASCADE)
   @JsonIgnore
@@ -120,7 +108,6 @@ public class Product extends SoftDeletableEntity {
   @JsonIgnore
   private Stock stock;
 
-  // Add this field to the Product class
   @ManyToMany(mappedBy = "products")
   @JsonIgnore
   private List<Promotion> promotions;
@@ -128,19 +115,51 @@ public class Product extends SoftDeletableEntity {
   @OneToMany(mappedBy = "product", fetch = FetchType.LAZY)
   private List<Review> reviews;
 
+  // NEW: replaces single image field
+  // CascadeType.ALL + orphanRemoval = true means:
+  //   - when product is saved, images are saved
+  //   - when an image is removed from this list, it is deleted from DB automatically
+  @OneToMany(
+      cascade = CascadeType.ALL,
+      fetch = FetchType.LAZY,
+      mappedBy = "product",
+      orphanRemoval = true)
+  @JsonIgnore
+  private List<ProductImage> images = new ArrayList<>();
+
+  // --- Transient helpers (raw filename only, no URL resolution) ---
+  // These are used ONLY by the service layer for file deletion logic.
+  // URL resolution is done in ProductMapper.
+
+  @Transient
+  public String getPrimaryImagePath() {
+    if (images == null || images.isEmpty()) return null;
+    return images.stream()
+        .min(Comparator.comparing(ProductImage::getSortOrder))
+        .map(ProductImage::getImagePath)
+        .orElse(null);
+  }
+
+  @Transient
+  public List<String> getImagePaths() {
+    if (images == null) return List.of();
+    return images.stream()
+        .sorted(Comparator.comparing(ProductImage::getSortOrder))
+        .map(ProductImage::getImagePath)
+        .toList();
+  }
+
+  // --- Unchanged transient methods below ---
+
   @Transient
   public int getStockQuantity() {
-    if (stock == null) {
-      return 0;
-    }
+    if (stock == null) return 0;
     return stock.getQuantity();
   }
 
   @Transient
   public String getShortDescription() {
-    if (description == null || description.length() <= 100) {
-      return description;
-    }
+    if (description == null || description.length() <= 100) return description;
     return description.substring(0, 97) + "...";
   }
 
@@ -204,7 +223,6 @@ public class Product extends SoftDeletableEntity {
   @Transient
   public String getPromotionBadge() {
     if (Boolean.FALSE.equals(getHasPromotion())) return null;
-
     Promotion activePromo =
         promotions.stream()
             .filter(Promotion::getActive)
@@ -228,6 +246,6 @@ public class Product extends SoftDeletableEntity {
 
   @Transient
   public Boolean getQuickAddAvailable() {
-    return getInStock() && !getHasPromotion(); // Quick add only for simple products
+    return getInStock() && !getHasPromotion();
   }
 }

@@ -312,7 +312,7 @@ public class OrderStatsServiceImpl implements OrderStatsService {
               return new TopProductResponse(
                   product.getId(),
                   product.getName(),
-                  staticResourceService.getProductImageUrl(product.getImage()),
+                  staticResourceService.getProductImageUrl(product.getPrimaryImagePath()),
                   stats.revenue,
                   stats.quantity);
             })

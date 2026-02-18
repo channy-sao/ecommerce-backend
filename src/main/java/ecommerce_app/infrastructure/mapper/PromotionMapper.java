@@ -75,7 +75,7 @@ public class PromotionMapper {
     return MobilePromotionResponse.ProductSummary.builder()
         .id(product.getId())
         .name(product.getName())
-        .image(product.getImage())
+        .image(product.getPrimaryImagePath())
         .price(product.getPrice())
         .discountedPrice(product.getDiscountedPrice())
         .build();
