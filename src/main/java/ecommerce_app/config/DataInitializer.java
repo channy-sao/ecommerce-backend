@@ -3,6 +3,8 @@ package ecommerce_app.config;
 import ecommerce_app.constant.enums.AuthProvider;
 import ecommerce_app.constant.enums.PermissionEnum;
 import ecommerce_app.infrastructure.exception.ResourceNotFoundException;
+import ecommerce_app.modules.setting.model.entity.Setting;
+import ecommerce_app.modules.setting.repository.SettingRepository;
 import ecommerce_app.modules.user.model.entity.Permission;
 import ecommerce_app.modules.user.model.entity.Role;
 import ecommerce_app.modules.user.model.entity.User;
@@ -11,6 +13,7 @@ import ecommerce_app.modules.user.repository.RoleRepository;
 import ecommerce_app.modules.user.repository.UserRepository;
 import java.time.LocalDateTime;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +23,7 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Component
@@ -28,12 +32,15 @@ import org.springframework.stereotype.Component;
 public class DataInitializer implements ApplicationRunner {
   private final RoleRepository roleRepository;
   private final PermissionRepository permissionRepository;
+  private final SettingRepository settingRepository;
   public static final String SUPER_ADMIN_ROLE = "SUPER_ADMIN";
   private final UserRepository userRepository;
   private final PasswordEncoder passwordEncoder;
 
+  @Transactional
   @Override
   public void run(ApplicationArguments args) throws Exception {
+    initSetting();
     seedPermissions();
     seedSuperAdminRole();
     initSuperAdmin();
@@ -117,5 +124,75 @@ public class DataInitializer implements ApplicationRunner {
 
               log.info("Super Admin initialized successfully!");
             });
+  }
+
+  public void initSetting() {
+    List<Setting> defaults = defaultSettings();
+
+    int inserted = 0;
+    for (Setting setting : defaults) {
+      // Only insert if key does NOT already exist — never overwrite admin changes
+      if (!settingRepository.existsById(setting.getKey())) {
+        settingRepository.save(setting);
+        inserted++;
+      }
+    }
+
+    if (inserted > 0) {
+      log.info("[Settings] Inserted {} new default setting(s)", inserted);
+    } else {
+      log.info("[Settings] All settings already exist — nothing to insert");
+    }
+  }
+
+  private List<Setting> defaultSettings() {
+    return List.of(
+        // ── Store ──────────────────────────────────────────────────────────
+        build("store.name", "My Shop", "Store Name"),
+        build("store.email", "", "Contact Email"),
+        build("store.phone", "", "Contact Phone"),
+        build("store.address", "Phnom Penh", "Store Address"),
+        build("store.currency", "USD", "Currency"),
+        build("store.logo_url", "", "Logo URL"),
+        build("store.facebook_url", "", "Facebook URL"),
+        build("store.telegram_url", "", "Telegram URL"),
+
+        // ── Payment ────────────────────────────────────────────────────────
+        build("payment.bakong.merchant_id", "", "Bakong Merchant ID"),
+        build("payment.bakong.merchant_name", "", "Bakong Merchant Name"),
+        build("payment.bakong.city", "Phnom Penh", "Bakong City"),
+        build("payment.bakong.enabled", "true", "Enable Bakong"),
+        build("payment.stripe.publishable_key", "", "Stripe Publishable Key"),
+        build("payment.stripe.enabled", "true", "Enable Stripe"),
+
+        // ── Order ──────────────────────────────────────────────────────────
+        build("order.auto_cancel_minutes", "30", "Auto-cancel Timeout (min)"),
+        build("order.low_stock_threshold", "10", "Low Stock Threshold"),
+        build("order.min_amount", "1", "Minimum Order Amount"),
+        build("order.max_items", "50", "Max Items Per Order"),
+        build("order.number_prefix", "ORD", "Order Number Prefix"),
+        build("order.allow_guest_checkout", "false", "Allow Guest Checkout"),
+
+        // ── Shipping ───────────────────────────────────────────────────────
+        build("shipping.enabled", "true", "Enable Shipping"),
+        build("shipping.flat_rate", "2.00", "Flat Shipping Rate"),
+        build("shipping.free_threshold", "50.00", "Free Shipping Above"),
+        build("shipping.label", "Delivery Fee", "Shipping Label"),
+
+        // ── Tax ────────────────────────────────────────────────────────────
+        build("tax.enabled", "false", "Enable Tax"),
+        build("tax.rate", "10", "Tax Rate (%)"),
+
+        // ── Notification ───────────────────────────────────────────────────
+        build("notification.telegram.bot_token", "", "Telegram Bot Token"),
+        build("notification.telegram.chat_id", "", "Telegram Chat ID"),
+
+        // ── Media ──────────────────────────────────────────────────────────
+        build("media.base_url", "", "Media Base URL"),
+        build("media.max_file_size_mb", "5", "Max Upload Size (MB)"));
+  }
+
+  private Setting build(String key, String value, String label) {
+    return Setting.builder().key(key).value(value).label(label).build();
   }
 }
