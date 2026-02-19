@@ -65,15 +65,41 @@ public class ProductResponse {
   private AuditUserDto updatedBy;
 
   // Stock info
+  @Schema(name = "stockQuantity", description = "Available stock quantity", example = "50")
   private Integer stockQuantity;
+
+  @Schema(name = "inStock", description = "Indicates if the product is in stock", example = "true")
   private Boolean inStock;
+
+  @Schema(
+      name = "stockStatus",
+      description = "Stock status (e.g., In Stock, Out of Stock, Limited Stock)",
+      example = "In Stock")
   private String stockStatus;
 
   // Promotion badges
+  @Schema(
+      name = "hasPromotion",
+      description = "Indicates if the product has an active promotion",
+      example = "true")
   private Boolean hasPromotion;
+
+  @Schema(
+      name = "promotionBadge",
+      description = "Promotion badge to display (e.g., '20% OFF', 'Buy 1 Get 1')",
+      example = "20% OFF")
   private String promotionBadge;
 
   // Quick actions
+  @Schema(
+      name = "quickAddAvailable",
+      description = "Indicates if the product can be quickly added to cart from listing pages",
+      example = "true")
   private Boolean quickAddAvailable;
+
+  @Schema(
+      name = "discountedPrice",
+      description = "Discounted price to show in listing if there's an active promotion",
+      example = "999.99")
   private BigDecimal discountedPrice;
 }

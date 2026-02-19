@@ -30,9 +30,13 @@ public class ProductRequest {
   private List<MultipartFile> images;
 
   // IDs of existing images to remove
+  @Schema(description = "IDs of existing images to remove (for updates)", example = "[1, 2]")
   private List<Long> removeImageIds;
 
   // Full ordered list of existing image IDs (after removals) for reordering
+  @Schema(
+      description = "Ordered list of existing image IDs for reordering (after removals)",
+      example = "[3, 4, 5]")
   private List<Long> imageOrder;
 
   @Schema(description = "ID of the category the product belongs to", example = "1")
