@@ -1,10 +1,12 @@
 package ecommerce_app.api.admin;
 
+import ecommerce_app.constant.message.MessageKeyConstant;
 import ecommerce_app.infrastructure.model.response.body.BaseBodyResponse;
 import ecommerce_app.modules.promotion.model.dto.PromotionRequest;
 import ecommerce_app.modules.promotion.model.dto.PromotionResponse;
 import ecommerce_app.modules.promotion.model.entity.Promotion;
 import ecommerce_app.modules.promotion.service.PromotionService;
+import ecommerce_app.util.MessageSourceService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -30,13 +32,15 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "Promotion Management", description = "For admin manage promotion")
 public class PromotionController {
   private final PromotionService promotionService;
+  private final MessageSourceService messageSourceService;
 
   @PostMapping
   @Operation(summary = "Create a new promotion")
   public ResponseEntity<BaseBodyResponse<PromotionResponse>> createPromotion(
       @Valid @RequestBody PromotionRequest request) {
     return BaseBodyResponse.success(
-        promotionService.createPromotion(request), "Promotion created Successfully");
+        promotionService.createPromotion(request),
+        messageSourceService.getMessage(MessageKeyConstant.PROMOTION_MESSAGE_ADD_SUCCESS));
   }
 
   @PutMapping("/{id}")
@@ -44,26 +48,32 @@ public class PromotionController {
   public ResponseEntity<BaseBodyResponse<PromotionResponse>> updatePromotion(
       @PathVariable Long id, @Valid @RequestBody PromotionRequest request) {
     return BaseBodyResponse.success(
-        promotionService.updatePromotion(id, request), "Promotion updated successfully");
+        promotionService.updatePromotion(id, request),
+        messageSourceService.getMessage(MessageKeyConstant.PROMOTION_MESSAGE_UPDATE_SUCCESS));
   }
 
   @GetMapping("/{id}")
   @Operation(summary = "Get promotion by ID")
   public ResponseEntity<BaseBodyResponse<PromotionResponse>> getPromotion(@PathVariable Long id) {
-    return BaseBodyResponse.success(promotionService.getPromotion(id), "Get promotion by ID");
+    return BaseBodyResponse.success(
+        promotionService.getPromotion(id),
+        messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_SUCCESS));
   }
 
   @GetMapping
   @Operation(summary = "Get all promotions")
   public ResponseEntity<BaseBodyResponse<List<PromotionResponse>>> getAllPromotions() {
-    return BaseBodyResponse.success(promotionService.getAllPromotions(), "Get all promotions");
+    return BaseBodyResponse.success(
+        promotionService.getAllPromotions(),
+        messageSourceService.getMessage(MessageKeyConstant.PROMOTION_TITLE_LIST));
   }
 
   @GetMapping("/active")
   @Operation(summary = "Get all active promotions")
   public ResponseEntity<BaseBodyResponse<List<PromotionResponse>>> getActivePromotions() {
     return BaseBodyResponse.success(
-        promotionService.getActivePromotions(), "Get all active promotions Successfully");
+        promotionService.getActivePromotions(),
+        messageSourceService.getMessage(MessageKeyConstant.PROMOTION_TITLE_LIST));
   }
 
   @GetMapping("/product/{productId}")
@@ -72,14 +82,15 @@ public class PromotionController {
       @PathVariable Long productId) {
     return BaseBodyResponse.success(
         promotionService.getPromotionsByProduct(productId),
-        "Get promotions for a specific product");
+        messageSourceService.getMessage(MessageKeyConstant.PROMOTION_TITLE_LIST));
   }
 
   @DeleteMapping("/{id}")
   @Operation(summary = "Delete a promotion")
   public ResponseEntity<BaseBodyResponse<Void>> deletePromotion(@PathVariable Long id) {
     promotionService.deletePromotion(id);
-    return BaseBodyResponse.success("Deleted promotion");
+    return BaseBodyResponse.success(
+        messageSourceService.getMessage(MessageKeyConstant.PROMOTION_MESSAGE_DELETE_SUCCESS));
   }
 
   @PatchMapping("/{id}/status")
@@ -87,7 +98,8 @@ public class PromotionController {
   public ResponseEntity<BaseBodyResponse<PromotionResponse>> togglePromotionStatus(
       @PathVariable Long id, @RequestParam boolean active) {
     return BaseBodyResponse.success(
-        promotionService.togglePromotionStatus(id, active), "Toggle promotion status successfully");
+        promotionService.togglePromotionStatus(id, active),
+        messageSourceService.getMessage(MessageKeyConstant.PROMOTION_MESSAGE_UPDATE_SUCCESS));
   }
 
   @PostMapping("/validate")
@@ -96,6 +108,6 @@ public class PromotionController {
       @RequestParam Long productId, @RequestParam String promotionCode) {
     return BaseBodyResponse.success(
         promotionService.validateAndApplyPromotion(productId, promotionCode),
-        "Promotion validation successfully");
+        messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_SUCCESS));
   }
 }

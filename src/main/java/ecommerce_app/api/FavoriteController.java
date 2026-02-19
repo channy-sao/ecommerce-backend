@@ -1,8 +1,10 @@
 package ecommerce_app.api;
 
+import ecommerce_app.constant.message.MessageKeyConstant;
 import ecommerce_app.infrastructure.model.response.body.BaseBodyResponse;
 import ecommerce_app.modules.auth.custom.CustomUserDetails;
 import ecommerce_app.modules.product.service.FavoriteService;
+import ecommerce_app.util.MessageSourceService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -21,13 +23,15 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "Favorite Controller", description = "For Management User Favorite Products")
 public class FavoriteController {
   private final FavoriteService favoriteService;
+  private final MessageSourceService messageSourceService;
 
   @PostMapping("/products/{productId}")
   public ResponseEntity<BaseBodyResponse<Void>> favorite(
       @PathVariable(value = "productId") Long productId,
       @AuthenticationPrincipal CustomUserDetails user) {
     favoriteService.favorite(user.getId(), productId);
-    return BaseBodyResponse.success("Product added to favorites");
+    return BaseBodyResponse.success(
+        messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_SUCCESS));
   }
 
   @DeleteMapping("/products/{productId}")
@@ -35,7 +39,8 @@ public class FavoriteController {
       @PathVariable(value = "productId") Long productId,
       @AuthenticationPrincipal CustomUserDetails user) {
     favoriteService.unfavorite(user.getId(), productId);
-    return BaseBodyResponse.success("Product removed from favorites");
+    return BaseBodyResponse.success(
+        messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_SUCCESS));
   }
 
   @PostMapping("/products/{productId}/toggle")
@@ -43,7 +48,8 @@ public class FavoriteController {
       @PathVariable(value = "productId") Long productId,
       @AuthenticationPrincipal CustomUserDetails user) {
     favoriteService.toggleFavorite(user.getId(), productId);
-    return BaseBodyResponse.success("Product favorite status toggled");
+    return BaseBodyResponse.success(
+        messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_SUCCESS));
   }
 
   @GetMapping("/products")
@@ -51,14 +57,15 @@ public class FavoriteController {
       @AuthenticationPrincipal CustomUserDetails user) {
     return BaseBodyResponse.success(
         favoriteService.getFavoriteProductIds(user.getId()),
-        "Favorite products retrieved successfully");
+        messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_SUCCESS));
   }
 
   @GetMapping("/products/{productId}/count")
   public ResponseEntity<BaseBodyResponse<Long>> countFavorites(
       @PathVariable(value = "productId") Long productId) {
     return BaseBodyResponse.success(
-        favoriteService.countFavorites(productId), "Favorite count retrieved successfully");
+        favoriteService.countFavorites(productId),
+        messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_SUCCESS));
   }
 
   @GetMapping("/products/{productId}/is-favorite")
@@ -67,6 +74,6 @@ public class FavoriteController {
       @AuthenticationPrincipal CustomUserDetails user) {
     return BaseBodyResponse.success(
         favoriteService.isFavorite(user.getId(), productId),
-        "Favorite status retrieved successfully");
+        messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_SUCCESS));
   }
 }

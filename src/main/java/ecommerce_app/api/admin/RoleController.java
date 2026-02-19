@@ -1,10 +1,12 @@
 package ecommerce_app.api.admin;
 
+import ecommerce_app.constant.message.MessageKeyConstant;
 import ecommerce_app.infrastructure.model.response.body.BaseBodyResponse;
 import ecommerce_app.modules.user.model.dto.CreateRoleRequest;
 import ecommerce_app.modules.user.model.dto.RoleResponse;
 import ecommerce_app.modules.user.model.dto.UpdateRoleRequest;
 import ecommerce_app.modules.user.service.RoleService;
+import ecommerce_app.util.MessageSourceService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -42,6 +44,7 @@ import java.util.Set;
 public class RoleController {
 
   private final RoleService roleService;
+  private final MessageSourceService messageSourceService;
 
   /**
    * Create a new role.
@@ -62,7 +65,8 @@ public class RoleController {
       @Valid @RequestBody CreateRoleRequest createRoleRequest) {
 
     roleService.createRole(createRoleRequest);
-    return BaseBodyResponse.success("Create Role Successfully");
+    return BaseBodyResponse.success(
+        messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_SAVE_SUCCESS));
   }
 
   /**
@@ -85,7 +89,8 @@ public class RoleController {
       @Valid @RequestBody UpdateRoleRequest updateRoleRequest, @PathVariable("id") Long roleId) {
 
     roleService.updateRole(updateRoleRequest, roleId);
-    return BaseBodyResponse.success("Update Role Successfully");
+    return BaseBodyResponse.success(
+        messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_UPDATE_SUCCESS));
   }
 
   /**
@@ -107,26 +112,33 @@ public class RoleController {
   public ResponseEntity<BaseBodyResponse<Void>> toggleStatus(@PathVariable("id") Long roleId) {
 
     roleService.toggleStatus(roleId);
-    return BaseBodyResponse.success("Toggle Status Role Successfully");
+    return BaseBodyResponse.success(
+        messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_UPDATE_SUCCESS));
   }
 
   @PreAuthorize("hasRole('ADMIN') or hasAuthority('USER_CREATE')")
   @GetMapping("/{id}")
   public ResponseEntity<BaseBodyResponse<RoleResponse>> getRoleById(
       @PathVariable(value = "id") long roleId) {
-    return BaseBodyResponse.success(roleService.getRole(roleId), "Get Role Successfully");
+    return BaseBodyResponse.success(
+        roleService.getRole(roleId),
+        messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_SUCCESS));
   }
 
   @PreAuthorize("hasAuthority('ROLE_READ')")
   @GetMapping
   public ResponseEntity<BaseBodyResponse<Set<RoleResponse>>> getRoles() {
-    return BaseBodyResponse.success(roleService.getRoles(), "Get Roles Successfully");
+    return BaseBodyResponse.success(
+        roleService.getRoles(),
+        messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_SUCCESS));
   }
 
   @PreAuthorize("hasAuthority('ROLE_READ')")
   @GetMapping("/search")
   public ResponseEntity<BaseBodyResponse<Set<RoleResponse>>> searchRole(
       @Parameter(name = "role") String roleName) {
-    return BaseBodyResponse.success(roleService.searchRole(roleName), "Get Roles Successfully");
+    return BaseBodyResponse.success(
+        roleService.searchRole(roleName),
+        messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_SUCCESS));
   }
 }

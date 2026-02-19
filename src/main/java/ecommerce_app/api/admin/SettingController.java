@@ -1,9 +1,11 @@
 package ecommerce_app.api.admin;
 
+import ecommerce_app.constant.message.MessageKeyConstant;
 import ecommerce_app.constant.message.ResponseMessageConstant;
 import ecommerce_app.infrastructure.model.response.body.BaseBodyResponse;
 import ecommerce_app.modules.setting.model.dto.SettingDto;
 import ecommerce_app.modules.setting.service.SettingService;
+import ecommerce_app.util.MessageSourceService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -17,29 +19,28 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "Settings", description = "System configuration")
 public class SettingController {
 
-    private final SettingService settingService;
+  private final SettingService settingService;
+  private final MessageSourceService messageSourceService;
 
-    @GetMapping
-    public ResponseEntity<BaseBodyResponse<List<SettingDto.Response>>> getAll() {
-        return BaseBodyResponse.success(
-            settingService.getAll(),
-            ResponseMessageConstant.FIND_ALL_SUCCESSFULLY);
-    }
+  @GetMapping
+  public ResponseEntity<BaseBodyResponse<List<SettingDto.Response>>> getAll() {
+    return BaseBodyResponse.success(
+        settingService.getAll(), ResponseMessageConstant.FIND_ALL_SUCCESSFULLY);
+  }
 
-    @PatchMapping("/{key}")
-    public ResponseEntity<BaseBodyResponse<SettingDto.Response>> update(
-            @PathVariable String key,
-            @Valid @RequestBody SettingDto.UpdateRequest request) {
-        return BaseBodyResponse.success(
-            settingService.update(key, request.getValue()),
-            ResponseMessageConstant.UPDATE_SUCCESSFULLY);
-    }
+  @PatchMapping("/{key}")
+  public ResponseEntity<BaseBodyResponse<SettingDto.Response>> update(
+      @PathVariable String key, @Valid @RequestBody SettingDto.UpdateRequest request) {
+    return BaseBodyResponse.success(
+        settingService.update(key, request.getValue()),
+        messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_UPDATE_SUCCESS));
+  }
 
-    @PatchMapping("/bulk")
-    public ResponseEntity<BaseBodyResponse<List<SettingDto.Response>>> bulkUpdate(
-            @Valid @RequestBody SettingDto.BulkUpdateRequest request) {
-        return BaseBodyResponse.success(
-            settingService.bulkUpdate(request.getSettings()),
-            ResponseMessageConstant.UPDATE_SUCCESSFULLY);
-    }
+  @PatchMapping("/bulk")
+  public ResponseEntity<BaseBodyResponse<List<SettingDto.Response>>> bulkUpdate(
+      @Valid @RequestBody SettingDto.BulkUpdateRequest request) {
+    return BaseBodyResponse.success(
+        settingService.bulkUpdate(request.getSettings()),
+        messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_UPDATE_SUCCESS));
+  }
 }

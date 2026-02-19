@@ -1,8 +1,10 @@
 package ecommerce_app.api.admin;
 
+import ecommerce_app.constant.message.MessageKeyConstant;
 import ecommerce_app.infrastructure.model.response.body.BaseBodyResponse;
 import ecommerce_app.modules.user.model.entity.Permission;
 import ecommerce_app.modules.user.service.PermissionService;
+import ecommerce_app.util.MessageSourceService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
@@ -19,9 +21,12 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "Permission Management", description = "For admin manage permissions")
 public class PermissionController {
   private final PermissionService permissionService;
+  private final MessageSourceService messageSourceService;
 
   @GetMapping
   public ResponseEntity<BaseBodyResponse<Set<Permission>>> getPermissions() {
-    return BaseBodyResponse.success(permissionService.getAllPermissions(), "Get all permissions");
+    return BaseBodyResponse.success(
+        permissionService.getAllPermissions(),
+        messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_SUCCESS));
   }
 }

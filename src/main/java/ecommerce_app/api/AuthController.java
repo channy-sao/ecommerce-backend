@@ -1,5 +1,6 @@
 package ecommerce_app.api;
 
+import ecommerce_app.constant.message.MessageKeyConstant;
 import ecommerce_app.infrastructure.model.response.body.BaseBodyResponse;
 import ecommerce_app.modules.auth.dto.request.LoginRequest;
 import ecommerce_app.modules.auth.dto.request.RefreshTokenRequest;
@@ -8,6 +9,7 @@ import ecommerce_app.modules.auth.dto.response.LoginResponse;
 import ecommerce_app.modules.auth.dto.response.RefreshTokenResponse;
 import ecommerce_app.modules.auth.service.AuthenticationService;
 import ecommerce_app.modules.user.model.dto.UserResponse;
+import ecommerce_app.util.MessageSourceService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -25,26 +27,30 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "Authentication Controller", description = "For Management Authentication Login/Logout")
 public class AuthController {
   private final AuthenticationService authenticationService;
+  private final MessageSourceService messageSourceService;
 
   @PostMapping("/login/firebase")
   public ResponseEntity<BaseBodyResponse<LoginResponse>> loginWithFirebase(
       @RequestHeader(value = "idToken") String idToken) {
     return BaseBodyResponse.success(
-        authenticationService.loginWithFirebase(idToken), "Login successful");
+        authenticationService.loginWithFirebase(idToken),
+        messageSourceService.getMessage(MessageKeyConstant.AUTH_MESSAGE_LOGIN_SUCCESS));
   }
 
   @PostMapping("/signup")
   public ResponseEntity<BaseBodyResponse<LoginResponse>> signup(
       @RequestBody @Valid SignupRequest signupRequest) {
     return BaseBodyResponse.success(
-        authenticationService.signupWithFirebase(signupRequest), "Signup successful");
+        authenticationService.signupWithFirebase(signupRequest),
+        messageSourceService.getMessage(MessageKeyConstant.AUTH_MESSAGE_REGISTER_SUCCESS));
   }
 
   @PostMapping("/login/local")
   public ResponseEntity<BaseBodyResponse<LoginResponse>> loginLocal(
       @RequestBody @Valid LoginRequest loginRequest) {
     return BaseBodyResponse.success(
-        authenticationService.loginLocal(loginRequest), "Login successful");
+        authenticationService.loginLocal(loginRequest),
+        messageSourceService.getMessage(MessageKeyConstant.AUTH_MESSAGE_LOGIN_SUCCESS));
   }
 
   @PostMapping("/refresh-token")
@@ -52,18 +58,20 @@ public class AuthController {
       @RequestBody @Valid RefreshTokenRequest refreshTokenRequest) {
     return BaseBodyResponse.success(
         authenticationService.refreshToken(refreshTokenRequest.getRefreshToken()),
-        "Refresh Token successful");
+        messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_SUCCESS));
   }
 
   @PostMapping("/logout")
   public ResponseEntity<BaseBodyResponse<Void>> logout() {
     this.authenticationService.logout();
-    return BaseBodyResponse.success("Logout successful");
+    return BaseBodyResponse.success(
+        messageSourceService.getMessage(MessageKeyConstant.AUTH_MESSAGE_LOGOUT_SUCCESS));
   }
 
   @GetMapping("/me")
   public ResponseEntity<BaseBodyResponse<UserResponse>> getCurrentUser() {
     return BaseBodyResponse.success(
-        authenticationService.getCurrentUser(), "Current user successful");
+        authenticationService.getCurrentUser(),
+        messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_SUCCESS));
   }
 }

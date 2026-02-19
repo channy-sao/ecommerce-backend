@@ -1,5 +1,6 @@
 package ecommerce_app.api;
 
+import ecommerce_app.constant.message.MessageKeyConstant;
 import ecommerce_app.constant.message.ResponseMessageConstant;
 import ecommerce_app.infrastructure.model.response.body.BaseBodyResponse;
 import ecommerce_app.modules.user.model.dto.AssignRoleToUserRequest;
@@ -8,6 +9,7 @@ import ecommerce_app.modules.user.model.dto.UpdatePasswordRequest;
 import ecommerce_app.modules.user.model.dto.UpdateUserRequest;
 import ecommerce_app.modules.user.model.dto.UserResponse;
 import ecommerce_app.modules.user.service.UserService;
+import ecommerce_app.util.MessageSourceService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -41,6 +43,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "User Management", description = "For admin manage user")
 public class UserController {
   private final UserService userService;
+  private final MessageSourceService messageSourceService;
 
   // Prevent ModelMapper from being used in data binding
   @InitBinder
@@ -61,7 +64,8 @@ public class UserController {
   public ResponseEntity<BaseBodyResponse<UserResponse>> createUser(
       @ModelAttribute CreateUserRequest createUserRequest) {
     return BaseBodyResponse.success(
-        this.userService.create(createUserRequest), ResponseMessageConstant.CREATE_SUCCESSFULLY);
+        this.userService.create(createUserRequest),
+        messageSourceService.getMessage(MessageKeyConstant.USER_MESSAGE_ADD_SUCCESS));
   }
 
   @Operation(summary = "Change user password")
@@ -69,7 +73,8 @@ public class UserController {
   public ResponseEntity<BaseBodyResponse<Void>> changePassword(
       @Valid @RequestBody UpdatePasswordRequest updateRequest) {
     this.userService.changePassword(updateRequest);
-    return BaseBodyResponse.success("Password changed successfully");
+    return BaseBodyResponse.success(
+        messageSourceService.getMessage(MessageKeyConstant.AUTH_TITLE_CHANGE_PASSWORD));
   }
 
   /**
@@ -99,7 +104,8 @@ public class UserController {
   public ResponseEntity<BaseBodyResponse<Void>> deleteUser(
       @PathVariable(value = "id") Long userId) {
     this.userService.deleteUser(userId);
-    return BaseBodyResponse.success(ResponseMessageConstant.DELETE_SUCCESSFULLY);
+    return BaseBodyResponse.success(
+        messageSourceService.getMessage(MessageKeyConstant.USER_MESSAGE_DELETE_SUCCESS));
   }
 
   /**
@@ -113,7 +119,8 @@ public class UserController {
   public ResponseEntity<BaseBodyResponse<UserResponse>> getById(
       @PathVariable(value = "id") Long userId) {
     return BaseBodyResponse.success(
-        userService.findById(userId), ResponseMessageConstant.FIND_ONE_SUCCESSFULLY);
+        userService.findById(userId),
+        messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_SUCCESS));
   }
 
   /**
@@ -127,7 +134,8 @@ public class UserController {
   public ResponseEntity<BaseBodyResponse<UserResponse>> getByPhone(
       @PathVariable(value = "phone") String phone) {
     return BaseBodyResponse.success(
-        userService.findByPhone(phone), ResponseMessageConstant.FIND_ONE_SUCCESSFULLY);
+        userService.findByPhone(phone),
+        messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_SUCCESS));
   }
 
   /**
@@ -141,7 +149,8 @@ public class UserController {
   public ResponseEntity<BaseBodyResponse<UserResponse>> getByEmail(
       @PathVariable(value = "email") String email) {
     return BaseBodyResponse.success(
-        userService.findByEmail(email), ResponseMessageConstant.FIND_ONE_SUCCESSFULLY);
+        userService.findByEmail(email),
+        messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_SUCCESS));
   }
 
   /**
@@ -160,7 +169,8 @@ public class UserController {
           @PathVariable(value = "id")
           Long userId) {
     this.userService.updateUser(updateUserRequest, userId);
-    return BaseBodyResponse.success(ResponseMessageConstant.UPDATE_SUCCESSFULLY);
+    return BaseBodyResponse.success(
+        messageSourceService.getMessage(MessageKeyConstant.USER_MESSAGE_UPDATE_SUCCESS));
   }
 
   /**
@@ -186,7 +196,7 @@ public class UserController {
       @RequestParam(value = "filter", required = false) String filter) {
     return BaseBodyResponse.pageSuccess(
         userService.filter(isPaged, page, pageSize, sortBy, sortDirection, filter),
-        ResponseMessageConstant.FIND_ALL_SUCCESSFULLY);
+        messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_SUCCESS));
   }
 
   @PreAuthorize("hasAuthority('USER_UPDATE')")
@@ -195,6 +205,7 @@ public class UserController {
       @PathVariable(value = "userId") Long userId, @RequestBody AssignRoleToUserRequest request) {
 
     userService.assignRoles(userId, request.getRoleIds());
-    return BaseBodyResponse.success("Roles updated successfully");
+    return BaseBodyResponse.success(
+        messageSourceService.getMessage(MessageKeyConstant.USER_MESSAGE_UPDATE_SUCCESS));
   }
 }

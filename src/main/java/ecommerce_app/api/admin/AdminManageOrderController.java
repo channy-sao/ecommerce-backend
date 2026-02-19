@@ -2,10 +2,12 @@ package ecommerce_app.api.admin;
 
 import ecommerce_app.constant.enums.OrderStatus;
 import ecommerce_app.constant.enums.PaymentStatus;
+import ecommerce_app.constant.message.MessageKeyConstant;
 import ecommerce_app.infrastructure.model.response.body.BaseBodyResponse;
 import ecommerce_app.modules.order.model.dto.OrderDetailResponse;
 import ecommerce_app.modules.order.model.dto.OrderResponse;
 import ecommerce_app.modules.order.service.AdminManageOrderService;
+import ecommerce_app.util.MessageSourceService;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
@@ -29,13 +31,15 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "Admin Manage Order Controller", description = "Admin Management Order process")
 public class AdminManageOrderController {
   private final AdminManageOrderService adminManageOrderService;
+  private final MessageSourceService messageSourceService;
 
   @PatchMapping("/{orderId}/update-status")
   public ResponseEntity<BaseBodyResponse<Void>> updateOrderStatus(
       @PathVariable(name = "orderId", value = "orderId") Long orderId,
       @Parameter(name = "status") @RequestParam(name = "status") OrderStatus newStatus) {
     this.adminManageOrderService.updateOrderStatus(orderId, newStatus);
-    return BaseBodyResponse.success("Admin update status successful");
+    return BaseBodyResponse.success(
+        messageSourceService.getMessage(MessageKeyConstant.ORDER_MESSAGE_STATUS_UPDATED));
   }
 
   @GetMapping
@@ -64,7 +68,7 @@ public class AdminManageOrderController {
             pageSize,
             sortBy,
             sortDirection),
-        "Orders successful");
+            messageSourceService.getMessage(MessageKeyConstant.ORDER_TITLE_LIST));
   }
 
   @GetMapping("/{orderId}")
@@ -72,6 +76,6 @@ public class AdminManageOrderController {
       @PathVariable(value = "orderId", name = "orderId") Long orderId) {
     return BaseBodyResponse.success(
         this.adminManageOrderService.getOrderDetailForAdmin(orderId),
-        "Get Order detail successful");
+            messageSourceService.getMessage(MessageKeyConstant.ORDER_TITLE_DETAIL));
   }
 }

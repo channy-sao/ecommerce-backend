@@ -1,6 +1,7 @@
 package ecommerce_app.api.admin;
 
 import ecommerce_app.constant.enums.ExportFormat;
+import ecommerce_app.constant.message.MessageKeyConstant;
 import ecommerce_app.constant.message.ResponseMessageConstant;
 import ecommerce_app.infrastructure.exception.BadRequestException;
 import ecommerce_app.infrastructure.model.response.body.BaseBodyResponse;
@@ -10,6 +11,7 @@ import ecommerce_app.modules.product.model.dto.ProductResponse;
 import ecommerce_app.modules.product.service.ProductExcelTemplateService;
 import ecommerce_app.modules.product.service.ProductService;
 import ecommerce_app.modules.reports.ProductReportService;
+import ecommerce_app.util.MessageSourceService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -46,6 +48,7 @@ public class ProductController {
   private final ProductService productService;
   private final ProductExcelTemplateService productExcelTemplateService;
   private final ProductReportService productReportService;
+  private final MessageSourceService messageSourceService;
 
   @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   @Operation(
@@ -60,20 +63,22 @@ public class ProductController {
       @ModelAttribute ProductRequest productRequest) {
     return BaseBodyResponse.success(
         this.productService.saveProduct(productRequest),
-        ResponseMessageConstant.CREATE_SUCCESSFULLY);
+        messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_SUCCESS));
   }
 
   @DeleteMapping("/{id}")
   public ResponseEntity<BaseBodyResponse<Void>> deleteProduct(@PathVariable(value = "id") Long id) {
     this.productService.deleteProduct(id);
-    return BaseBodyResponse.success(ResponseMessageConstant.DELETE_SUCCESSFULLY);
+    return BaseBodyResponse.success(
+        messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_DELETE_SUCCESS));
   }
 
   @GetMapping("/{id}")
   public ResponseEntity<BaseBodyResponse<ProductResponse>> getById(
       @PathVariable(value = "id") Long id) {
     return BaseBodyResponse.success(
-        productService.getProductById(id), ResponseMessageConstant.FIND_ONE_SUCCESSFULLY);
+        productService.getProductById(id),
+        messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_SUCCESS));
   }
 
   @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -89,13 +94,14 @@ public class ProductController {
       @ModelAttribute ProductRequest productRequest, @PathVariable(value = "id") Long id) {
     return BaseBodyResponse.success(
         productService.updateProduct(productRequest, id),
-        ResponseMessageConstant.UPDATE_SUCCESSFULLY);
+        messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_UPDATE_SUCCESS));
   }
 
   @GetMapping
   public ResponseEntity<BaseBodyResponse<List<ProductResponse>>> getProducts() {
     return BaseBodyResponse.success(
-        this.productService.getProducts(), ResponseMessageConstant.FIND_ALL_SUCCESSFULLY);
+        this.productService.getProducts(),
+        messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_SUCCESS));
   }
 
   @GetMapping("/filter")
@@ -116,7 +122,8 @@ public class ProductController {
   public ResponseEntity<BaseBodyResponse<ImportProductFromExcelResponse>> importFromExcel(
       @RequestParam("file") MultipartFile file) {
     return BaseBodyResponse.success(
-        productService.importProductFromExcel(file), "Imported product from Excel File");
+        productService.importProductFromExcel(file),
+        messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_SUCCESS));
   }
 
   /** Download Excel template for product import with dynamic sample data */
@@ -135,7 +142,8 @@ public class ProductController {
 
     // Validate rows parameter
     if (rows < 0 || rows > 1000) {
-      throw new BadRequestException("'rows' parameter must be between 0 and 1000");
+      throw new BadRequestException(
+          messageSourceService.getMessage(MessageKeyConstant.ERROR_TITLE_500));
     }
 
     log.info(

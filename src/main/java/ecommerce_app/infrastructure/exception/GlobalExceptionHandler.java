@@ -1,5 +1,6 @@
 package ecommerce_app.infrastructure.exception;
 
+import ecommerce_app.constant.message.MessageKeyConstant;
 import ecommerce_app.infrastructure.model.response.body.BaseBodyResponse;
 import ecommerce_app.util.MessageSourceService;
 import lombok.RequiredArgsConstructor;
@@ -57,7 +58,10 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
   @ExceptionHandler(BadRequestException.class)
   public ResponseEntity<BaseBodyResponse<Void>> handleBadRequestException(BadRequestException ex) {
     log.error(ex.getMessage(), ex);
-    return BaseBodyResponse.failed(HttpStatus.BAD_REQUEST, ex.getMessage());
+    String message = ex.getMessage() != null
+            ? ex.getMessage()
+            : messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_ERROR);
+    return BaseBodyResponse.failed(HttpStatus.BAD_REQUEST, message);
   }
 
   @ExceptionHandler(IllegalArgumentException.class)
@@ -71,7 +75,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
   public ResponseEntity<BaseBodyResponse<Void>> handleResourceNotFoundException(
       ResourceNotFoundException ex) {
     log.error(ex.getMessage(), ex);
-    String message = messageSourceService.getMessage("error.resource.notfound");
+    String message = messageSourceService.getMessage(MessageKeyConstant.ERROR_MESSAGE_404);
     return BaseBodyResponse.failed(HttpStatus.NOT_FOUND, message);
   }
 
@@ -83,7 +87,8 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
   }
 
   @ExceptionHandler(IllegalStateException.class)
-  public ResponseEntity<BaseBodyResponse<Void>> handleIllegalStateException(IllegalStateException ex) {
+  public ResponseEntity<BaseBodyResponse<Void>> handleIllegalStateException(
+      IllegalStateException ex) {
     log.error(ex.getMessage(), ex);
     return BaseBodyResponse.failed(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage());
   }
@@ -92,6 +97,8 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
   public ResponseEntity<BaseBodyResponse<Void>> handleInternalServerErrorException(
       InternalServerErrorException ex) {
     log.error(ex.getMessage(), ex);
-    return BaseBodyResponse.failed(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage());
+    String message = messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_SERVER_ERROR);
+
+    return BaseBodyResponse.failed(HttpStatus.INTERNAL_SERVER_ERROR, message);
   }
 }

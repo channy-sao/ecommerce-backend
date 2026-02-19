@@ -1,5 +1,6 @@
 package ecommerce_app.api.admin;
 
+import ecommerce_app.constant.message.MessageKeyConstant;
 import ecommerce_app.infrastructure.model.response.body.BaseBodyResponse;
 import ecommerce_app.modules.stock.model.dto.ProductImportFilterRequest;
 import ecommerce_app.modules.stock.model.dto.ProductImportHistoryByProductResponse;
@@ -9,6 +10,7 @@ import ecommerce_app.modules.stock.model.dto.StockResponse;
 import ecommerce_app.modules.stock.model.dto.UpdateStockRequest;
 import ecommerce_app.modules.stock.service.ProductImportService;
 import ecommerce_app.modules.stock.service.StockService;
+import ecommerce_app.util.MessageSourceService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -22,7 +24,7 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "Stock Controller", description = "Management Stock of Product")
 public class StockController {
   private final StockService stockService;
-
+  private final MessageSourceService messageSourceService;
   private final ProductImportService productImportService;
 
   // -----------------------------
@@ -33,7 +35,8 @@ public class StockController {
   public ResponseEntity<BaseBodyResponse<Void>> importProducts(
       @RequestBody @Valid ProductImportRequest productImportRequest) {
     this.productImportService.importProduct(productImportRequest);
-    return BaseBodyResponse.success("Import Product successful");
+    return BaseBodyResponse.success(
+        messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_SAVE_SUCCESS));
   }
 
   // -----------------------------
@@ -45,7 +48,8 @@ public class StockController {
       @PathVariable(value = "id") Long id,
       @RequestBody @Valid ProductImportRequest productImportRequest) {
     this.productImportService.updateImportProduct(id, productImportRequest);
-    return BaseBodyResponse.success("Update Import Product successful");
+    return BaseBodyResponse.success(
+        messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_UPDATE_SUCCESS));
   }
 
   // -----------------------------
@@ -57,7 +61,7 @@ public class StockController {
       @RequestBody @Valid ProductImportFilterRequest filterRequest) {
     return BaseBodyResponse.pageSuccess(
         this.productImportService.getImportListing(filterRequest),
-        "Get Product Imports successful");
+        messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_SUCCESS));
   }
 
   // -----------------------------
@@ -68,7 +72,8 @@ public class StockController {
       @PathVariable(value = "productId") Long productId) {
     final List<ProductImportResponse> productImports =
         this.productImportService.getProductImportsByProductId(productId);
-    return BaseBodyResponse.success(productImports, "Get Product Import by Product Id successful");
+    return BaseBodyResponse.success(
+        productImports, messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_SUCCESS));
   }
 
   // -----------------------------
@@ -78,7 +83,8 @@ public class StockController {
   public ResponseEntity<BaseBodyResponse<StockResponse>> getStockByProduct(
       @PathVariable Long productId) {
     return BaseBodyResponse.success(
-        stockService.getByProductId(productId), "Get Stock By Product Id successful");
+        stockService.getByProductId(productId),
+        messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_SUCCESS));
   }
 
   // -----------------------------
@@ -90,7 +96,8 @@ public class StockController {
       @PathVariable Long productId, @Valid @RequestBody UpdateStockRequest request) {
 
     stockService.adjustStock(productId, request.getQuantity());
-    return BaseBodyResponse.success("adjust Stock successful");
+    return BaseBodyResponse.success(
+        messageSourceService.getMessage(MessageKeyConstant.STOCK_MESSAGE_ADJUSTMENT_SUCCESS));
   }
 
   // -----------------------------
@@ -98,7 +105,9 @@ public class StockController {
   // -----------------------------
   @GetMapping
   public ResponseEntity<BaseBodyResponse<List<StockResponse>>> getStocks() {
-    return BaseBodyResponse.success(stockService.getStocks(), "Listing stocks successful");
+    return BaseBodyResponse.success(
+        stockService.getStocks(),
+        messageSourceService.getMessage(MessageKeyConstant.STOCK_TITLE_LIST));
   }
 
   // -----------------------------
@@ -110,6 +119,6 @@ public class StockController {
     final var productImports =
         this.productImportService.getProductImportHistoryByProductId(productId);
     return BaseBodyResponse.success(
-        productImports, "Get Product Import history by Product successful");
+        productImports, messageSourceService.getMessage(MessageKeyConstant.STOCK_TITLE_HISTORY));
   }
 }

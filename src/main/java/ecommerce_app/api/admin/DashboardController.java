@@ -1,6 +1,7 @@
 // OrderStatsController.java
 package ecommerce_app.api.admin;
 
+import ecommerce_app.constant.message.MessageKeyConstant;
 import ecommerce_app.infrastructure.model.response.body.BaseBodyResponse;
 import ecommerce_app.modules.order.model.dto.DashboardOverviewResponse;
 import ecommerce_app.modules.order.model.dto.OrderStatsResponse;
@@ -9,6 +10,7 @@ import ecommerce_app.modules.order.model.dto.RevenueTrendResponse;
 import ecommerce_app.modules.order.model.dto.StatusDistributionResponse;
 import ecommerce_app.modules.order.model.dto.TopProductResponse;
 import ecommerce_app.modules.order.service.impl.OrderStatsServiceImpl;
+import ecommerce_app.util.MessageSourceService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.time.LocalDate;
 import java.util.List;
@@ -29,13 +31,15 @@ import org.springframework.web.bind.annotation.*;
 public class DashboardController {
 
   private final OrderStatsServiceImpl orderStatsService;
+  private final MessageSourceService messageSourceService;
 
   /** Get dashboard statistics (last 30 days) GET /api/v1/orders/stats/dashboard */
   @GetMapping("/stats/dashboard")
   public ResponseEntity<BaseBodyResponse<OrderStatsResponse>> getDashboardStats() {
     log.info("Fetching dashboard statistics");
     OrderStatsResponse stats = orderStatsService.getDashboardStats();
-    return BaseBodyResponse.success(stats, "Dashboard statistics fetched successfully");
+    return BaseBodyResponse.success(
+        stats, messageSourceService.getMessage(MessageKeyConstant.NAV_DASHBOARD));
   }
 
   /**
@@ -57,7 +61,8 @@ public class DashboardController {
       stats = orderStatsService.getDashboardStats();
     }
 
-    return BaseBodyResponse.success(stats, "Order statistics fetched successfully");
+    return BaseBodyResponse.success(
+        stats, messageSourceService.getMessage(MessageKeyConstant.REPORTS_TITLE_REPORTS));
   }
 
   /** Get today's statistics GET /api/v1/orders/stats/today */
@@ -65,7 +70,8 @@ public class DashboardController {
   public ResponseEntity<BaseBodyResponse<OrderStatsResponse>> getTodayStats() {
     LocalDate today = LocalDate.now();
     OrderStatsResponse stats = orderStatsService.getStatsWithDateRange(today, today);
-    return BaseBodyResponse.success(stats, "Today's statistics fetched successfully");
+    return BaseBodyResponse.success(
+        stats, messageSourceService.getMessage(MessageKeyConstant.REPORTS_PERIOD_TODAY));
   }
 
   /** Get this week's statistics GET /api/v1/orders/stats/week */
@@ -74,7 +80,8 @@ public class DashboardController {
     LocalDate today = LocalDate.now();
     LocalDate weekStart = today.minusDays(today.getDayOfWeek().getValue() - 1); // Monday
     OrderStatsResponse stats = orderStatsService.getStatsWithDateRange(weekStart, today);
-    return BaseBodyResponse.success(stats, "Week statistics fetched successfully");
+    return BaseBodyResponse.success(
+        stats, messageSourceService.getMessage(MessageKeyConstant.REPORTS_PERIOD_THIS_WEEK));
   }
 
   /** Get this month's statistics GET /api/v1/orders/stats/month */
@@ -84,7 +91,8 @@ public class DashboardController {
     LocalDate today = LocalDate.now();
     LocalDate monthStart = today.withDayOfMonth(1);
     OrderStatsResponse stats = orderStatsService.getStatsWithDateRange(monthStart, today);
-    return BaseBodyResponse.success(stats, "Month statistics fetched successfully");
+    return BaseBodyResponse.success(
+        stats, messageSourceService.getMessage(MessageKeyConstant.REPORTS_PERIOD_THIS_MONTH));
   }
 
   /** Get revenue trend for dashboard */
@@ -104,7 +112,8 @@ public class DashboardController {
     }
 
     List<RevenueTrendResponse> trend = orderStatsService.getRevenueTrend(fromDate, toDate);
-    return BaseBodyResponse.success(trend, "Revenue trend fetched successfully");
+    return BaseBodyResponse.success(
+        trend, messageSourceService.getMessage(MessageKeyConstant.REPORTS_TITLE_REVENUE_REPORT));
   }
 
   /** Get status distribution for dashboard */
@@ -125,7 +134,9 @@ public class DashboardController {
 
     List<StatusDistributionResponse> distribution =
         orderStatsService.getStatusDistribution(fromDate, toDate);
-    return BaseBodyResponse.success(distribution, "Status distribution fetched successfully");
+    return BaseBodyResponse.success(
+        distribution,
+        messageSourceService.getMessage(MessageKeyConstant.REPORTS_LABEL_ORDERS_BY_STATUS));
   }
 
   /** Get top products for dashboard */
@@ -147,7 +158,9 @@ public class DashboardController {
 
     List<TopProductResponse> topProducts =
         orderStatsService.getTopProducts(fromDate, toDate, limit);
-    return BaseBodyResponse.success(topProducts, "Top products fetched successfully");
+    return BaseBodyResponse.success(
+        topProducts,
+        messageSourceService.getMessage(MessageKeyConstant.REPORTS_LABEL_TOP_PRODUCTS));
   }
 
   /** Get recent orders for dashboard */
@@ -169,7 +182,8 @@ public class DashboardController {
 
     List<RecentOrderResponse> recentOrders =
         orderStatsService.getRecentOrders(fromDate, toDate, limit);
-    return BaseBodyResponse.success(recentOrders, "Recent orders fetched successfully");
+    return BaseBodyResponse.success(
+        recentOrders, messageSourceService.getMessage(MessageKeyConstant.ORDER_TITLE_LIST));
   }
 
   /** Get all dashboard data in one call */
@@ -200,6 +214,7 @@ public class DashboardController {
             .recentOrders(recentOrders)
             .build();
 
-    return BaseBodyResponse.success(overview, "Dashboard overview fetched successfully");
+    return BaseBodyResponse.success(
+        overview, messageSourceService.getMessage(MessageKeyConstant.NAV_DASHBOARD));
   }
 }

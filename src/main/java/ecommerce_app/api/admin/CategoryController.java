@@ -1,5 +1,6 @@
 package ecommerce_app.api.admin;
 
+import ecommerce_app.constant.message.MessageKeyConstant;
 import ecommerce_app.constant.message.ResponseMessageConstant;
 import ecommerce_app.infrastructure.exception.BadRequestException;
 import ecommerce_app.infrastructure.model.response.body.BaseBodyResponse;
@@ -8,6 +9,7 @@ import ecommerce_app.modules.category.model.dto.CategoryRequest;
 import ecommerce_app.modules.category.model.dto.CategoryResponse;
 import ecommerce_app.modules.category.service.CategoryExcelTemplateService;
 import ecommerce_app.modules.category.service.CategoryService;
+import ecommerce_app.util.MessageSourceService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -42,27 +44,30 @@ import org.springframework.web.multipart.MultipartFile;
 public class CategoryController {
   private final CategoryService categoryService;
   private final CategoryExcelTemplateService categoryExcelTemplateService;
+  private final MessageSourceService messageSourceService;
 
   @PostMapping
   public ResponseEntity<BaseBodyResponse<CategoryResponse>> createCategory(
       @RequestBody CategoryRequest categoryRequest) {
     return BaseBodyResponse.success(
         this.categoryService.saveCategory(categoryRequest),
-        ResponseMessageConstant.CREATE_SUCCESSFULLY);
+        messageSourceService.getMessage(MessageKeyConstant.CATEGORY_MESSAGE_ADD_SUCCESS));
   }
 
   @DeleteMapping("/{id}")
   public ResponseEntity<BaseBodyResponse<Void>> deleteCategory(
       @PathVariable(value = "id") Long id) {
     this.categoryService.deleteCategory(id);
-    return BaseBodyResponse.success(ResponseMessageConstant.DELETE_SUCCESSFULLY);
+    return BaseBodyResponse.success(
+        messageSourceService.getMessage(MessageKeyConstant.CATEGORY_MESSAGE_DELETE_SUCCESS));
   }
 
   @GetMapping("/{id}")
   public ResponseEntity<BaseBodyResponse<CategoryResponse>> getById(
       @PathVariable(value = "id") Long id) {
     return BaseBodyResponse.success(
-        categoryService.getCategoryById(id), ResponseMessageConstant.FIND_ONE_SUCCESSFULLY);
+        categoryService.getCategoryById(id),
+        messageSourceService.getMessage(MessageKeyConstant.CATEGORY_MESSAGE_UPDATE_SUCCESS));
   }
 
   @PutMapping("/{id}")
@@ -70,14 +75,15 @@ public class CategoryController {
       @RequestBody CategoryRequest categoryRequest, @PathVariable(value = "id") Long id) {
     return BaseBodyResponse.success(
         categoryService.updateCategory(categoryRequest, id),
-        ResponseMessageConstant.UPDATE_SUCCESSFULLY);
+        messageSourceService.getMessage(MessageKeyConstant.CATEGORY_TITLE_DETAIL));
   }
 
   @GetMapping("/name/{name}")
   public ResponseEntity<BaseBodyResponse<CategoryResponse>> getByName(
       @PathVariable(value = "name") String name) {
     return BaseBodyResponse.success(
-        categoryService.getCategoryByName(name), ResponseMessageConstant.FIND_ONE_SUCCESSFULLY);
+        categoryService.getCategoryByName(name),
+        messageSourceService.getMessage(MessageKeyConstant.CATEGORY_TITLE_LIST));
   }
 
   @GetMapping
@@ -98,7 +104,8 @@ public class CategoryController {
       @RequestParam("file") MultipartFile file) {
     // Implementation for importing categories from an Excel file
     this.categoryService.importCategoriesFromExcel(file);
-    return BaseBodyResponse.success(ResponseMessageConstant.SUCCESS);
+    return BaseBodyResponse.success(
+        messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_SUCCESS));
   }
 
   @PostMapping("/bulk-insert")
@@ -106,7 +113,8 @@ public class CategoryController {
       @RequestBody @Valid BulkCategoryRequest bulkCategoryRequest) {
     // Implementation for importing categories from an Excel file
     this.categoryService.bulkInsertCategories(bulkCategoryRequest.getCategories());
-    return BaseBodyResponse.success(ResponseMessageConstant.SUCCESS);
+    return BaseBodyResponse.success(
+        messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_SUCCESS));
   }
 
   /** Download Excel template for category import with dynamic sample data */
@@ -125,7 +133,8 @@ public class CategoryController {
 
     // Validate rows parameter
     if (rows < 0 || rows > 100) {
-      throw new BadRequestException("'rows' parameter must be between 0 and 1000");
+      throw new BadRequestException(
+          messageSourceService.getMessage(MessageKeyConstant.COMMON_VALIDATION_MIN_VALUE));
     }
 
     log.info(
