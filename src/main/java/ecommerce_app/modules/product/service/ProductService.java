@@ -1,6 +1,7 @@
 package ecommerce_app.modules.product.service;
 
 import ecommerce_app.modules.product.model.dto.ImportProductFromExcelResponse;
+import ecommerce_app.modules.product.model.dto.NearEmptyStockResponse;
 import ecommerce_app.modules.product.model.dto.ProductRequest;
 import ecommerce_app.modules.product.model.dto.ProductResponse;
 import java.util.List;
@@ -29,4 +30,7 @@ public interface ProductService {
       String filter);
 
   ImportProductFromExcelResponse importProductFromExcel(MultipartFile file);
+  List<NearEmptyStockResponse> getNearEmptyStockProducts();
+
+  long countNearEmptyStockProducts();
 }

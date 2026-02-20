@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -56,15 +57,36 @@ public interface ProductRepository
           + "WHERE p.name = :name AND p.id != :id")
   boolean existsByNameAndIdNot(@Param("name") String name, @Param("id") Long id);
 
-  @Query("""
+  @Query(
+      """
        SELECT p FROM Product p
        JOIN p.stock s
        WHERE s.quantity > 0
        AND s.quantity <= :threshold
        """)
-  Page<Product> findLowStockProducts(
-          @Param("threshold") int threshold,
-          Pageable pageable
-  );
+  Page<Product> findLowStockProducts(@Param("threshold") int threshold, Pageable pageable);
 
+  // Find products where stock quantity > 0 AND quantity <= threshold
+  @Query(
+      """
+        SELECT p FROM Product p
+        JOIN FETCH p.stock s
+        JOIN FETCH p.category c
+        WHERE p.deleted = false
+        AND s.quantity > 0
+        AND s.quantity <= :threshold
+        ORDER BY s.quantity ASC
+    """)
+  List<Product> findNearEmptyStockProducts(@Param("threshold") int threshold);
+
+  // Count for admin dashboard badge
+  @Query(
+      """
+        SELECT COUNT(p) FROM Product p
+        JOIN p.stock s
+        WHERE p.deleted = false
+        AND s.quantity > 0
+        AND s.quantity <= :threshold
+    """)
+  long countNearEmptyStockProducts(@Param("threshold") int threshold);
 }

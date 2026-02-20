@@ -8,11 +8,13 @@ import ecommerce_app.modules.setting.service.SettingService;
 import java.math.BigDecimal;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class SettingServiceImpl implements SettingService {
@@ -27,12 +29,32 @@ public class SettingServiceImpl implements SettingService {
 
   @Override
   public Integer getInt(String key) {
-    return Integer.parseInt(getString(key));
+    try {
+      String value = getString(key);
+      if (value == null) {
+        log.warn("Setting value is null for key: {}", key);
+        return 0; // or throw an exception, or return a default value
+      }
+      return Integer.parseInt(value);
+    } catch (NumberFormatException e) {
+      log.error("Failed to parse setting value to int for key: {}", key, e);
+      return 0; // or throw an exception, or return a default value
+    }
   }
 
   @Override
   public BigDecimal getDecimal(String key) {
-    return new BigDecimal(getString(key));
+    try {
+      String value = getString(key);
+      if (value == null) {
+        log.warn("Setting value is null for key: {}", key);
+        return BigDecimal.ZERO; // or throw an exception, or return a default value
+      }
+      return new BigDecimal(value);
+    } catch (NumberFormatException e) {
+      log.error("Failed to parse setting value to BigDecimal for key: {}", key, e);
+      return BigDecimal.ZERO; // or throw an exception, or return a default value
+    }
   }
 
   @Override

@@ -29,6 +29,8 @@ import ecommerce_app.modules.promotion.model.entity.Promotion;
 import ecommerce_app.modules.promotion.model.entity.PromotionUsage;
 import ecommerce_app.modules.promotion.repository.PromotionUsageRepository;
 import ecommerce_app.modules.shipping.service.SimpleShippingCalculator;
+import ecommerce_app.modules.stock.model.entity.Stock;
+import ecommerce_app.modules.stock.repository.StockRepository;
 import ecommerce_app.modules.user.model.entity.User;
 import ecommerce_app.modules.user.repository.UserRepository;
 import ecommerce_app.util.JsonUtils;
@@ -61,6 +63,7 @@ public class OrderServiceImpl implements OrderService {
   private final OrderStatusHistoryRepository orderStatusHistoryRepository;
   private final OrderMapper orderMapper;
   private final OrderNumberGenerator orderNumberGenerator;
+  private final StockRepository stockRepository;
 
   @Transactional(rollbackFor = Exception.class)
   @Override
@@ -138,6 +141,10 @@ public class OrderServiceImpl implements OrderService {
     List<OrderItem> orderItems = createOrderItems(cart, savedOrder, checkoutSummary);
     orderItemRepository.saveAll(orderItems);
     log.info("Created {} order items", orderItems.size());
+
+    // deduct stock after order items saved
+    deductStock(cart);
+    log.info("Stock deducted for order: {}", savedOrder.getOrderNumber());
 
     // Record promotion usage if applicable
     recordPromotionUsageIfApplicable(checkoutSummary, savedOrder, currentUser);
@@ -526,5 +533,31 @@ public class OrderServiceImpl implements OrderService {
     cart.setStatus(CartStatus.CHECKED_OUT);
     cartRepository.save(cart);
     log.info("Updated cart {} status to CHECKED_OUT", cart.getId());
+  }
+
+
+  private void deductStock(Cart cart) {
+    for (CartItem cartItem : cart.getCartItems()) {
+      Product product = cartItem.getProduct();
+      int orderedQuantity = cartItem.getQuantity();
+
+      Stock stock = stockRepository.findByProductId(product.getId())
+              .orElseThrow(() -> new ResourceNotFoundException(
+                      "Stock not found for product: " + product.getName()));
+
+      int newQuantity = stock.getQuantity() - orderedQuantity;
+
+      if (newQuantity < 0) {
+        throw new IllegalStateException(
+                String.format("Insufficient stock for '%s'. Available: %d, Requested: %d",
+                        product.getName(), stock.getQuantity(), orderedQuantity));
+      }
+
+      stock.setQuantity(newQuantity);
+      stockRepository.save(stock);
+
+      log.info("Deducted {} units from product '{}'. Remaining stock: {}",
+              orderedQuantity, product.getName(), newQuantity);
+    }
   }
 }

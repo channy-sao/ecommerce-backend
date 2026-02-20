@@ -116,7 +116,7 @@ public class RoleController {
         messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_UPDATE_SUCCESS));
   }
 
-  @PreAuthorize("hasRole('ADMIN') or hasAuthority('USER_CREATE')")
+  @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN') or hasAuthority('ROLE_READ')")
   @GetMapping("/{id}")
   public ResponseEntity<BaseBodyResponse<RoleResponse>> getRoleById(
       @PathVariable(value = "id") long roleId) {
@@ -125,7 +125,7 @@ public class RoleController {
         messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_SUCCESS));
   }
 
-  @PreAuthorize("hasAuthority('ROLE_READ')")
+  @PreAuthorize("hasAuthority('ROLE_READ') or hasAnyRole('ADMIN','SUPER_ADMIN')")
   @GetMapping
   public ResponseEntity<BaseBodyResponse<Set<RoleResponse>>> getRoles() {
     return BaseBodyResponse.success(
@@ -133,7 +133,7 @@ public class RoleController {
         messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_SUCCESS));
   }
 
-  @PreAuthorize("hasAuthority('ROLE_READ')")
+  @PreAuthorize("hasAuthority('ROLE_READ') or hasAnyRole('ADMIN','SUPER_ADMIN')")
   @GetMapping("/search")
   public ResponseEntity<BaseBodyResponse<Set<RoleResponse>>> searchRole(
       @Parameter(name = "role") String roleName) {

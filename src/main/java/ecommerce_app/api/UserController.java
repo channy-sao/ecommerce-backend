@@ -59,7 +59,8 @@ public class UserController {
    *     multipart file.
    * @return A {@link ResponseEntity} containing a success message and created user data.
    */
-  @PreAuthorize("hasAuthority('USER_CREATE')")
+  @PreAuthorize(
+      "hasAuthority('USER_CREATE') or hasAnyRole('ADMIN', 'SUPER_ADMIN', 'MANAGER', 'SUPERVISOR')")
   @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   public ResponseEntity<BaseBodyResponse<UserResponse>> createUser(
       @ModelAttribute CreateUserRequest createUserRequest) {
@@ -84,7 +85,8 @@ public class UserController {
    * @param status The new status to be set for the user (true for active, false for inactive).
    * @return A {@link ResponseEntity} indicating the operation was successful.
    */
-  @PreAuthorize("hasAuthority('USER_UPDATE')")
+  @PreAuthorize(
+      "hasAuthority('USER_UPDATE') or hasAnyRole('ADMIN', 'SUPER_ADMIN', 'MANAGER', 'SUPERVISOR')")
   @PatchMapping("/{id}/status")
   public ResponseEntity<BaseBodyResponse<Void>> updateStatus(
       @PathVariable(value = "id") Long userId,
@@ -99,7 +101,7 @@ public class UserController {
    * @param userId the ID of the user to delete
    * @return a success response if the user is deleted successfully
    */
-  @PreAuthorize("hasAuthority('USER_DELETE')")
+  @PreAuthorize("hasAuthority('USER_DELETE') or hasAnyRole('ADMIN', 'SUPER_ADMIN')")
   @DeleteMapping("/{id}")
   public ResponseEntity<BaseBodyResponse<Void>> deleteUser(
       @PathVariable(value = "id") Long userId) {
@@ -114,7 +116,8 @@ public class UserController {
    * @param userId the ID of the user to retrieve
    * @return the user data in a success response
    */
-  @PreAuthorize("hasAuthority('USER_READ')")
+  @PreAuthorize(
+      "hasAuthority('USER_READ') or hasAnyRole('ADMIN', 'SUPER_ADMIN', 'MANAGER', 'SUPERVISOR')")
   @GetMapping("/{id}")
   public ResponseEntity<BaseBodyResponse<UserResponse>> getById(
       @PathVariable(value = "id") Long userId) {
@@ -129,7 +132,8 @@ public class UserController {
    * @param phone the phone number to search by
    * @return the user data in a success response
    */
-  @PreAuthorize("hasAuthority('USER_READ')")
+  @PreAuthorize(
+      "hasAuthority('USER_READ') or hasAnyRole('ADMIN', 'SUPER_ADMIN', 'MANAGER', 'SUPERVISOR')")
   @GetMapping("/phone/{phone}")
   public ResponseEntity<BaseBodyResponse<UserResponse>> getByPhone(
       @PathVariable(value = "phone") String phone) {
@@ -144,7 +148,8 @@ public class UserController {
    * @param email the email address to search by
    * @return the user data in a success response
    */
-  @PreAuthorize("hasAuthority('USER_READ')")
+  @PreAuthorize(
+      "hasAuthority('USER_READ') or hasAnyRole('ADMIN', 'SUPER_ADMIN', 'MANAGER', 'SUPERVISOR')")
   @GetMapping("/email/{email}")
   public ResponseEntity<BaseBodyResponse<UserResponse>> getByEmail(
       @PathVariable(value = "email") String email) {
@@ -160,7 +165,8 @@ public class UserController {
    * @param userId the ID of the user to update
    * @return the updated user data in a success response
    */
-  @PreAuthorize("hasAuthority('USER_UPDATE')")
+  @PreAuthorize(
+      "hasAuthority('USER_UPDATE') or hasAnyRole('ADMIN', 'SUPER_ADMIN', 'MANAGER', 'SUPERVISOR')")
   @PutMapping("/{id}")
   public ResponseEntity<BaseBodyResponse<Void>> updateUser(
       @Parameter(description = "User update form data", required = true) @ModelAttribute @Valid
@@ -185,7 +191,8 @@ public class UserController {
    * @param filter the keyword to filter users by (optional)
    * @return a {@link ResponseEntity} containing a {@link BaseBodyResponse} with paginated user data
    */
-  @PreAuthorize("hasAuthority('USER_READ')")
+  @PreAuthorize(
+      "hasAuthority('USER_READ') or hasAnyRole('ADMIN', 'SUPER_ADMIN', 'MANAGER', 'SUPERVISOR')")
   @GetMapping
   public ResponseEntity<BaseBodyResponse<List<UserResponse>>> filter(
       @RequestParam(value = "isPaged", defaultValue = "true") boolean isPaged,
@@ -199,7 +206,8 @@ public class UserController {
         messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_SUCCESS));
   }
 
-  @PreAuthorize("hasAuthority('USER_UPDATE')")
+  @PreAuthorize(
+      "hasAuthority('USER_UPDATE') or hasAnyRole('ADMIN', 'SUPER_ADMIN', 'MANAGER', 'SUPERVISOR')")
   @PutMapping("/{userId}/roles")
   public ResponseEntity<BaseBodyResponse<Void>> updateUserRoles(
       @PathVariable(value = "userId") Long userId, @RequestBody AssignRoleToUserRequest request) {

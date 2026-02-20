@@ -111,6 +111,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
   }
 
+  @Transactional
   @Override
   public LoginResponse signupWithFirebase(SignupRequest signupRequest) {
     return this.verifyAndGenerateToken(
@@ -161,6 +162,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         .build();
   }
 
+  @Transactional(readOnly = true)
   @Override
   public UserResponse getCurrentUser() {
     log.info("Start Fetch Current User  {'/me'}");

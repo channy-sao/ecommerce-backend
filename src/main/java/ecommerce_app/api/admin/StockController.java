@@ -16,6 +16,7 @@ import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -31,6 +32,8 @@ public class StockController {
   // 1) Import product (Create)
   // -----------------------------
 
+  @PreAuthorize(
+      "hasAnyRole('ADMIN', 'SUPER_ADMIN', 'MANAGER', 'SUPERVISOR') or hasAnyAuthority('STOCK_IMPORT')")
   @PostMapping("/import-product")
   public ResponseEntity<BaseBodyResponse<Void>> importProducts(
       @RequestBody @Valid ProductImportRequest productImportRequest) {
@@ -43,6 +46,8 @@ public class StockController {
   // 2) Update import record (Fix mistakes)
   // -----------------------------
 
+  @PreAuthorize(
+      "hasAnyRole('ADMIN', 'SUPER_ADMIN', 'MANAGER', 'SUPERVISOR') or hasAnyAuthority('STOCK_IMPORT')")
   @PutMapping("/import-product/{id}")
   public ResponseEntity<BaseBodyResponse<Void>> updateImportProduct(
       @PathVariable(value = "id") Long id,
@@ -56,6 +61,8 @@ public class StockController {
   // 3) Get all import history
   // -----------------------------
 
+  @PreAuthorize(
+      "hasAnyRole('ADMIN', 'SUPER_ADMIN', 'MANAGER', 'SUPERVISOR') or hasAnyAuthority('STOCK_IMPORT')")
   @PostMapping("/import-product/filter")
   public ResponseEntity<BaseBodyResponse<List<ProductImportResponse>>> getImported(
       @RequestBody @Valid ProductImportFilterRequest filterRequest) {
@@ -67,6 +74,8 @@ public class StockController {
   // -----------------------------
   // 4) Get import history by product
   // -----------------------------
+  @PreAuthorize(
+      "hasAnyRole('ADMIN', 'SUPER_ADMIN', 'MANAGER', 'SUPERVISOR') or hasAnyAuthority('STOCK_IMPORT')")
   @GetMapping("/import-product/product/{productId}")
   public ResponseEntity<BaseBodyResponse<List<ProductImportResponse>>> getImportedByProduct(
       @PathVariable(value = "productId") Long productId) {
@@ -79,6 +88,8 @@ public class StockController {
   // -----------------------------
   // 5) Get stock by product
   // -----------------------------
+  @PreAuthorize(
+      "hasAnyRole('ADMIN', 'SUPER_ADMIN', 'MANAGER', 'SUPERVISOR') or hasAnyAuthority('STOCK_IMPORT')")
   @GetMapping("/product/{productId}")
   public ResponseEntity<BaseBodyResponse<StockResponse>> getStockByProduct(
       @PathVariable Long productId) {
@@ -91,6 +102,8 @@ public class StockController {
   // 6) Update stock manually (optional)
   // For example: admin adjusts stock
   // -----------------------------
+  @PreAuthorize(
+      "hasAnyRole('ADMIN', 'SUPER_ADMIN', 'MANAGER', 'SUPERVISOR') or hasAnyAuthority('STOCK_IMPORT', 'STOCK_UPDATE')")
   @PatchMapping("/product/{productId}/adjust")
   public ResponseEntity<BaseBodyResponse<Void>> updateStock(
       @PathVariable Long productId, @Valid @RequestBody UpdateStockRequest request) {
@@ -103,6 +116,7 @@ public class StockController {
   // -----------------------------
   // 7) Listing stocks
   // -----------------------------
+  @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'MANAGER', 'SUPERVISOR')")
   @GetMapping
   public ResponseEntity<BaseBodyResponse<List<StockResponse>>> getStocks() {
     return BaseBodyResponse.success(
@@ -113,6 +127,7 @@ public class StockController {
   // -----------------------------
   // 8) Get History of imported product by product id
   // -----------------------------
+  @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'MANAGER', 'SUPERVISOR')")
   @GetMapping("/import-product/product/{productId}/history")
   public ResponseEntity<BaseBodyResponse<ProductImportHistoryByProductResponse>>
       getProductImportHistory(@PathVariable(value = "productId") Long productId) {

@@ -155,6 +155,7 @@ public class DataInitializer implements ApplicationRunner {
         build("store.currency", "USD", "Currency"),
         build("store.logo_url", "", "Logo URL"),
         build("store.facebook_url", "", "Facebook URL"),
+        build("store.close_at", "11:30 PM", "Store Close"),
         build("store.telegram_url", "", "Telegram URL"),
 
         // ── Payment ────────────────────────────────────────────────────────

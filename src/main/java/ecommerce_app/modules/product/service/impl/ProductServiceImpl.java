@@ -2,14 +2,17 @@ package ecommerce_app.modules.product.service.impl;
 
 import static ecommerce_app.util.ExcelCellUtils.*;
 
+import ecommerce_app.constant.app.SettingKeys;
 import ecommerce_app.infrastructure.exception.BadRequestException;
 import ecommerce_app.infrastructure.exception.ResourceNotFoundException;
 import ecommerce_app.infrastructure.io.service.FileManagerService;
+import ecommerce_app.infrastructure.io.service.StaticResourceService;
 import ecommerce_app.infrastructure.io.service.StorageConfig;
 import ecommerce_app.infrastructure.property.StorageConfigProperty;
 import ecommerce_app.modules.category.model.entity.Category;
 import ecommerce_app.modules.category.repository.CategoryRepository;
 import ecommerce_app.modules.product.model.dto.ImportProductFromExcelResponse;
+import ecommerce_app.modules.product.model.dto.NearEmptyStockResponse;
 import ecommerce_app.modules.product.model.dto.ProductRequest;
 import ecommerce_app.modules.product.model.dto.ProductResponse;
 import ecommerce_app.modules.product.model.entity.Product;
@@ -17,6 +20,7 @@ import ecommerce_app.modules.product.model.entity.ProductImage;
 import ecommerce_app.modules.product.repository.ProductRepository;
 import ecommerce_app.modules.product.service.ProductService;
 import ecommerce_app.modules.product.specification.ProductSpecification;
+import ecommerce_app.modules.setting.service.SettingService;
 import ecommerce_app.util.AuthenticationUtils;
 import ecommerce_app.util.FileUtils;
 import ecommerce_app.util.ProductMapper;
@@ -50,7 +54,9 @@ public class ProductServiceImpl implements ProductService {
   private final CategoryRepository categoryRepository;
   private final ModelMapper modelMapper;
   private final FileManagerService fileManagerService;
+  private final StaticResourceService staticResourceService;
   private final StorageConfig storageConfig;
+  private final SettingService settingService;
 
   // -------------------------------------------------------------------------
   // CREATE
@@ -276,6 +282,35 @@ public class ProductServiceImpl implements ProductService {
     response.setSuccessCount(successRows);
     response.setErrorCount(errorRows);
     return response;
+  }
+
+  @Transactional(readOnly = true)
+  @Override
+  public List<NearEmptyStockResponse> getNearEmptyStockProducts() {
+    int threshold = settingService.getInt("order.low_stock_threshold");
+    return productRepository.findNearEmptyStockProducts(threshold).stream()
+        .map(p -> toNearEmptyStockResponse(p, threshold))
+        .toList();
+  }
+
+  @Transactional(readOnly = true)
+  @Override
+  public long countNearEmptyStockProducts() {
+    int threshold = settingService.getInt("order.low_stock_threshold");
+    return productRepository.countNearEmptyStockProducts(threshold);
+  }
+
+  private NearEmptyStockResponse toNearEmptyStockResponse(Product product, int threshold) {
+    return NearEmptyStockResponse.builder()
+        .id(product.getId())
+        .name(product.getName())
+        .price(product.getPrice())
+        .primaryImage(staticResourceService.getProductImageUrl(product.getPrimaryImagePath()))
+        .categoryName(product.getCategory().getName())
+        .currentQuantity(product.getStockQuantity())
+        .threshold(threshold)
+        .stockStatus(product.getStockStatus())
+        .build();
   }
 
   // -------------------------------------------------------------------------

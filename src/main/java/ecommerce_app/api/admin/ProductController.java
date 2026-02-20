@@ -6,6 +6,7 @@ import ecommerce_app.constant.message.ResponseMessageConstant;
 import ecommerce_app.infrastructure.exception.BadRequestException;
 import ecommerce_app.infrastructure.model.response.body.BaseBodyResponse;
 import ecommerce_app.modules.product.model.dto.ImportProductFromExcelResponse;
+import ecommerce_app.modules.product.model.dto.NearEmptyStockResponse;
 import ecommerce_app.modules.product.model.dto.ProductRequest;
 import ecommerce_app.modules.product.model.dto.ProductResponse;
 import ecommerce_app.modules.product.service.ProductExcelTemplateService;
@@ -20,6 +21,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.ByteArrayResource;
@@ -28,6 +31,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -50,6 +54,8 @@ public class ProductController {
   private final ProductReportService productReportService;
   private final MessageSourceService messageSourceService;
 
+  @PreAuthorize(
+      "hasAnyAuthority('PRODUCT_CREATE') or hasAnyRole('ADMIN', 'SUPER_ADMIN','MANAGER', 'SUPERVISOR')")
   @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   @Operation(
       summary = "Create product",
@@ -66,6 +72,7 @@ public class ProductController {
         messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_SUCCESS));
   }
 
+  @PreAuthorize("hasAnyAuthority('PRODUCT_DELETE') or hasAnyRole('ADMIN', 'SUPER_ADMIN')")
   @DeleteMapping("/{id}")
   public ResponseEntity<BaseBodyResponse<Void>> deleteProduct(@PathVariable(value = "id") Long id) {
     this.productService.deleteProduct(id);
@@ -81,6 +88,8 @@ public class ProductController {
         messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_SUCCESS));
   }
 
+  @PreAuthorize(
+      "hasAnyAuthority('PRODUCT_UPDATE') or hasAnyRole('ADMIN', 'SUPER_ADMIN','MANAGER', 'SUPERVISOR')")
   @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   @Operation(
       summary = "Update product",
@@ -118,6 +127,8 @@ public class ProductController {
         ResponseMessageConstant.FIND_ALL_SUCCESSFULLY);
   }
 
+  @PreAuthorize(
+      "hasAnyAuthority('PRODUCT_CREATE') or hasAnyRole('ADMIN', 'SUPER_ADMIN','MANAGER', 'SUPERVISOR')")
   @PostMapping(value = "/import-from-excel", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   public ResponseEntity<BaseBodyResponse<ImportProductFromExcelResponse>> importFromExcel(
       @RequestParam("file") MultipartFile file) {
@@ -128,7 +139,8 @@ public class ProductController {
 
   /** Download Excel template for product import with dynamic sample data */
   @GetMapping("/import-template")
-  //  @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+  @PreAuthorize(
+      "hasAnyAuthority('PRODUCT_CREATE', 'PRODUCT_UPDATE') or hasAnyRole('ADMIN', 'SUPER_ADMIN','MANAGER', 'SUPERVISOR')")
   @Operation(
       summary = "Download product import template",
       description = "Generate and download Excel template with optional sample data")
@@ -169,6 +181,7 @@ public class ProductController {
   }
 
   /** Download Product Report */
+  @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN','MANAGER', 'SUPERVISOR')")
   @GetMapping("/export-report")
   @Operation(
       summary = "Download product report",
@@ -193,5 +206,29 @@ public class ProductController {
         .contentType(MediaType.parseMediaType(format.getContentType()))
         .contentLength(reportData.length)
         .body(resource);
+  }
+
+  // GET /api/admin/v1/products/near-empty-stock
+  @GetMapping("/near-empty-stock")
+  @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'MANAGER', 'SUPERVISOR')")
+  @Operation(
+      summary = "Get near empty stock products",
+      description = "Returns products where stock is below the configured threshold")
+  public ResponseEntity<BaseBodyResponse<List<NearEmptyStockResponse>>> getNearEmptyStock() {
+    return BaseBodyResponse.success(
+        productService.getNearEmptyStockProducts(),
+        messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_SUCCESS));
+  }
+
+  // GET /api/admin/v1/products/near-empty-stock/count
+  @GetMapping("/near-empty-stock/count")
+  @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'MANAGER', 'SUPERVISOR')")
+  @Operation(
+      summary = "Count near empty stock products",
+      description = "Returns count for dashboard badge")
+  public ResponseEntity<BaseBodyResponse<Map<String, Long>>> countNearEmptyStock() {
+    return BaseBodyResponse.success(
+        Map.of("count", productService.countNearEmptyStockProducts()),
+        messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_SUCCESS));
   }
 }

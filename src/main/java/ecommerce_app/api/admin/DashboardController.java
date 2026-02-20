@@ -18,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -34,6 +35,7 @@ public class DashboardController {
   private final MessageSourceService messageSourceService;
 
   /** Get dashboard statistics (last 30 days) GET /api/v1/orders/stats/dashboard */
+  @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'SUPERVISOR', 'SUPER_ADMIN')")
   @GetMapping("/stats/dashboard")
   public ResponseEntity<BaseBodyResponse<OrderStatsResponse>> getDashboardStats() {
     log.info("Fetching dashboard statistics");
@@ -46,6 +48,7 @@ public class DashboardController {
    * Get statistics for a specific date range GET
    * /api/v1/orders/stats?fromDate=2024-01-01&toDate=2024-01-31
    */
+  @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'SUPERVISOR', 'SUPER_ADMIN')")
   @GetMapping("/stats")
   public ResponseEntity<BaseBodyResponse<OrderStatsResponse>> getOrderStats(
       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
@@ -66,6 +69,7 @@ public class DashboardController {
   }
 
   /** Get today's statistics GET /api/v1/orders/stats/today */
+  @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'SUPERVISOR', 'SUPER_ADMIN')")
   @GetMapping("/stats/today")
   public ResponseEntity<BaseBodyResponse<OrderStatsResponse>> getTodayStats() {
     LocalDate today = LocalDate.now();
@@ -75,6 +79,7 @@ public class DashboardController {
   }
 
   /** Get this week's statistics GET /api/v1/orders/stats/week */
+  @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'SUPERVISOR', 'SUPER_ADMIN')")
   @GetMapping("/stats/week")
   public ResponseEntity<BaseBodyResponse<OrderStatsResponse>> getWeekStats() {
     LocalDate today = LocalDate.now();
@@ -86,6 +91,7 @@ public class DashboardController {
 
   /** Get this month's statistics GET /api/v1/orders/stats/month */
   @GetMapping("/stats/month")
+  @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'SUPERVISOR', 'SUPER_ADMIN')")
   public ResponseEntity<BaseBodyResponse<OrderStatsResponse>> getMonthStats() {
 
     LocalDate today = LocalDate.now();
@@ -97,6 +103,7 @@ public class DashboardController {
 
   /** Get revenue trend for dashboard */
   @GetMapping("/revenue-trend")
+  @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'SUPERVISOR', 'SUPER_ADMIN')")
   public ResponseEntity<BaseBodyResponse<List<RevenueTrendResponse>>> getRevenueTrend(
       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
           LocalDate fromDate,
@@ -118,6 +125,7 @@ public class DashboardController {
 
   /** Get status distribution for dashboard */
   @GetMapping("/status-distribution")
+  @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'SUPERVISOR', 'SUPER_ADMIN')")
   public ResponseEntity<BaseBodyResponse<List<StatusDistributionResponse>>> getStatusDistribution(
       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
           LocalDate fromDate,
@@ -141,6 +149,7 @@ public class DashboardController {
 
   /** Get top products for dashboard */
   @GetMapping("/top-products")
+  @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'SUPERVISOR', 'SUPER_ADMIN')")
   public ResponseEntity<BaseBodyResponse<List<TopProductResponse>>> getTopProducts(
       @RequestParam(defaultValue = "5") int limit,
       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
@@ -165,6 +174,7 @@ public class DashboardController {
 
   /** Get recent orders for dashboard */
   @GetMapping("/recent-orders")
+  @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'SUPERVISOR', 'SUPER_ADMIN')")
   public ResponseEntity<BaseBodyResponse<List<RecentOrderResponse>>> getRecentOrders(
       @RequestParam(defaultValue = "10") int limit,
       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
@@ -187,6 +197,7 @@ public class DashboardController {
   }
 
   /** Get all dashboard data in one call */
+  @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'SUPERVISOR', 'SUPER_ADMIN')")
   @GetMapping("/dashboard-overview")
   public ResponseEntity<BaseBodyResponse<DashboardOverviewResponse>> getDashboardOverview() {
     log.info("Fetching complete dashboard overview");

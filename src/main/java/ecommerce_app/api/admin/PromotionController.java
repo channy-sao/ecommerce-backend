@@ -14,6 +14,7 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -34,6 +35,8 @@ public class PromotionController {
   private final PromotionService promotionService;
   private final MessageSourceService messageSourceService;
 
+  @PreAuthorize(
+      "hasAnyAuthority('PROMOTION_CREATE') or hasAnyRole('ADMIN', 'SUPER_ADMIN','MANAGER', 'SUPERVISOR')")
   @PostMapping
   @Operation(summary = "Create a new promotion")
   public ResponseEntity<BaseBodyResponse<PromotionResponse>> createPromotion(
@@ -43,6 +46,8 @@ public class PromotionController {
         messageSourceService.getMessage(MessageKeyConstant.PROMOTION_MESSAGE_ADD_SUCCESS));
   }
 
+  @PreAuthorize(
+      "hasAnyAuthority('PROMOTION_UPDATE') or hasAnyRole('ADMIN', 'SUPER_ADMIN','MANAGER', 'SUPERVISOR')")
   @PutMapping("/{id}")
   @Operation(summary = "Update an existing promotion")
   public ResponseEntity<BaseBodyResponse<PromotionResponse>> updatePromotion(
@@ -85,6 +90,8 @@ public class PromotionController {
         messageSourceService.getMessage(MessageKeyConstant.PROMOTION_TITLE_LIST));
   }
 
+  @PreAuthorize(
+      "hasAnyAuthority('PROMOTION_DELETE') or hasAnyRole('ADMIN', 'SUPER_ADMIN','MANAGER', 'SUPERVISOR')")
   @DeleteMapping("/{id}")
   @Operation(summary = "Delete a promotion")
   public ResponseEntity<BaseBodyResponse<Void>> deletePromotion(@PathVariable Long id) {
@@ -93,6 +100,8 @@ public class PromotionController {
         messageSourceService.getMessage(MessageKeyConstant.PROMOTION_MESSAGE_DELETE_SUCCESS));
   }
 
+  @PreAuthorize(
+      "hasAnyAuthority('PROMOTION_CREATE','PROMOTION_UPDATE') or hasAnyRole('ADMIN', 'SUPER_ADMIN','MANAGER', 'SUPERVISOR')")
   @PatchMapping("/{id}/status")
   @Operation(summary = "Toggle promotion status")
   public ResponseEntity<BaseBodyResponse<PromotionResponse>> togglePromotionStatus(

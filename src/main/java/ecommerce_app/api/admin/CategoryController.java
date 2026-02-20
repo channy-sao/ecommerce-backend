@@ -25,6 +25,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -46,6 +47,7 @@ public class CategoryController {
   private final CategoryExcelTemplateService categoryExcelTemplateService;
   private final MessageSourceService messageSourceService;
 
+  @PreAuthorize("hasAuthority('CATEGORY_CREATE')")
   @PostMapping
   public ResponseEntity<BaseBodyResponse<CategoryResponse>> createCategory(
       @RequestBody CategoryRequest categoryRequest) {
@@ -54,6 +56,7 @@ public class CategoryController {
         messageSourceService.getMessage(MessageKeyConstant.CATEGORY_MESSAGE_ADD_SUCCESS));
   }
 
+  @PreAuthorize("hasAuthority('CATEGORY_DELETE')")
   @DeleteMapping("/{id}")
   public ResponseEntity<BaseBodyResponse<Void>> deleteCategory(
       @PathVariable(value = "id") Long id) {
@@ -70,6 +73,7 @@ public class CategoryController {
         messageSourceService.getMessage(MessageKeyConstant.CATEGORY_MESSAGE_UPDATE_SUCCESS));
   }
 
+  @PreAuthorize("hasAuthority('CATEGORY_CREATE') or hasAuthority('CATEGORY_UPDATE')")
   @PutMapping("/{id}")
   public ResponseEntity<BaseBodyResponse<CategoryResponse>> updateCategory(
       @RequestBody CategoryRequest categoryRequest, @PathVariable(value = "id") Long id) {
@@ -119,7 +123,7 @@ public class CategoryController {
 
   /** Download Excel template for category import with dynamic sample data */
   @GetMapping("/import-template")
-  //  @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+  @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN') or hasAuthority('CATEGORY_CREATE')")
   @Operation(
       summary = "Download category import template",
       description = "Generate and download Excel template with optional sample data")
