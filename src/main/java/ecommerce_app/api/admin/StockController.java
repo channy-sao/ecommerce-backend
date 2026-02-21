@@ -1,5 +1,6 @@
 package ecommerce_app.api.admin;
 
+import ecommerce_app.constant.enums.StockStatus;
 import ecommerce_app.constant.message.MessageKeyConstant;
 import ecommerce_app.infrastructure.model.response.body.BaseBodyResponse;
 import ecommerce_app.modules.stock.model.dto.ProductImportFilterRequest;
@@ -15,6 +16,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -118,9 +120,16 @@ public class StockController {
   // -----------------------------
   @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'MANAGER', 'SUPERVISOR')")
   @GetMapping
-  public ResponseEntity<BaseBodyResponse<List<StockResponse>>> getStocks() {
-    return BaseBodyResponse.success(
-        stockService.getStocks(),
+  public ResponseEntity<BaseBodyResponse<List<StockResponse>>> getStocks(
+      @RequestParam(value = "isPaged", defaultValue = "true") boolean isPaged,
+      @RequestParam(value = "page", defaultValue = "1") int page,
+      @RequestParam(value = "pageSize", defaultValue = "10") int pageSize,
+      @RequestParam(value = "sortBy", defaultValue = "createdAt") String sortBy,
+      @RequestParam(value = "sortDirection", defaultValue = "DESC") Sort.Direction sortDirection,
+      @RequestParam(value = "filter", required = false) String filter,
+      @RequestParam(value = "stockStatus", required = false) StockStatus stockStatus) {
+    return BaseBodyResponse.pageSuccess(
+        stockService.getStocks(isPaged, page, pageSize, sortBy, sortDirection,filter, stockStatus),
         messageSourceService.getMessage(MessageKeyConstant.STOCK_TITLE_LIST));
   }
 

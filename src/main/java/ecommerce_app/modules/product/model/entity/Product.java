@@ -2,6 +2,7 @@ package ecommerce_app.modules.product.model.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import ecommerce_app.constant.enums.PromotionType;
+import ecommerce_app.constant.enums.StockStatus;
 import ecommerce_app.infrastructure.model.entity.SoftDeletableEntity;
 import ecommerce_app.modules.cart.model.entity.CartItem;
 import ecommerce_app.modules.category.model.entity.Category;
@@ -50,9 +51,6 @@ public class Product extends SoftDeletableEntity {
   @Column(nullable = false, name = "price")
   private BigDecimal price;
 
-  // REMOVED: single image field
-  // @Column(nullable = false, name = "image", length = 500)
-  // private String image;
 
   @Column(nullable = false, name = "is_feature")
   private Boolean isFeature;
@@ -169,11 +167,11 @@ public class Product extends SoftDeletableEntity {
   }
 
   @Transient
-  public String getStockStatus() {
+  public StockStatus getStockStatus() {
     int quantity = getStockQuantity();
-    if (quantity <= 0) return "OUT_OF_STOCK";
-    if (quantity <= 10) return "LOW_STOCK";
-    return "IN_STOCK";
+    if (quantity <= 0) return StockStatus.OUT_OF_STOCK;
+    if (quantity <= 10) return StockStatus.LOW_STOCK;
+    return StockStatus.IN_STOCK;
   }
 
   @Transient

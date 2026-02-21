@@ -1,5 +1,6 @@
 package ecommerce_app.modules.stock.service.impl;
 
+import ecommerce_app.constant.enums.StockStatus;
 import ecommerce_app.infrastructure.exception.ResourceNotFoundException;
 import ecommerce_app.infrastructure.mapper.StockMapper;
 import ecommerce_app.modules.product.model.dto.ProductResponse;
@@ -11,10 +12,16 @@ import ecommerce_app.modules.stock.repository.StockRepository;
 import ecommerce_app.modules.stock.service.StockService;
 import java.util.List;
 
+import ecommerce_app.modules.stock.specification.StockSpecification;
 import ecommerce_app.util.ProductMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -89,9 +96,32 @@ public class StockServiceImpl implements StockService {
 
   @Transactional(readOnly = true)
   @Override
-  public List<StockResponse> getStocks() {
+  public Page<StockResponse> getStocks(
+          boolean isPaged,
+          int page,
+          int pageSize,
+          String sortBy,
+          Sort.Direction sortDirection,
+          String filter, StockStatus status) {
     log.info("Get Stock List");
-    final var stocks = stockRepository.findAll();
-    return stocks.stream().map(stockMapper::toStockResponse).toList();
+    Specification<Stock> specification = Specification.allOf();
+
+    if (filter != null && !filter.trim().isEmpty()) {
+      specification = specification.and(StockSpecification.filter(filter));
+    }
+    if(status != null) {
+      specification = specification.and(StockSpecification.hasStockStatus(status));
+    }
+    Sort sort = Sort.by(sortDirection, sortBy);
+    if (!isPaged) {
+      List<StockResponse> stocks =
+          stockRepository.findAll(specification, sort).stream()
+              .map(stockMapper::toStockResponse)
+              .toList();
+      return new PageImpl<>(stocks);
+    }
+    PageRequest pageRequest = PageRequest.of(page - 1, pageSize, sort);
+    final var stocks = stockRepository.findAll(specification, pageRequest);
+    return stocks.map(stockMapper::toStockResponse);
   }
 }

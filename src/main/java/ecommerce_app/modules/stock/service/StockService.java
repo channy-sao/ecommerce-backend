@@ -1,6 +1,9 @@
 package ecommerce_app.modules.stock.service;
 
+import ecommerce_app.constant.enums.StockStatus;
 import ecommerce_app.modules.stock.model.dto.StockResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Sort;
 
 import java.util.List;
 
@@ -11,5 +14,5 @@ public interface StockService {
 
     void adjustStock(Long productId, int quantity);
 
-    List<StockResponse> getStocks();
+    Page<StockResponse> getStocks(boolean isPaged, int page, int pageSize, String sortBy, Sort.Direction sortDirection, String filter, StockStatus stockStatus);
 }

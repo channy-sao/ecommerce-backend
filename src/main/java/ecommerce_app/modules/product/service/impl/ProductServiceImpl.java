@@ -188,7 +188,7 @@ public class ProductServiceImpl implements ProductService {
 
   @Transactional(readOnly = true)
   @Override
-  public Page<ProductResponse> filter(
+  public Page<ProductResponse>  filter(
       boolean isPage,
       int page,
       int pageSize,

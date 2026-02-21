@@ -1,6 +1,8 @@
 package ecommerce_app.modules.product.model.dto;
 
 import java.math.BigDecimal;
+
+import ecommerce_app.constant.enums.StockStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -18,5 +20,5 @@ public class NearEmptyStockResponse {
   private String categoryName;
   private int currentQuantity;
   private int threshold;
-  private String stockStatus;
+  private StockStatus stockStatus;
 }

@@ -1,5 +1,6 @@
 package ecommerce_app.modules.product.model.dto;
 
+import ecommerce_app.constant.enums.StockStatus;
 import ecommerce_app.infrastructure.model.response.AuditUserDto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
@@ -75,7 +76,7 @@ public class ProductResponse {
       name = "stockStatus",
       description = "Stock status (e.g., In Stock, Out of Stock, Limited Stock)",
       example = "In Stock")
-  private String stockStatus;
+  private StockStatus stockStatus;
 
   // Promotion badges
   @Schema(

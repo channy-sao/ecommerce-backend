@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+import ecommerce_app.constant.enums.StockStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -41,7 +42,7 @@ public class MobileProductResponse {
   // Stock info
   private Integer stockQuantity;
   private Boolean inStock;
-  private String stockStatus; // OUT_OF_STOCK, LOW_STOCK, IN_STOCK
+  private StockStatus stockStatus; // OUT_OF_STOCK, LOW_STOCK, IN_STOCK
 
   // Promotion info
   private Boolean hasPromotion;

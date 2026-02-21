@@ -1,6 +1,7 @@
 package ecommerce_app.modules.product.model.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import ecommerce_app.constant.enums.StockStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -34,7 +35,7 @@ public class MobileProductListResponse {
   // Stock info
   private Integer stockQuantity;
   private Boolean inStock;
-  private String stockStatus;
+  private StockStatus stockStatus;
 
   // Promotion badges
   private Boolean hasPromotion;
