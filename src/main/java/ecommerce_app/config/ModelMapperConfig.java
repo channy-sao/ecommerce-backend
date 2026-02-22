@@ -1,20 +1,18 @@
 package ecommerce_app.config;
 
-import ecommerce_app.infrastructure.io.service.FileManagerService;
-import ecommerce_app.infrastructure.io.service.StorageConfig;
-import ecommerce_app.infrastructure.property.StorageConfigProperty;
-import ecommerce_app.modules.product.model.dto.ProductRequest;
-import ecommerce_app.modules.product.model.entity.Product;
-import ecommerce_app.modules.user.model.dto.UpdateUserRequest;
-import ecommerce_app.modules.user.model.dto.UserResponse;
-import ecommerce_app.modules.user.model.entity.User;
+import ecommerce_app.core.io.service.FileManagerService;
+import ecommerce_app.core.io.service.StorageConfig;
+import ecommerce_app.property.StorageConfigProperty;
+import ecommerce_app.dto.request.ProductRequest;
+import ecommerce_app.entity.Product;
+import ecommerce_app.dto.response.UserResponse;
+import ecommerce_app.entity.User;
 import ecommerce_app.util.AuditUserResolver;
 import ecommerce_app.util.ProductMapper;
 import org.modelmapper.Conditions;
 import org.modelmapper.Converter;
 import org.modelmapper.ModelMapper;
 import org.modelmapper.convention.MatchingStrategies;
-import org.modelmapper.spi.MappingContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 

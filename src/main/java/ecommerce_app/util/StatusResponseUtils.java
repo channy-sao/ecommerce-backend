@@ -1,7 +1,7 @@
 package ecommerce_app.util;
 
 import ecommerce_app.constant.message.ResponseMessageConstant;
-import ecommerce_app.infrastructure.model.response.body.StatusResponse;
+import ecommerce_app.dto.response.StatusResponse;
 import lombok.NoArgsConstructor;
 import org.springframework.http.HttpStatusCode;
 

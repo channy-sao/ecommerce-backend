@@ -1,6 +1,6 @@
 package ecommerce_app.util;
 
-import ecommerce_app.modules.auth.custom.CustomUserDetails;
+import ecommerce_app.core.identify.custom.CustomUserDetails;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import org.springframework.security.core.Authentication;

@@ -1,6 +1,6 @@
 package ecommerce_app.util;
 
-import ecommerce_app.infrastructure.exception.BadRequestException;
+import ecommerce_app.exception.BadRequestException;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

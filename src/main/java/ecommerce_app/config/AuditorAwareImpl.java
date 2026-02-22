@@ -1,6 +1,7 @@
 package ecommerce_app.config;
 
-import ecommerce_app.modules.auth.custom.CustomUserDetails;
+import ecommerce_app.core.identify.custom.AuthUser;
+import ecommerce_app.core.identify.custom.CustomUserDetails;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.AuditorAware;
@@ -29,7 +30,7 @@ public class AuditorAwareImpl implements AuditorAware<Long> {
     Object principal = auth.getPrincipal();
 
     // If principal is your custom UserDetails
-    if (principal instanceof CustomUserDetails(ecommerce_app.modules.auth.custom.AuthUser user)) {
+    if (principal instanceof CustomUserDetails(AuthUser user)) {
       return Optional.of(user.getId()); // <- safe, no repository call
     }
 

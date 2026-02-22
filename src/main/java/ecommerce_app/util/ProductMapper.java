@@ -1,12 +1,12 @@
 package ecommerce_app.util;
 
-import ecommerce_app.infrastructure.io.service.FileManagerService;
-import ecommerce_app.infrastructure.io.service.StorageConfig;
-import ecommerce_app.infrastructure.property.StorageConfigProperty;
-import ecommerce_app.modules.product.model.dto.ProductImageDto;
-import ecommerce_app.modules.product.model.dto.ProductResponse;
-import ecommerce_app.modules.product.model.entity.Product;
-import ecommerce_app.modules.product.model.entity.ProductImage;
+import ecommerce_app.core.io.service.FileManagerService;
+import ecommerce_app.core.io.service.StorageConfig;
+import ecommerce_app.property.StorageConfigProperty;
+import ecommerce_app.dto.response.ProductImageResponse;
+import ecommerce_app.dto.response.ProductResponse;
+import ecommerce_app.entity.Product;
+import ecommerce_app.entity.ProductImage;
 import java.util.Comparator;
 import java.util.List;
 
@@ -41,9 +41,9 @@ public class ProductMapper {
 
     // Resolve each raw filename → full URL, sorted by sortOrder
     // This is the ONLY place URL resolution happens
-    List<ProductImageDto> imageDtos = product.getImages().stream()
+    List<ProductImageResponse> imageDtos = product.getImages().stream()
             .sorted(Comparator.comparing(ProductImage::getSortOrder))
-            .map(img -> new ProductImageDto(
+            .map(img -> new ProductImageResponse(
                     img.getId(),
                     fileManagerService.getResourceUrl(storageConfig.getProductPath(), img.getImagePath()),
                     img.getSortOrder()

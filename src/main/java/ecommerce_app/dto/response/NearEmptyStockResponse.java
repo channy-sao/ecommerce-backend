@@ -1,0 +1,24 @@
+package ecommerce_app.dto.response;
+
+import java.math.BigDecimal;
+
+import ecommerce_app.constant.enums.StockStatus;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class NearEmptyStockResponse {
+  private Long id;
+  private String name;
+  private BigDecimal price;
+  private String primaryImage;
+  private String categoryName;
+  private int currentQuantity;
+  private int threshold;
+  private StockStatus stockStatus;
+}

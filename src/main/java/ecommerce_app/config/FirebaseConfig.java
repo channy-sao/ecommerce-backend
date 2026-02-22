@@ -4,10 +4,9 @@ import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.messaging.FirebaseMessaging;
-import ecommerce_app.infrastructure.exception.ApiException;
-import jakarta.annotation.PostConstruct;
+import ecommerce_app.exception.ApiException;
+
 import java.io.IOException;
 
 import lombok.extern.slf4j.Slf4j;

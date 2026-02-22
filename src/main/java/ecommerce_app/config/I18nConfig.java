@@ -4,7 +4,7 @@ package ecommerce_app.config;
 // PRODUCTION-READY I18N CONFIGURATION - BEST PRACTICES
 // ============================================================================
 
-import ecommerce_app.infrastructure.property.I18nProperties;
+import ecommerce_app.property.I18nProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.MessageSource;
 import org.springframework.context.annotation.Bean;

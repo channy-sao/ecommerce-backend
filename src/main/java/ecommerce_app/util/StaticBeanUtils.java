@@ -1,6 +1,6 @@
 package ecommerce_app.util;
 
-import ecommerce_app.infrastructure.property.AppProperty;
+import ecommerce_app.property.AppProperty;
 import lombok.NoArgsConstructor;
 import org.springframework.context.ApplicationContext;
 import org.springframework.security.crypto.password.PasswordEncoder;

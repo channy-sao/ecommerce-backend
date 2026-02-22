@@ -1,9 +1,8 @@
 package ecommerce_app.util;
 
-import ecommerce_app.infrastructure.exception.ResourceNotFoundException;
-import ecommerce_app.infrastructure.model.response.AuditUserDto;
-import ecommerce_app.modules.user.model.entity.User;
-import ecommerce_app.modules.user.repository.UserRepository;
+import ecommerce_app.exception.ResourceNotFoundException;
+import ecommerce_app.dto.response.AuditUserDto;
+import ecommerce_app.repository.UserRepository;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;

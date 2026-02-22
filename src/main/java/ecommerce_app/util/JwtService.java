@@ -1,7 +1,7 @@
 package ecommerce_app.util;
 
-import ecommerce_app.infrastructure.property.AppProperty;
-import ecommerce_app.modules.auth.custom.CustomUserDetails;
+import ecommerce_app.property.AppProperty;
+import ecommerce_app.core.identify.custom.CustomUserDetails;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;

@@ -1,6 +1,6 @@
 package ecommerce_app.config;
 
-import ecommerce_app.infrastructure.model.response.body.BaseBodyResponse;
+import ecommerce_app.dto.response.BaseBodyResponse;
 import ecommerce_app.util.JsonUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

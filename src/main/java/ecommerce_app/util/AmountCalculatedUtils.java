@@ -1,7 +1,7 @@
 package ecommerce_app.util;
 
-import ecommerce_app.modules.cart.model.entity.Cart;
-import ecommerce_app.modules.promotion.model.entity.Promotion;
+import ecommerce_app.entity.Cart;
+import ecommerce_app.entity.Promotion;
 import java.math.BigDecimal;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
