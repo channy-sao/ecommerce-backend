@@ -44,7 +44,6 @@ public class Product extends SoftDeletableEntity {
   @Column(nullable = false, name = "price")
   private BigDecimal price;
 
-
   @Column(nullable = false, name = "is_feature")
   private Boolean isFeature;
 
@@ -117,6 +116,23 @@ public class Product extends SoftDeletableEntity {
       orphanRemoval = true)
   @JsonIgnore
   private List<ProductImage> images = new ArrayList<>();
+
+  @OneToMany(
+      cascade = CascadeType.ALL,
+      fetch = FetchType.LAZY,
+      mappedBy = "product",
+      orphanRemoval = true)
+  @JsonIgnore
+  private List<ProductSpec> specs = new ArrayList<>();
+
+  @Transient
+  public List<String> getSpecTexts() {
+    if (specs == null) return List.of();
+    return specs.stream()
+        .sorted(Comparator.comparing(ProductSpec::getSortOrder))
+        .map(ProductSpec::getSpecText)
+        .toList();
+  }
 
   // --- Transient helpers (raw filename only, no URL resolution) ---
   // These are used ONLY by the service layer for file deletion logic.

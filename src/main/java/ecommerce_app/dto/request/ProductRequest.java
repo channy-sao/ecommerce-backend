@@ -44,4 +44,7 @@ public class ProductRequest {
 
   @Schema(description = "Indicates whether the product is featured", example = "true")
   private Boolean isFeature;
+
+  @Schema(description = "List of product spec texts", example = "[\"Bluetooth 5.1\", \"IP67 waterproof\", \"30W RMS output\"]")
+  private List<String> specs;
 }

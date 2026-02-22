@@ -2,6 +2,7 @@ package ecommerce_app.service.impl;
 
 import static ecommerce_app.util.ExcelCellUtils.*;
 
+import ecommerce_app.entity.ProductSpec;
 import ecommerce_app.exception.BadRequestException;
 import ecommerce_app.exception.ResourceNotFoundException;
 import ecommerce_app.core.io.service.FileManagerService;
@@ -68,9 +69,11 @@ public class ProductServiceImpl implements ProductService {
       Product product = modelMapper.map(productRequest, Product.class);
       product.setId(null);
       product.setImages(new ArrayList<>()); // must init before saveProductImages
+      product.setSpecs(new ArrayList<>()); // init specs list
       product.setCategory(findCategoryById(productRequest.getCategoryId()));
 
       saveProductImages(productRequest.getImages(), product);
+      saveProductSpecs(productRequest.getSpecs(), product);
 
       return ProductMapper.toProductResponse(productRepository.save(product));
 
@@ -98,6 +101,7 @@ public class ProductServiceImpl implements ProductService {
       }
 
       handleImageUpdate(productRequest, existingProduct);
+      handleSpecUpdate(productRequest, existingProduct);
 
       return ProductMapper.toProductResponse(productRepository.save(existingProduct));
 
@@ -186,7 +190,7 @@ public class ProductServiceImpl implements ProductService {
 
   @Transactional(readOnly = true)
   @Override
-  public Page<ProductResponse>  filter(
+  public Page<ProductResponse> filter(
       boolean isPage,
       int page,
       int pageSize,
@@ -390,5 +394,33 @@ public class ProductServiceImpl implements ProductService {
         .categoryId(getLongCell(row.getCell(4)))
         .isFeature(getBooleanCell(row.getCell(5)))
         .build();
+  }
+
+  private void saveProductSpecs(List<String> specTexts, Product product) {
+    if (specTexts == null || specTexts.isEmpty()) return;
+    for (int i = 0; i < specTexts.size(); i++) {
+      String text = specTexts.get(i);
+      if (text == null || text.isBlank()) continue;
+      ProductSpec spec = new ProductSpec();
+      spec.setSpecText(text.trim());
+      spec.setSortOrder(i);
+      spec.setProduct(product);
+      product.getSpecs().add(spec);
+    }
+  }
+
+
+  private void handleSpecUpdate(ProductRequest request, Product product) {
+    if (request.getSpecs() == null) return; // null = no change
+    product.getSpecs().clear(); // orphanRemoval = true will delete old rows
+    for (int i = 0; i < request.getSpecs().size(); i++) {
+      String text = request.getSpecs().get(i);
+      if (text == null || text.isBlank()) continue;
+      ProductSpec spec = new ProductSpec();
+      spec.setSpecText(text.trim());
+      spec.setSortOrder(i);
+      spec.setProduct(product);
+      product.getSpecs().add(spec);
+    }
   }
 }

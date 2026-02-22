@@ -71,6 +71,7 @@ public class ProductMapper {
     response.setQuickAddAvailable(product.getQuickAddAvailable());
     response.setDiscountedPrice(product.getDiscountedPrice());
     response.setPromotionBadge(product.getPromotionBadge());
+    response.setSpecs(product.getSpecTexts());
     return response;
   }
 }

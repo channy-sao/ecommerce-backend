@@ -30,6 +30,9 @@ public class ProductResponse {
       example = "Latest Apple smartphone with A17 chip")
   private String description;
 
+  @Schema(description = "Specification of product")
+  private List<String> specs;
+
   @Schema(description = "Price of the product", example = "1299.99")
   private BigDecimal price;
 
