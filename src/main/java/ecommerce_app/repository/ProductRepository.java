@@ -90,7 +90,8 @@ public interface ProductRepository
     """)
   long countNearEmptyStockProducts(@Param("threshold") int threshold);
 
-  @Query("""
+  @Query(
+      """
     SELECT p FROM Product p
     JOIN p.stock s
     WHERE p.category.id = :categoryId
@@ -99,7 +100,29 @@ public interface ProductRepository
     ORDER BY p.createdAt DESC
     """)
   Page<Product> findRelatedProducts(
-          @Param("categoryId") Long categoryId,
-          @Param("excludeId") Long excludeId,
-          Pageable pageable);
+      @Param("categoryId") Long categoryId, @Param("excludeId") Long excludeId, Pageable pageable);
+
+  @Query(
+      """
+    SELECT p FROM Product p
+    JOIN p.stock s
+    WHERE s.quantity > 0
+    ORDER BY p.favoritesCount DESC, p.createdAt DESC
+    """)
+  Page<Product> findPopularProducts(Pageable pageable);
+
+  // Recommend from categories user likes, exclude seen products
+  @Query(
+      """
+    SELECT p FROM Product p
+    JOIN p.stock s
+    WHERE p.category.id IN :categoryIds
+    AND p.id NOT IN :excludeIds
+    AND s.quantity > 0
+    ORDER BY p.favoritesCount DESC, p.createdAt DESC
+    """)
+  Page<Product> findRecommendedProducts(
+      @Param("categoryIds") List<Long> categoryIds,
+      @Param("excludeIds") List<Long> excludeIds,
+      Pageable pageable);
 }

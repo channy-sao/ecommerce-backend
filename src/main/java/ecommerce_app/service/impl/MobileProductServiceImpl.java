@@ -1,12 +1,18 @@
 package ecommerce_app.service.impl;
 
+import ecommerce_app.dto.response.UserResponse;
+import ecommerce_app.entity.ProductView;
+import ecommerce_app.entity.User;
 import ecommerce_app.exception.ResourceNotFoundException;
 import ecommerce_app.mapper.ProductMapper;
 import ecommerce_app.dto.response.MobileProductListResponse;
 import ecommerce_app.dto.response.MobileProductResponse;
 import ecommerce_app.entity.Product;
 import ecommerce_app.repository.ProductRepository;
+import ecommerce_app.repository.ProductViewRepository;
+import ecommerce_app.repository.UserRepository;
 import ecommerce_app.service.MobileProductService;
+import ecommerce_app.service.UserService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -17,8 +23,11 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Mobile Product Service
@@ -33,6 +42,8 @@ public class MobileProductServiceImpl implements MobileProductService {
 
   private final ProductRepository productRepository;
   private final ProductMapper productMapper;
+  private final ProductViewRepository productViewRepository;
+  private final UserRepository userRepository;
 
   /**
    * Get all products with filters and pagination Main method for product list screen in mobile app
@@ -91,8 +102,12 @@ public class MobileProductServiceImpl implements MobileProductService {
    * @param id Product ID
    * @return Product entity with full details
    */
-  public MobileProductResponse getProductById(Long id) {
+  public MobileProductResponse getProductById(Long id, Long userId) {
     final var product = getById(id);
+    // Track asynchronously — don't slow down the response
+    if (userId != null) {
+      CompletableFuture.runAsync(() -> trackProductView(userId, id));
+    }
     return productMapper.toDetailResponse(product);
   }
 
@@ -208,10 +223,11 @@ public class MobileProductServiceImpl implements MobileProductService {
   }
 
   /**
-   * Get related products by same category, exclude current product, in stock only.
-   * Used for "You may also like" section on product detail screen.
+   * Get related products by same category, exclude current product, in stock only. Used for "You
+   * may also like" section on product detail screen.
    */
-  public Page<MobileProductListResponse> getRelatedProducts(Long productId, int page, int pageSize) {
+  public Page<MobileProductListResponse> getRelatedProducts(
+      Long productId, int page, int pageSize) {
     Product product = getById(productId);
 
     if (product.getCategory() == null) {
@@ -219,11 +235,14 @@ public class MobileProductServiceImpl implements MobileProductService {
     }
 
     return productRepository
-            .findRelatedProducts(
-                    product.getCategory().getId(),
-                    productId,
-                    PageRequest.of(page -1 , pageSize)) // page -1 because client sends 1-based page index, but Spring Data uses 0-based
-            .map(productMapper::toListResponse);
+        .findRelatedProducts(
+            product.getCategory().getId(),
+            productId,
+            PageRequest.of(
+                page - 1,
+                pageSize)) // page -1 because client sends 1-based page index, but Spring Data uses
+        // 0-based
+        .map(productMapper::toListResponse);
   }
 
   /**
@@ -247,14 +266,14 @@ public class MobileProductServiceImpl implements MobileProductService {
   /**
    * Get popular products (by favorites count) Shows most-liked products
    *
-   * @param limit Maximum number of products
-   * @return List of most popular products
+   * @param page is page index
+   * @param size Maximum number of products
+   * @return Page of most popular products
    */
-  public List<MobileProductListResponse> getPopularProducts(int limit) {
-    Pageable pageable = PageRequest.of(0, limit, Sort.by(Sort.Direction.DESC, "favoritesCount"));
-    return productRepository.findAll(pageable).getContent().stream()
-        .map(productMapper::toListResponse)
-        .toList();
+  public Page<MobileProductListResponse> getPopularProducts(int page, int size) {
+    return productRepository
+        .findPopularProducts(PageRequest.of(page, size))
+        .map(productMapper::toListResponse);
   }
 
   /**
@@ -308,5 +327,96 @@ public class MobileProductServiceImpl implements MobileProductService {
    */
   public long getProductCountByCategory(Long categoryId) {
     return productRepository.countByCategoryId(categoryId);
+  }
+
+  /**
+   * Track a product view for the authenticated user.
+   *
+   * <p>Used to build user's view history for personalized recommendations.
+   * Duplicate views (same user + same product) are ignored to keep history clean.
+   *
+   * <p>This method is called asynchronously from {@link #getProductById} so it
+   * does not affect response time of the product detail endpoint.
+   *
+   * <p>Example:
+   * <pre>
+   *   User opens Nike Shoes → saved to product_views
+   *   User opens Nike Shoes again → ignored (duplicate)
+   *   User opens Adidas Shoes → saved to product_views
+   * </pre>
+   *
+   * @param userId    authenticated user ID, null means guest (skips tracking)
+   * @param productId product being viewed
+   * @throws ResourceNotFoundException if product or user not found
+   */
+  public void trackProductView(Long userId, Long productId) {
+    // Guest user — skip tracking
+    if (userId == null) return;
+
+    // Don't save duplicate views
+    if (productViewRepository.existsByUserIdAndProductId(userId, productId)) {
+      return;
+    }
+
+    Product product = getById(productId);
+    User user = userRepository
+            .findById(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("User " + userId));
+
+    productViewRepository.save(
+            ProductView.builder()
+                    .user(user)
+                    .product(product)
+                    .viewedAt(LocalDateTime.now())
+                    .build());
+  }
+
+  /**
+   * Get personalized product recommendations for the authenticated user.
+   *
+   * <p>Strategy:
+   *
+   * <ol>
+   *   <li>Find top 3 categories the user viewed most in the last 30 days
+   *   <li>If history exists → recommend products from those categories
+   *   <li>If no history → fallback to popular products (new user)
+   * </ol>
+   *
+   * <p>Example:
+   *
+   * <pre>
+   *   User viewed: Nike Shoes, Adidas Shoes, Puma Shoes
+   *          ↓
+   *   Top category: Shoes
+   *          ↓
+   *   Returns: more products from Shoes category
+   * </pre>
+   *
+   * @param userId authenticated user ID (never null — guaranteed by controller)
+   * @param excludeIds product IDs to exclude (already seen by user), can be null
+   * @param page page number for pagination
+   * @param size number of products per page
+   * @return paginated list of recommended products, or popular products if no history
+   */
+  public Page<MobileProductListResponse> getRecommendedProducts(
+      Long userId, List<Long> excludeIds, int page, int size) {
+
+    List<Long> allExcluded = excludeIds != null ? new ArrayList<>(excludeIds) : new ArrayList<>();
+
+    // Find top categories user viewed in last 30 days
+    LocalDateTime since = LocalDateTime.now().minusDays(30);
+    List<Long> topCategories =
+        productViewRepository.findTopCategoryIdsByUserId(
+            userId, since, PageRequest.of(0, 3)); // top 3 categories
+
+    // Has history → recommend from their interests
+    if (!topCategories.isEmpty()) {
+      return productRepository
+          .findRecommendedProducts(topCategories, allExcluded, PageRequest.of(page, size))
+          .map(productMapper::toListResponse);
+    }
+
+    // No history → fallback to popular products
+    return getPopularProducts(page, size);
   }
 }

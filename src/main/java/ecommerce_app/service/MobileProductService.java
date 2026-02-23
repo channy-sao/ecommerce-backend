@@ -33,9 +33,10 @@ public interface MobileProductService {
    * Get product by ID Used when user taps on a product card to see full details
    *
    * @param id Product ID
+   * @param userId user ID for tracking views and personalized recommendations (optional)
    * @return Product entity with full details
    */
-  MobileProductResponse getProductById(Long id);
+  MobileProductResponse getProductById(Long id, Long userId);
 
   /**
    * Get product by UUID Used for deep linking and sharing product URLs
@@ -125,10 +126,11 @@ public interface MobileProductService {
   /**
    * Get popular products (by favorites count) Shows most-liked products
    *
-   * @param limit Maximum number of products
-   * @return List of most popular products
+   * @param page is page index
+   * @param size Maximum number of products
+   * @return Page of most popular products
    */
-  List<MobileProductListResponse> getPopularProducts(int limit);
+  Page<MobileProductListResponse> getPopularProducts(int page, int size);
 
   /**
    * Get low stock products Shows "Only X left!" products
@@ -159,4 +161,28 @@ public interface MobileProductService {
    * @return Number of products in category
    */
   long getProductCountByCategory(Long categoryId);
+
+  /**
+   * Get personalized product recommendations for the authenticated user.
+   *
+   * <p>Returns products based on user's view history. Falls back to popular products if user has no
+   * history yet.
+   *
+   * @param userId authenticated user ID (never null)
+   * @param excludeIds product IDs to exclude (already seen), can be null
+   * @param page page number for pagination
+   * @param size number of products per page
+   * @return paginated list of recommended or popular products
+   */
+  Page<MobileProductListResponse> getRecommendedProducts(
+      Long userId, List<Long> excludeIds, int page, int size);
+
+  /**
+   * Track a product view for recommendation history. Skips if userId is null (guest) or already
+   * viewed.
+   *
+   * @param userId authenticated user ID, null means guest
+   * @param productId product being viewed
+   */
+  void trackProductView(Long userId, Long productId);
 }

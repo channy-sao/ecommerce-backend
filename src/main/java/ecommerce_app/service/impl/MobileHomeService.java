@@ -44,7 +44,7 @@ public class MobileHomeService {
 
     var popularProductsFuture =
         CompletableFuture.supplyAsync(
-            () -> productService.getPopularProducts(popularProductsSize), taskExecutor);
+            () -> productService.getPopularProducts(1 , popularProductsSize).getContent(), taskExecutor);
 
     var categoriesFuture =
         CompletableFuture.supplyAsync(mobileCategoryService::getMinimalCategories, taskExecutor);

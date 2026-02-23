@@ -1,5 +1,6 @@
 package ecommerce_app.controller.client;
 
+import ecommerce_app.core.identify.custom.CustomUserDetails;
 import ecommerce_app.dto.response.BaseBodyResponse;
 import ecommerce_app.dto.response.MobileProductListResponse;
 import ecommerce_app.dto.response.MobileProductResponse;
@@ -12,6 +13,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -63,9 +65,10 @@ public class MobileProductController {
    */
   @GetMapping("/{id}")
   public ResponseEntity<BaseBodyResponse<MobileProductResponse>> getProductById(
-      @PathVariable Long id) {
+      @PathVariable Long id, @AuthenticationPrincipal CustomUserDetails user) {
+    Long userId = user != null ? user.getId() : null;
     return BaseBodyResponse.success(
-        mobileProductService.getProductById(id), "Get product by ID successfully");
+        mobileProductService.getProductById(id, userId), "Get product by ID successfully");
   }
 
   /**
@@ -164,10 +167,12 @@ public class MobileProductController {
    */
   @GetMapping("/popular")
   public ResponseEntity<BaseBodyResponse<List<MobileProductListResponse>>> getPopularProducts(
-      @RequestParam(defaultValue = "10") int size) {
+      @RequestParam(value = "page", defaultValue = "1") int page,
+      @RequestParam(value = "pageSize", defaultValue = "10") int pageSize) {
 
-    return BaseBodyResponse.success(
-        mobileProductService.getPopularProducts(size), "Get popular products successfully");
+    return BaseBodyResponse.pageSuccess(
+        mobileProductService.getPopularProducts(page, pageSize),
+        "Get popular products successfully");
   }
 
   /**
@@ -205,5 +210,36 @@ public class MobileProductController {
   public ResponseEntity<BaseBodyResponse<Void>> removeFromFavorites(@PathVariable Long id) {
     mobileProductService.removeFromFavorites(id);
     return BaseBodyResponse.success("Product removed from favorites");
+  }
+
+  /**
+   * Get personalized product recommendations for the authenticated user.
+   *
+   * <p>Returns products based on the user's view history (categories they browsed most
+   * in the last 30 days). If the user has no view history, falls back to popular products.
+   *
+   * <p>This endpoint requires authentication. Mobile should:
+   * <ul>
+   *   <li>Only call this when user is logged in</li>
+   *   <li>Use {@code GET /products/popular} instead for guest users</li>
+   *   <li>Pass previously seen product IDs via {@code excludeIds} to avoid duplicates</li>
+   * </ul>
+   *
+   * @param userDetails authenticated user from JWT token (never null — endpoint is secured)
+   * @param page        page number for pagination, default 0
+   * @param size        number of products per page, default 10
+   * @param excludeIds  list of product IDs to exclude (already viewed/seen by user)
+   * @return paginated list of recommended products personalized for the user
+   */
+  @GetMapping("/recommended")
+  public ResponseEntity<BaseBodyResponse<List<MobileProductListResponse>>> getRecommended(
+          @AuthenticationPrincipal CustomUserDetails userDetails,
+          @RequestParam(defaultValue = "0") int page,
+          @RequestParam(defaultValue = "10") int size,
+          @RequestParam(required = false) List<Long> excludeIds) {
+
+    return BaseBodyResponse.pageSuccess(
+            mobileProductService.getRecommendedProducts(userDetails.getId(), excludeIds, page, size),
+            "Get recommended products successfully");
   }
 }

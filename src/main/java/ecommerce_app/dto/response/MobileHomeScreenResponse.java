@@ -23,7 +23,7 @@ public class MobileHomeScreenResponse {
   // Recent additions (6-10 items)
   private List<MobileProductListResponse> newArrivals;
   // Trending items (6-10 items)
-  private List<MobileProductListResponse> popularProducts;
+  private List<MobileProductListResponse> popularProducts;  // no login required, based on overall popularity
   // Simple category list for browsing
   private List<SimpleCategoryResponse> categories;
 }
