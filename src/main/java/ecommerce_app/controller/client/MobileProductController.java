@@ -1,10 +1,12 @@
 package ecommerce_app.controller.client;
 
+import ecommerce_app.constant.message.MessageKeyConstant;
 import ecommerce_app.core.identify.custom.CustomUserDetails;
 import ecommerce_app.dto.response.BaseBodyResponse;
 import ecommerce_app.dto.response.MobileProductListResponse;
 import ecommerce_app.dto.response.MobileProductResponse;
 import ecommerce_app.service.MobileProductService;
+import ecommerce_app.util.MessageSourceService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
 import java.util.UUID;
@@ -29,6 +31,7 @@ import org.springframework.web.bind.annotation.*;
 public class MobileProductController {
 
   private final MobileProductService mobileProductService;
+  private final MessageSourceService messageSourceService;
 
   /**
    * Get paginated product list for mobile app GET
@@ -38,7 +41,7 @@ public class MobileProductController {
    */
   @GetMapping
   public ResponseEntity<BaseBodyResponse<List<MobileProductListResponse>>> getProducts(
-      @RequestParam(value = "page", defaultValue = "0") int page,
+      @RequestParam(value = "page", defaultValue = "1") int page,
       @RequestParam(value = "pageSize", defaultValue = "20") int pageSide,
       @RequestParam(value = "categoryId", required = false) Long categoryId,
       @RequestParam(value = "isFeature", required = false) Boolean isFeature,
@@ -51,7 +54,7 @@ public class MobileProductController {
         sort.length > 1 && sort[1].equalsIgnoreCase("asc")
             ? Sort.Direction.ASC
             : Sort.Direction.DESC;
-    Pageable pageable = PageRequest.of(page, pageSide, Sort.by(direction, sort[0]));
+    Pageable pageable = PageRequest.of(page - 1, pageSide, Sort.by(direction, sort[0]));
 
     return BaseBodyResponse.pageSuccess(
         mobileProductService.getProducts(pageable, categoryId, isFeature, hasPromotion, search),
@@ -91,10 +94,12 @@ public class MobileProductController {
    */
   @GetMapping("/featured")
   public ResponseEntity<BaseBodyResponse<List<MobileProductListResponse>>> getFeaturedProducts(
-      @RequestParam(defaultValue = "10") int size) {
+      @RequestParam(value = "page", defaultValue = "1") int page,
+      @RequestParam(value = "pageSize", defaultValue = "20") int pageSize) {
 
-    return BaseBodyResponse.success(
-        mobileProductService.getFeaturedProducts(size), "Get featured products successfully");
+    return BaseBodyResponse.pageSuccess(
+        mobileProductService.getFeaturedProducts(page, pageSize),
+        "Get featured products successfully");
   }
 
   /**
@@ -104,9 +109,11 @@ public class MobileProductController {
    */
   @GetMapping("/promotions")
   public ResponseEntity<BaseBodyResponse<List<MobileProductListResponse>>> getPromotionalProducts(
-      @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
+      @RequestParam(value = "page", defaultValue = "1") int page,
+      @RequestParam(value = "pageSize", defaultValue = "20") int pageSize) {
 
-    Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+    Pageable pageable =
+        PageRequest.of(page - 1, pageSize, Sort.by(Sort.Direction.DESC, "createdAt"));
 
     return BaseBodyResponse.pageSuccess(
         mobileProductService.getProductsOnPromotion(pageable),
@@ -121,10 +128,11 @@ public class MobileProductController {
   @GetMapping("/category/{categoryId}")
   public ResponseEntity<BaseBodyResponse<List<MobileProductListResponse>>> getProductsByCategory(
       @PathVariable Long categoryId,
-      @RequestParam(defaultValue = "0") int page,
-      @RequestParam(defaultValue = "20") int size) {
+      @RequestParam(value = "page", defaultValue = "1") int page,
+      @RequestParam(value = "pageSize", defaultValue = "20") int pageSize) {
 
-    Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+    Pageable pageable =
+        PageRequest.of(page - 1, pageSize, Sort.by(Sort.Direction.DESC, "createdAt"));
 
     return BaseBodyResponse.pageSuccess(
         mobileProductService.getProductsByCategory(categoryId, pageable),
@@ -139,10 +147,11 @@ public class MobileProductController {
   @GetMapping("/search")
   public ResponseEntity<BaseBodyResponse<List<MobileProductListResponse>>> searchProducts(
       @RequestParam(value = "query") String query,
-      @RequestParam(value = "page", defaultValue = "0") int page,
+      @RequestParam(value = "page", defaultValue = "1") int page,
       @RequestParam(value = "pageSize", defaultValue = "20") int pageSize) {
 
-    Pageable pageable = PageRequest.of(page, pageSize, Sort.by(Sort.Direction.DESC, "createdAt"));
+    Pageable pageable =
+        PageRequest.of(page - 1, pageSize, Sort.by(Sort.Direction.DESC, "createdAt"));
     return BaseBodyResponse.pageSuccess(
         mobileProductService.searchProducts(query, pageable), "Search products successfully");
   }
@@ -154,10 +163,11 @@ public class MobileProductController {
    */
   @GetMapping("/new")
   public ResponseEntity<BaseBodyResponse<List<MobileProductListResponse>>> getNewArrivals(
-      @RequestParam(defaultValue = "10") int size) {
+      @RequestParam(value = "page", defaultValue = "1") int page,
+      @RequestParam(value = "pageSize", defaultValue = "10") int pageSize) {
 
-    return BaseBodyResponse.success(
-        mobileProductService.getNewArrivals(size), "Get new arrivals successfully");
+    return BaseBodyResponse.pageSuccess(
+        mobileProductService.getNewArrivals(page, pageSize), "Get new arrivals successfully");
   }
 
   /**
@@ -215,31 +225,49 @@ public class MobileProductController {
   /**
    * Get personalized product recommendations for the authenticated user.
    *
-   * <p>Returns products based on the user's view history (categories they browsed most
-   * in the last 30 days). If the user has no view history, falls back to popular products.
+   * <p>Returns products based on the user's view history (categories they browsed most in the last
+   * 30 days). If the user has no view history, falls back to popular products.
    *
    * <p>This endpoint requires authentication. Mobile should:
+   *
    * <ul>
-   *   <li>Only call this when user is logged in</li>
-   *   <li>Use {@code GET /products/popular} instead for guest users</li>
-   *   <li>Pass previously seen product IDs via {@code excludeIds} to avoid duplicates</li>
+   *   <li>Only call this when user is logged in
+   *   <li>Use {@code GET /products/popular} instead for guest users
+   *   <li>Pass previously seen product IDs via {@code excludeIds} to avoid duplicates
    * </ul>
    *
    * @param userDetails authenticated user from JWT token (never null — endpoint is secured)
-   * @param page        page number for pagination, default 0
-   * @param size        number of products per page, default 10
-   * @param excludeIds  list of product IDs to exclude (already viewed/seen by user)
+   * @param page page number for pagination, default 0
+   * @param size number of products per page, default 10
+   * @param excludeIds list of product IDs to exclude (already viewed/seen by user)
    * @return paginated list of recommended products personalized for the user
    */
   @GetMapping("/recommended")
   public ResponseEntity<BaseBodyResponse<List<MobileProductListResponse>>> getRecommended(
-          @AuthenticationPrincipal CustomUserDetails userDetails,
-          @RequestParam(defaultValue = "0") int page,
-          @RequestParam(defaultValue = "10") int size,
-          @RequestParam(required = false) List<Long> excludeIds) {
+      @AuthenticationPrincipal CustomUserDetails userDetails,
+      @RequestParam(defaultValue = "0") int page,
+      @RequestParam(defaultValue = "10") int size,
+      @RequestParam(required = false) List<Long> excludeIds) {
 
     return BaseBodyResponse.pageSuccess(
-            mobileProductService.getRecommendedProducts(userDetails.getId(), excludeIds, page, size),
-            "Get recommended products successfully");
+        mobileProductService.getRecommendedProducts(userDetails.getId(), excludeIds, page, size),
+        "Get recommended products successfully");
+  }
+
+  /**
+   * Retrieves a list of product name suggestions based on the given search query.
+   *
+   * <p>This endpoint is intended for use in search autocomplete/typeahead UI components. Returns up
+   * to 8 matching product names that contain the query string (case-insensitive). Query must be at
+   * least 2 characters to return results.
+   *
+   * @param q the search query string (minimum 2 characters recommended)
+   * @return a {@link ResponseEntity} containing a list of matching product name suggestions
+   */
+  @GetMapping("/suggestions")
+  public ResponseEntity<BaseBodyResponse<List<String>>> getSuggestions(@RequestParam String q) {
+    return BaseBodyResponse.success(
+        mobileProductService.getSuggestions(q),
+        messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_SUCCESS));
   }
 }

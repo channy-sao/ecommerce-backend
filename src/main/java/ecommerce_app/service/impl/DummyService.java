@@ -662,7 +662,7 @@ public class DummyService {
 
 
 
-  @Async
+//  @Async
   public void dummyAll() {
     log.info("Start dummy all data");
     dummyRoleAndUser();

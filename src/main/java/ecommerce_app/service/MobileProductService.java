@@ -49,10 +49,11 @@ public interface MobileProductService {
   /**
    * Get featured products Shows highlighted products on homepage
    *
-   * @param limit Maximum number of products to return
+   * @param page is page index
+   * @param pageSize Maximum number of products to return
    * @return List of featured products
    */
-  List<MobileProductListResponse> getFeaturedProducts(int limit);
+  Page<MobileProductListResponse> getFeaturedProducts(int page, int pageSize);
 
   /**
    * Get products with active promotions Shows products currently on sale
@@ -118,10 +119,11 @@ public interface MobileProductService {
   /**
    * Get new arrivals Shows recently added products
    *
-   * @param limit Maximum number of products
-   * @return List of newest products
+   * @param page is page index
+   * @param pageSize Maximum number of products
+   * @return Page of newest products
    */
-  List<MobileProductListResponse> getNewArrivals(int limit);
+  Page<MobileProductListResponse> getNewArrivals(int page, int pageSize);
 
   /**
    * Get popular products (by favorites count) Shows most-liked products
@@ -185,4 +187,6 @@ public interface MobileProductService {
    * @param productId product being viewed
    */
   void trackProductView(Long userId, Long productId);
+
+  List<String> getSuggestions(String q);
 }

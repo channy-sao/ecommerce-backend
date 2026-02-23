@@ -125,4 +125,12 @@ public interface ProductRepository
       @Param("categoryIds") List<Long> categoryIds,
       @Param("excludeIds") List<Long> excludeIds,
       Pageable pageable);
+
+  @Query("""
+          SELECT DISTINCT p.name FROM Product p
+          WHERE LOWER(p.name) LIKE LOWER(CONCAT('%', :q, '%'))
+          ORDER BY p.name
+          LIMIT 8
+          """)
+  List<String> findSuggestions(@Param("q") String q);
 }

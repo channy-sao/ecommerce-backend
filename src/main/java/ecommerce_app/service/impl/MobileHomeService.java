@@ -36,15 +36,17 @@ public class MobileHomeService {
 
     var featuredProductsFuture =
         CompletableFuture.supplyAsync(
-            () -> productService.getFeaturedProducts(featuredProductsSize), taskExecutor);
+            () -> productService.getFeaturedProducts(1, featuredProductsSize).getContent(),
+            taskExecutor);
 
     var newArrivalsFuture =
         CompletableFuture.supplyAsync(
-            () -> productService.getNewArrivals(newArrivalsSize), taskExecutor);
+            () -> productService.getNewArrivals(1, newArrivalsSize).getContent(), taskExecutor);
 
     var popularProductsFuture =
         CompletableFuture.supplyAsync(
-            () -> productService.getPopularProducts(1 , popularProductsSize).getContent(), taskExecutor);
+            () -> productService.getPopularProducts(1, popularProductsSize).getContent(),
+            taskExecutor);
 
     var categoriesFuture =
         CompletableFuture.supplyAsync(mobileCategoryService::getMinimalCategories, taskExecutor);

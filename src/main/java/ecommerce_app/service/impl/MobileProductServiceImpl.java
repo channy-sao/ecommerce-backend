@@ -135,14 +135,13 @@ public class MobileProductServiceImpl implements MobileProductService {
   /**
    * Get featured products Shows highlighted products on homepage
    *
-   * @param limit Maximum number of products to return
+   * @param page is page index
+   * @param pageSize Maximum number of products to return
    * @return List of featured products
    */
-  public List<MobileProductListResponse> getFeaturedProducts(int limit) {
-    Pageable pageable = PageRequest.of(0, limit);
-    return productRepository.findByIsFeatureTrue(pageable).getContent().stream()
-        .map(productMapper::toListResponse)
-        .toList();
+  public Page<MobileProductListResponse> getFeaturedProducts(int page, int pageSize) {
+    Pageable pageable = PageRequest.of(page-1, pageSize);
+    return productRepository.findByIsFeatureTrue(pageable).map(productMapper::toListResponse);
   }
 
   /**
@@ -248,19 +247,18 @@ public class MobileProductServiceImpl implements MobileProductService {
   /**
    * Get new arrivals Shows recently added products
    *
-   * @param limit Maximum number of products
+   * @param page is page index
+   * @param pageSize Maximum number of products
    * @return List of newest products
    */
-  public List<MobileProductListResponse> getNewArrivals(int limit) {
+  public Page<MobileProductListResponse> getNewArrivals(int page, int pageSize) {
     Pageable pageable =
         PageRequest.of(
-            0,
-            limit,
+            page-1,
+            pageSize,
             org.springframework.data.domain.Sort.by(
                 org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
-    return productRepository.findAll(pageable).getContent().stream()
-        .map(productMapper::toListResponse)
-        .toList();
+    return productRepository.findAll(pageable).map(productMapper::toListResponse);
   }
 
   /**
@@ -369,6 +367,12 @@ public class MobileProductServiceImpl implements MobileProductService {
                     .product(product)
                     .viewedAt(LocalDateTime.now())
                     .build());
+  }
+
+  @Override
+  public List<String> getSuggestions(String q) {
+    if (q == null || q.trim().length() < 2) return List.of();
+    return productRepository.findSuggestions(q.trim());
   }
 
   /**
