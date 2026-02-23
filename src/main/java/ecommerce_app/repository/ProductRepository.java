@@ -89,4 +89,17 @@ public interface ProductRepository
         AND s.quantity <= :threshold
     """)
   long countNearEmptyStockProducts(@Param("threshold") int threshold);
+
+  @Query("""
+    SELECT p FROM Product p
+    JOIN p.stock s
+    WHERE p.category.id = :categoryId
+    AND p.id != :excludeId
+    AND s.quantity > 0
+    ORDER BY p.createdAt DESC
+    """)
+  Page<Product> findRelatedProducts(
+          @Param("categoryId") Long categoryId,
+          @Param("excludeId") Long excludeId,
+          Pageable pageable);
 }

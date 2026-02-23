@@ -108,10 +108,11 @@ public interface MobileProductService {
    * Get related products (same category) Shows "You may also like" section
    *
    * @param productId Current product ID
-   * @param limit Maximum number of related products
+   * @param page is page indes=x
+   * @param size Maximum number of related products
    * @return List of products in same category
    */
-  List<MobileProductListResponse> getRelatedProducts(Long productId, int limit);
+  Page<MobileProductListResponse> getRelatedProducts(Long productId, int page, int size);
 
   /**
    * Get new arrivals Shows recently added products

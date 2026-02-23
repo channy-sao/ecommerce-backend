@@ -208,27 +208,22 @@ public class MobileProductServiceImpl implements MobileProductService {
   }
 
   /**
-   * Get related products (same category) Shows "You may also like" section
-   *
-   * @param productId Current product ID
-   * @param limit Maximum number of related products
-   * @return List of products in same category
+   * Get related products by same category, exclude current product, in stock only.
+   * Used for "You may also like" section on product detail screen.
    */
-  public List<MobileProductListResponse> getRelatedProducts(Long productId, int limit) {
+  public Page<MobileProductListResponse> getRelatedProducts(Long productId, int page, int pageSize) {
     Product product = getById(productId);
-    Long categoryId = product.getCategory().getId();
 
-    Pageable pageable = PageRequest.of(0, limit + 1); // +1 to exclude current product
-    Page<Product> relatedPage = productRepository.findByCategoryId(categoryId, pageable);
+    if (product.getCategory() == null) {
+      return Page.empty();
+    }
 
-    // Filter out the current product
-    return relatedPage.getContent().stream()
-        .filter(p -> !p.getId().equals(productId))
-        .limit(limit)
-        .toList()
-        .stream()
-        .map(productMapper::toListResponse)
-        .toList();
+    return productRepository
+            .findRelatedProducts(
+                    product.getCategory().getId(),
+                    productId,
+                    PageRequest.of(page -1 , pageSize)) // page -1 because client sends 1-based page index, but Spring Data uses 0-based
+            .map(productMapper::toListResponse);
   }
 
   /**

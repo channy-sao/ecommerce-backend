@@ -171,16 +171,18 @@ public class MobileProductController {
   }
 
   /**
-   * Get related products GET /api/mobile/v1/products/{id}/related?size=5
-   *
-   * <p>Shows "You may also like" section on product detail page
+   * GET /api/mobile/products/{id}/related?size=5 Returns related products for "You may also like"
+   * section
    */
   @GetMapping("/{id}/related")
   public ResponseEntity<BaseBodyResponse<List<MobileProductListResponse>>> getRelatedProducts(
-      @PathVariable Long id, @RequestParam(defaultValue = "5") int size) {
+      @PathVariable Long id,
+      @RequestParam(value = "page", defaultValue = "1") int page,
+      @RequestParam(value = "pageSize", defaultValue = "20") int pageSize) {
 
-    return BaseBodyResponse.success(
-        mobileProductService.getRelatedProducts(id, size), "Get related products successfully");
+    return BaseBodyResponse.pageSuccess(
+        mobileProductService.getRelatedProducts(id, page, pageSize),
+        "Get related products successfully");
   }
 
   /**
