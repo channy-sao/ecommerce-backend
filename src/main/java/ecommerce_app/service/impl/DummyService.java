@@ -4,9 +4,11 @@ import com.github.javafaker.Faker;
 import ecommerce_app.constant.enums.AuthProvider;
 import ecommerce_app.constant.enums.PaymentMethod;
 import ecommerce_app.constant.enums.ShippingMethod;
+import ecommerce_app.core.io.service.StorageConfig;
 import ecommerce_app.exception.BadRequestException;
 import ecommerce_app.exception.ResourceNotFoundException;
 import ecommerce_app.entity.Address;
+import ecommerce_app.property.StorageConfigProperty;
 import ecommerce_app.repository.AddressRepository;
 import ecommerce_app.service.CartService;
 import ecommerce_app.entity.Category;
@@ -29,12 +31,14 @@ import ecommerce_app.repository.UserRepository;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+import ecommerce_app.util.ImageDownloadUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -56,6 +60,7 @@ public class DummyService {
   private final ProductRepository productRepository;
   private final PasswordEncoder passwordEncoder;
   private final OrderService orderService;
+  private final StorageConfig storageConfig;
   private final Faker faker = new Faker();
 
   // dummy 15 rows
@@ -114,6 +119,17 @@ public class DummyService {
         final var numOfRoles = faker.number().numberBetween(0, roles.size() - 1);
         for (int j = 0; j < numOfRoles; j++) {
           roleSet.add(roles.get(faker.number().numberBetween(0, roles.size() - 1)));
+        }
+        try {
+          String imagePath =
+              ImageDownloadUtils.downloadAndSave(
+                  "https://picsum.photos/300/300", storageConfig.getAvatarPath());
+
+          user.setAvatar(Path.of(imagePath).getFileName().toString());
+
+        } catch (Exception e) {
+          log.error("Failed to download image for user {}: {}", user.getEmail(), e.getMessage());
+          user.setAvatar(null);
         }
         user.setEmail(faker.internet().emailAddress());
         user.setAuthProvider(AuthProvider.LOCAL);
@@ -226,8 +242,18 @@ public class DummyService {
     List<ProductImage> images = new ArrayList<>();
     for (int j = 0; j < imageCount; j++) {
       ProductImage img = new ProductImage();
-      img.setImagePath(faker.internet().image()); // raw filename/url as before
-      img.setSortOrder(j);                        // 0 = primary
+      try {
+        String imagePath =
+                ImageDownloadUtils.downloadAndSave(
+                        "https://picsum.photos/300/300", storageConfig.getProductPath());
+
+        img.setImagePath(Path.of(imagePath).getFileName().toString());
+
+      } catch (Exception e) {
+        log.error("Failed to download image for product {}: {}", product.getId(), e.getMessage());
+        img.setImagePath(null);
+      }
+      img.setSortOrder(j); // 0 = primary
       img.setProduct(product);
       images.add(img);
     }

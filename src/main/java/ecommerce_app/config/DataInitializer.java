@@ -2,6 +2,7 @@ package ecommerce_app.config;
 
 import ecommerce_app.constant.enums.AuthProvider;
 import ecommerce_app.constant.enums.PermissionEnum;
+import ecommerce_app.core.io.service.StorageConfig;
 import ecommerce_app.exception.ResourceNotFoundException;
 import ecommerce_app.entity.Setting;
 import ecommerce_app.repository.SettingRepository;
@@ -11,11 +12,15 @@ import ecommerce_app.entity.User;
 import ecommerce_app.repository.PermissionRepository;
 import ecommerce_app.repository.RoleRepository;
 import ecommerce_app.repository.UserRepository;
+
+import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+
+import ecommerce_app.util.ImageDownloadUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
@@ -36,6 +41,7 @@ public class DataInitializer implements ApplicationRunner {
   public static final String SUPER_ADMIN_ROLE = "SUPER_ADMIN";
   private final UserRepository userRepository;
   private final PasswordEncoder passwordEncoder;
+  private final StorageConfig storageConfig;
 
   @Transactional
   @Override
@@ -119,6 +125,18 @@ public class DataInitializer implements ApplicationRunner {
                       .isEmailVerified(false)
                       .roles(Set.of(role))
                       .build();
+
+              try {
+                String imagePath =
+                    ImageDownloadUtils.downloadAndSave(
+                        "https://picsum.photos/300/300", storageConfig.getAvatarPath());
+
+                admin.setAvatar(Path.of(imagePath).getFileName().toString());
+
+              } catch (Exception e) {
+                log.error("Failed to download image for user : {}", e.getMessage());
+                admin.setAvatar(null);
+              }
 
               userRepository.save(admin);
 
