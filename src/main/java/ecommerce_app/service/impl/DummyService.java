@@ -50,6 +50,7 @@ import ecommerce_app.util.ImageDownloadUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -566,7 +567,7 @@ public class DummyService {
         // 🔹 Download random image (landscape banner size)
         String imagePath = ImageDownloadUtils.downloadAndSave(
                 "https://picsum.photos/1200/400",
-                "banners"
+                storageConfig.getBannerPath()
         );
 
         // Store only filename
@@ -661,6 +662,7 @@ public class DummyService {
 
 
 
+  @Async
   public void dummyAll() {
     log.info("Start dummy all data");
     dummyRoleAndUser();
