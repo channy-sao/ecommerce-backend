@@ -1,5 +1,6 @@
 package ecommerce_app.service.impl;
 
+import ecommerce_app.constant.enums.BannerLinkType;
 import ecommerce_app.exception.BadRequestException;
 import ecommerce_app.exception.ResourceNotFoundException;
 import ecommerce_app.core.io.service.FileManagerService;

@@ -1,5 +1,6 @@
 package ecommerce_app.entity;
 
+import ecommerce_app.constant.enums.BannerLinkType;
 import ecommerce_app.entity.base.TimeAuditableEntity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -42,8 +43,9 @@ public class Banner extends TimeAuditableEntity {
   @Column(name = "link_url", length = 500)
   private String linkUrl; // Where banner links to (product, category, external)
 
+  @Enumerated(EnumType.STRING)
   @Column(name = "link_type", length = 50)
-  private String linkType; // PRODUCT, CATEGORY, EXTERNAL, NONE
+  private BannerLinkType linkType; // PRODUCT, CATEGORY, EXTERNAL, NONE
 
   @Column(name = "link_id")
   private Long linkId; // ID of product/category if applicable

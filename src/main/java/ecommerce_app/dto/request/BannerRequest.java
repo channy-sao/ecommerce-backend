@@ -1,5 +1,6 @@
 package ecommerce_app.dto.request;
 
+import ecommerce_app.constant.enums.BannerLinkType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -38,7 +39,7 @@ public class BannerRequest {
       description = "Link type",
       example = "CATEGORY",
       allowableValues = {"PRODUCT", "CATEGORY", "EXTERNAL", "NONE"})
-  private String linkType;
+  private BannerLinkType linkType;
 
   @Schema(description = "Link ID (product or category ID)", example = "1")
   private Long linkId;

@@ -2,14 +2,20 @@ package ecommerce_app.service.impl;
 
 import com.github.javafaker.Faker;
 import ecommerce_app.constant.enums.AuthProvider;
+import ecommerce_app.constant.enums.BannerLinkType;
 import ecommerce_app.constant.enums.PaymentMethod;
+import ecommerce_app.constant.enums.PromotionType;
 import ecommerce_app.constant.enums.ShippingMethod;
 import ecommerce_app.core.io.service.StorageConfig;
+import ecommerce_app.entity.Banner;
+import ecommerce_app.entity.Promotion;
 import ecommerce_app.exception.BadRequestException;
 import ecommerce_app.exception.ResourceNotFoundException;
 import ecommerce_app.entity.Address;
 import ecommerce_app.property.StorageConfigProperty;
 import ecommerce_app.repository.AddressRepository;
+import ecommerce_app.repository.BannerRepository;
+import ecommerce_app.repository.PromotionRepository;
 import ecommerce_app.service.CartService;
 import ecommerce_app.entity.Category;
 import ecommerce_app.repository.CategoryRepository;
@@ -32,7 +38,9 @@ import ecommerce_app.repository.UserRepository;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.file.Path;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -61,6 +69,8 @@ public class DummyService {
   private final PasswordEncoder passwordEncoder;
   private final OrderService orderService;
   private final StorageConfig storageConfig;
+  private final PromotionRepository promotionRepository;
+  private final BannerRepository bannerRepository;
   private final Faker faker = new Faker();
 
   // dummy 15 rows
@@ -438,10 +448,225 @@ public class DummyService {
     log.info("Finish dummy cart and order");
   }
 
+
+  public void dummyPromotion() {
+    log.info("Start dummy promotions");
+
+    if (dummyRepository.existsByNameAndAgainFalse("Dummy Promotions")) {
+      log.info("Dummy Promotions already exist");
+      return;
+    }
+
+    var products = productRepository.findAll();
+
+    for (int i = 0; i < 20; i++) {
+
+      Promotion promotion = new Promotion();
+
+      try {
+
+        // 🔹 Basic info
+        promotion.setName(faker.commerce().promotionCode());
+        promotion.setCode("PROMO-" + faker.number().digits(5));
+
+        // 🔹 Random discount type
+        PromotionType type = faker.bool().bool()
+                ? PromotionType.PERCENTAGE
+                : PromotionType.FIXED_AMOUNT;
+
+        promotion.setDiscountType(type);
+
+        if (type == PromotionType.PERCENTAGE) {
+          promotion.setDiscountValue(
+                  BigDecimal.valueOf(faker.number().numberBetween(5, 50))
+          );
+        } else {
+          promotion.setDiscountValue(
+                  BigDecimal.valueOf(faker.number().numberBetween(5, 200))
+          );
+        }
+
+        // 🔹 Buy X Get Y (optional)
+        if (faker.bool().bool()) {
+          promotion.setBuyQuantity(faker.number().numberBetween(1, 5));
+          promotion.setGetQuantity(faker.number().numberBetween(1, 3));
+        }
+
+        // 🔹 Status
+        promotion.setActive(faker.bool().bool());
+
+        // 🔹 Date range
+        LocalDateTime start = LocalDateTime.now()
+                .minusDays(faker.number().numberBetween(0, 10));
+
+        LocalDateTime end = start.plusDays(
+                faker.number().numberBetween(5, 30)
+        );
+
+        promotion.setStartAt(start);
+        promotion.setEndAt(end);
+
+        // 🔹 Usage limits
+        promotion.setMaxUsage(faker.number().numberBetween(10, 200));
+        promotion.setMaxUsagePerUser(faker.number().numberBetween(1, 5));
+
+        // 🔹 Minimum purchase
+        promotion.setMinPurchaseAmount(
+                BigDecimal.valueOf(faker.number().numberBetween(50, 500))
+        );
+
+        // 🔹 Assign random products
+        if (!products.isEmpty()) {
+          int numProducts = faker.number().numberBetween(1, products.size());
+          Collections.shuffle(products);
+          promotion.setProducts(products.subList(0, numProducts));
+        }
+
+        promotionRepository.save(promotion);
+
+      } catch (DataIntegrityViolationException e) {
+        log.warn("Duplicate promotion code, regenerating...");
+        promotion.setCode("PROMO-" + UUID.randomUUID().toString().substring(0, 8));
+        promotionRepository.save(promotion);
+      }
+    }
+
+    Dummy dummy = new Dummy();
+    dummy.setName("Dummy Promotions");
+    dummy.setNumRows(20L);
+    dummy.setDummyDescription("Dummy Promotions 20 rows");
+    dummyRepository.save(dummy);
+
+    log.info("Finish dummy promotions");
+  }
+
+
+  public void dummyBanner() {
+
+    log.info("Start dummy banners");
+
+    if (dummyRepository.existsByNameAndAgainFalse("Dummy Banners")) {
+      log.info("Dummy Banners already exist");
+      return;
+    }
+
+    var products = productRepository.findAll();
+    var categories = categoryRepository.findAll();
+
+    for (int i = 0; i < 15; i++) {
+
+      Banner banner = new Banner();
+
+      try {
+
+        // 🔹 Basic Info
+        banner.setTitle(faker.commerce().productName());
+        banner.setDescription(faker.lorem().sentence(10));
+
+        // 🔹 Download random image (landscape banner size)
+        String imagePath = ImageDownloadUtils.downloadAndSave(
+                "https://picsum.photos/1200/400",
+                "banners"
+        );
+
+        // Store only filename
+        banner.setImage(Path.of(imagePath).getFileName().toString());
+
+        // 🔹 Link Type
+        List<String> linkTypes = List.of("PRODUCT", "CATEGORY", "EXTERNAL", "NONE");
+        String linkType = linkTypes.get(faker.number().numberBetween(0, linkTypes.size()));
+
+        banner.setLinkType(BannerLinkType.valueOf(linkType));
+
+        switch (linkType) {
+
+          case "PRODUCT" -> {
+            if (!products.isEmpty()) {
+              var product = products.get(
+                      faker.number().numberBetween(0, products.size())
+              );
+              banner.setLinkId(product.getId());
+            }
+          }
+
+          case "CATEGORY" -> {
+            if (!categories.isEmpty()) {
+              var category = categories.get(
+                      faker.number().numberBetween(0, categories.size())
+              );
+              banner.setLinkId(category.getId());
+            }
+          }
+
+          case "EXTERNAL" ->
+                  banner.setLinkUrl("https://picsum.photos/300/300");
+
+          default -> {
+            banner.setLinkId(null);
+            banner.setLinkUrl(null);
+          }
+        }
+
+        // 🔹 Active
+        banner.setIsActive(faker.bool().bool());
+
+        // 🔹 Display Order
+        banner.setDisplayOrder(i);
+
+        // 🔹 Dates
+        LocalDateTime start = LocalDateTime.now()
+                .minusDays(faker.number().numberBetween(0, 5));
+
+        LocalDateTime end = start.plusDays(
+                faker.number().numberBetween(5, 20)
+        );
+
+        banner.setStartDate(start);
+        banner.setEndDate(end);
+
+        // 🔹 Position
+        List<String> positions = List.of(
+                "HOME_CAROUSEL",
+                "CATEGORY_TOP",
+                "FLASH_SALE",
+                "MOBILE_SLIDER"
+        );
+
+        banner.setPosition(
+                positions.get(faker.number().numberBetween(0, positions.size()))
+        );
+
+        // 🔹 Random background color
+        banner.setBackgroundColor(
+                "#" + faker.color().hex().substring(0, 6)
+        );
+
+        bannerRepository.save(banner);
+
+      } catch (Exception e) {
+        log.warn("Error creating banner: {}", e.getMessage());
+      }
+    }
+
+    Dummy dummy = new Dummy();
+    dummy.setName("Dummy Banners");
+    dummy.setNumRows(15L);
+    dummy.setDummyDescription("Dummy Banners 15 rows");
+    dummyRepository.save(dummy);
+
+    log.info("Finish dummy banners");
+  }
+
+
+
+
+
   public void dummyAll() {
     log.info("Start dummy all data");
     dummyRoleAndUser();
     dummyCategoryAndProduct();
+    dummyPromotion();
+    dummyBanner();
     dummyAddress();
     dummyStock();
     dummyCardAndOrder();
