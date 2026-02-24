@@ -1,5 +1,6 @@
 package ecommerce_app.mapper;
 
+import ecommerce_app.core.io.service.StaticResourceService;
 import ecommerce_app.core.io.service.StorageConfig;
 import ecommerce_app.dto.response.BrandResponse;
 import ecommerce_app.dto.response.SimpleBrandResponse;
@@ -11,7 +12,7 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class BrandMapper {
 
-  private final StorageConfig storageConfig;
+  private final StaticResourceService staticResourceService;
 
   public BrandResponse toResponse(Brand brand) {
     if (brand == null) return null;
@@ -37,6 +38,6 @@ public class BrandMapper {
 
   private String resolveUrl(String path) {
     if (path == null || path.isBlank()) return null;
-    return storageConfig.getAvatarPath() + "/" + path;
+    return staticResourceService.getLogoUrl(path);
   }
 }
