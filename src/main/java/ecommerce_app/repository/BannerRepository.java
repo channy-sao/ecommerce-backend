@@ -1,5 +1,6 @@
 package ecommerce_app.repository;
 
+import ecommerce_app.constant.enums.BannerPosition;
 import ecommerce_app.entity.Banner;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -18,17 +19,17 @@ public interface BannerRepository extends JpaRepository<Banner, Long> {
    * Get active banners for home carousel
    * Ordered by display_order
    */
+
   @Query("""
-      SELECT b FROM Banner b 
-      WHERE b.isActive = true 
-      AND b.position = :position
-      AND (b.startDate IS NULL OR b.startDate <= :now)
-      AND (b.endDate IS NULL OR b.endDate >= :now)
-      ORDER BY b.displayOrder ASC
-      """)
-  List<Banner> findActiveHomeBanners(
-      @Param("position") String position,
-      @Param("now") LocalDateTime now);
+            SELECT b FROM Banner b
+            WHERE b.isActive = true
+            AND b.position = :position
+            AND (b.startDate IS NULL OR b.startDate <= :now)
+            AND (b.endDate IS NULL OR b.endDate >= :now)
+            ORDER BY b.displayOrder ASC
+            """)
+  List<Banner> findActiveByPosition(@Param("position") BannerPosition position,
+                                    @Param("now") LocalDateTime now);
 
   /**
    * Get all active banners

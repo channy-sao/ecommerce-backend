@@ -21,6 +21,7 @@ public class MobileHomeService {
 
   public MobileHomeScreenResponse getHomeScreenData(
       int bannerSize,
+      int middleBannerSize,
       int featuredPromotionsSize,
       int featuredProductsSize,
       int newArrivalsSize,
@@ -29,6 +30,9 @@ public class MobileHomeService {
     // Execute all queries in parallel - use proper return types
     var bannersFuture =
         CompletableFuture.supplyAsync(() -> bannerService.getHomeBanners(bannerSize), taskExecutor);
+
+    var middleBannerFuture =
+            CompletableFuture.supplyAsync(() -> bannerService.getMiddleBanner(middleBannerSize), taskExecutor);
 
     var promotionsFuture =
         CompletableFuture.supplyAsync(
@@ -53,6 +57,8 @@ public class MobileHomeService {
 
     // Wait for all to complete and build response
     CompletableFuture.allOf(
+            bannersFuture,
+            middleBannerFuture,
             promotionsFuture,
             featuredProductsFuture,
             newArrivalsFuture,
@@ -61,7 +67,7 @@ public class MobileHomeService {
         .join();
 
     return MobileHomeScreenResponse.builder()
-        .banners(bannersFuture.join())
+        .heroBanners(bannersFuture.join())
         .featuredPromotions(promotionsFuture.join())
         .featuredProducts(featuredProductsFuture.join())
         .newArrivals(newArrivalsFuture.join())

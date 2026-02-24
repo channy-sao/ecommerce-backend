@@ -28,6 +28,7 @@ public class MobileHomeController {
   @GetMapping
   public ResponseEntity<BaseBodyResponse<MobileHomeScreenResponse>> getHomeScreenData(
       @RequestParam(defaultValue = "5") int bannersSize,
+      @RequestParam(defaultValue = "5") int middleSectionSize,
       @RequestParam(defaultValue = "5") int featuredPromotionsSize,
       @RequestParam(defaultValue = "10") int featuredProductsSize,
       @RequestParam(defaultValue = "10") int newArrivalsSize,
@@ -36,6 +37,7 @@ public class MobileHomeController {
     return BaseBodyResponse.success(
         homeService.getHomeScreenData(
             bannersSize,
+            middleSectionSize,
             featuredPromotionsSize,
             featuredProductsSize,
             newArrivalsSize,

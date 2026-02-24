@@ -3,6 +3,7 @@ package ecommerce_app.mapper;
 import ecommerce_app.core.io.service.StaticResourceService;
 import ecommerce_app.dto.response.MobileProductListResponse;
 import ecommerce_app.dto.response.MobileProductResponse;
+import ecommerce_app.dto.response.WarrantyResponse;
 import ecommerce_app.entity.Product;
 import ecommerce_app.entity.ProductImage;
 import ecommerce_app.entity.Promotion;
@@ -12,6 +13,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 
+import ecommerce_app.util.WarrantyUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -49,6 +51,7 @@ public class ProductMapper {
             .hasPromotion(product.getHasPromotion())
             .promotionBadge(product.getPromotionBadge())
             .quickAddAvailable(product.getQuickAddAvailable())
+            .warranty(getWarranty(product))
             .createdAt(product.getCreatedAt())
             .updatedAt(product.getUpdatedAt())
             .build();
@@ -114,6 +117,20 @@ public class ProductMapper {
         .endAt(promotion.getEndAt())
         .minPurchaseAmount(promotion.getMinPurchaseAmount())
         .remainingUsage(promotion.getRemainingUsage())
+        .build();
+  }
+
+  private WarrantyResponse getWarranty(Product product) {
+    return WarrantyResponse.builder()
+        .type(product.getWarrantyType())
+        .description(product.getWarrantyDescription())
+        .unit(product.getWarrantyUnit())
+        .duration(product.getWarrantyDuration())
+        .label(
+            WarrantyUtil.buildLabel(
+                product.getWarrantyType(),
+                product.getWarrantyDuration(),
+                product.getWarrantyUnit()))
         .build();
   }
 }

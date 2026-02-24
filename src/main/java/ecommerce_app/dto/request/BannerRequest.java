@@ -1,6 +1,7 @@
 package ecommerce_app.dto.request;
 
 import ecommerce_app.constant.enums.BannerLinkType;
+import ecommerce_app.constant.enums.BannerPosition;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -58,9 +59,9 @@ public class BannerRequest {
   @Schema(description = "End date", example = "2026-03-11T23:59:59")
   private LocalDateTime endDate;
 
-  @Schema(description = "Position", example = "HOME_CAROUSEL")
+  @Schema(description = "Position", example = "HOME_CAROUSEL", allOf = {BannerPosition.class})
   @Builder.Default
-  private String position = "HOME_CAROUSEL";
+  private BannerPosition position = BannerPosition.HOME_CAROUSEL;
 
   @Size(max = 20)
   @Schema(description = "Background color (hex)", example = "#FF6B6B")

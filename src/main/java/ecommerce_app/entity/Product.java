@@ -3,6 +3,8 @@ package ecommerce_app.entity;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import ecommerce_app.constant.enums.PromotionType;
 import ecommerce_app.constant.enums.StockStatus;
+import ecommerce_app.constant.enums.WarrantyType;
+import ecommerce_app.constant.enums.WarrantyUnit;
 import ecommerce_app.entity.base.SoftDeletableEntity;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
@@ -11,6 +13,8 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
+
+import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.OnDelete;
@@ -124,6 +128,23 @@ public class Product extends SoftDeletableEntity {
       orphanRemoval = true)
   @JsonIgnore
   private List<ProductSpec> specs = new ArrayList<>();
+
+
+  // Warranty
+  @Enumerated(EnumType.STRING)
+  @Column(name = "warranty_type", length = 20)
+  @Builder.Default
+  private WarrantyType warrantyType = WarrantyType.NONE;
+
+  @Column(name = "warranty_duration")
+  private Integer warrantyDuration; // e.g. 12
+
+  @Enumerated(EnumType.STRING)
+  @Column(name = "warranty_unit", length = 10)
+  private WarrantyUnit warrantyUnit; // MONTHS
+
+  @Column(name = "warranty_description", length = 500)
+  private String warrantyDescription; // "Covers all hardware defects"
 
   @Transient
   public List<String> getSpecTexts() {

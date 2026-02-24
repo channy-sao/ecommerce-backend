@@ -2,6 +2,7 @@ package ecommerce_app.service.impl;
 
 import static ecommerce_app.util.ExcelCellUtils.*;
 
+import ecommerce_app.constant.enums.WarrantyType;
 import ecommerce_app.entity.ProductSpec;
 import ecommerce_app.exception.BadRequestException;
 import ecommerce_app.exception.ResourceNotFoundException;
@@ -75,6 +76,15 @@ public class ProductServiceImpl implements ProductService {
       saveProductImages(productRequest.getImages(), product);
       saveProductSpecs(productRequest.getSpecs(), product);
 
+      // warranty
+      product.setWarrantyType(
+          productRequest.getWarrantyType() != null
+              ? productRequest.getWarrantyType()
+              : WarrantyType.NONE);
+      product.setWarrantyDuration(productRequest.getWarrantyDuration());
+      product.setWarrantyUnit(productRequest.getWarrantyUnit());
+      product.setWarrantyDescription(productRequest.getWarrantyDescription());
+
       return ProductMapper.toProductResponse(productRepository.save(product));
 
     } catch (DataIntegrityViolationException e) {
@@ -94,6 +104,15 @@ public class ProductServiceImpl implements ProductService {
     try {
       final var existingProduct = getById(id);
       updateProductFields(productRequest, existingProduct);
+
+      // warranty
+      existingProduct.setWarrantyType(
+          productRequest.getWarrantyType() != null
+              ? productRequest.getWarrantyType()
+              : WarrantyType.NONE);
+      existingProduct.setWarrantyDuration(productRequest.getWarrantyDuration());
+      existingProduct.setWarrantyUnit(productRequest.getWarrantyUnit());
+      existingProduct.setWarrantyDescription(productRequest.getWarrantyDescription());
 
       // Update category if changed
       if (!Objects.equals(productRequest.getCategoryId(), existingProduct.getCategory().getId())) {
@@ -408,7 +427,6 @@ public class ProductServiceImpl implements ProductService {
       product.getSpecs().add(spec);
     }
   }
-
 
   private void handleSpecUpdate(ProductRequest request, Product product) {
     if (request.getSpecs() == null) return; // null = no change

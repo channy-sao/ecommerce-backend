@@ -1,6 +1,7 @@
 package ecommerce_app.entity;
 
 import ecommerce_app.constant.enums.BannerLinkType;
+import ecommerce_app.constant.enums.BannerPosition;
 import ecommerce_app.entity.base.TimeAuditableEntity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -64,8 +65,9 @@ public class Banner extends TimeAuditableEntity {
   @Column(name = "end_date")
   private LocalDateTime endDate;
 
-  @Column(length = 50)
-  private String position; // HOME_CAROUSEL, CATEGORY_TOP, etc.
+  @Enumerated(EnumType.STRING)
+  @Column(length = 50, name = "position")
+  private BannerPosition position; // HOME_CAROUSEL, CATEGORY_TOP, etc.
 
   @Column(name = "background_color", length = 20)
   private String backgroundColor; // Hex color for mobile app

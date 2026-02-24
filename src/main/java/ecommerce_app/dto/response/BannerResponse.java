@@ -3,6 +3,7 @@ package ecommerce_app.dto.response;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import ecommerce_app.constant.enums.BannerLinkType;
+import ecommerce_app.constant.enums.BannerPosition;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -23,7 +24,7 @@ public class BannerResponse {
   private String linkUrl;
   private BannerLinkType linkType; // PRODUCT, CATEGORY, EXTERNAL, NONE
   private Long linkId;
-  private String position; // HOME_CAROUSEL, SIDEBAR, FOOTER, etc.
+  private BannerPosition position; // HOME_CAROUSEL, SIDEBAR, FOOTER, etc.
   private Integer displayOrder;
   private String backgroundColor;
   private Boolean active;

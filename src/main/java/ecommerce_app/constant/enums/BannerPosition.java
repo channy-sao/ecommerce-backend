@@ -6,6 +6,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public enum BannerPosition {
   HOME_CAROUSEL,
+  MIDDLE_SECTION,
+  CATEGORY_TOP,
+  FLASH_DEAL,
   SIDEBAR,
   FOOTER,
   PROMOTION_SECTION,

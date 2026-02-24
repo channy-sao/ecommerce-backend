@@ -15,7 +15,8 @@ import lombok.Setter;
 public class MobileHomeScreenResponse {
 
   // Add carousel/banners
-  private List<BannerResponse> banners;
+  private List<BannerResponse> heroBanners;        // HOME_CAROUSEL — top slider
+  private List<BannerResponse> middleBanners;      // MIDDLE_SECTION — middle cards
   // Top carousel banners (3-5 items max)
   private List<MobilePromotionListResponse> featuredPromotions;
   // Highlighted products (6-10 items)

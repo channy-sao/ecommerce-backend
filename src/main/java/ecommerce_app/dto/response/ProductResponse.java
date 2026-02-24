@@ -1,6 +1,8 @@
 package ecommerce_app.dto.response;
 
 import ecommerce_app.constant.enums.StockStatus;
+import ecommerce_app.constant.enums.WarrantyType;
+import ecommerce_app.constant.enums.WarrantyUnit;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -105,4 +107,7 @@ public class ProductResponse {
       description = "Discounted price to show in listing if there's an active promotion",
       example = "999.99")
   private BigDecimal discountedPrice;
+
+  @Schema(name = "warranty", description = "Details of the warranty associated with the product")
+  private WarrantyResponse warranty;
 }

@@ -3,6 +3,7 @@ package ecommerce_app.service.impl;
 import com.github.javafaker.Faker;
 import ecommerce_app.constant.enums.AuthProvider;
 import ecommerce_app.constant.enums.BannerLinkType;
+import ecommerce_app.constant.enums.BannerPosition;
 import ecommerce_app.constant.enums.PaymentMethod;
 import ecommerce_app.constant.enums.PromotionType;
 import ecommerce_app.constant.enums.ShippingMethod;
@@ -626,11 +627,11 @@ public class DummyService {
         banner.setEndDate(end);
 
         // 🔹 Position
-        List<String> positions = List.of(
-                "HOME_CAROUSEL",
-                "CATEGORY_TOP",
-                "FLASH_SALE",
-                "MOBILE_SLIDER"
+        List<BannerPosition> positions = List.of(
+                BannerPosition.HOME_CAROUSEL,
+                BannerPosition.MIDDLE_SECTION,
+                BannerPosition.CATEGORY_TOP,
+                BannerPosition.FLASH_DEAL
         );
 
         banner.setPosition(
