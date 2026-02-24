@@ -45,4 +45,12 @@ public class StaticResourceServiceImpl implements StaticResourceService {
     }
     return fileManagerService.getResourceUrl(storageConfig.getCommonFilePath(), fileName);
   }
+
+  @Override
+  public String getLogoUrl(String fileName) {
+    if (fileName == null || fileName.isEmpty()) {
+      return null;
+    }
+    return fileManagerService.getResourceUrl(storageConfig.getLogoPath(), fileName);
+  }
 }

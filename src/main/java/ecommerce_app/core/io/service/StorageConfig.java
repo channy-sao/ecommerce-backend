@@ -6,4 +6,5 @@ public interface StorageConfig {
     String getProductPath();
     String getCommonFilePath();
     String getBannerPath();
+    String getLogoPath();
 }

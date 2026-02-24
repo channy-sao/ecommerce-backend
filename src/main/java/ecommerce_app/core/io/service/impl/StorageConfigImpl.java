@@ -34,4 +34,9 @@ public class StorageConfigImpl implements StorageConfig {
   public String getBannerPath() {
     return "%s/banner".formatted(getBasePath());
   }
+
+  @Override
+  public String getLogoPath() {
+    return "%s/logo".formatted(getBasePath());
+  }
 }

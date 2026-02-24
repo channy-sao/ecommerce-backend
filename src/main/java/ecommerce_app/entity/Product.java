@@ -129,6 +129,18 @@ public class Product extends SoftDeletableEntity {
   @JsonIgnore
   private List<ProductSpec> specs = new ArrayList<>();
 
+  // Inside Product.java — add after category field
+
+  @ManyToOne(
+      fetch = FetchType.LAZY,
+      optional = true, // brand is optional
+      targetEntity = Brand.class,
+      cascade = CascadeType.MERGE)
+  @JoinColumn(name = "brand_id", referencedColumnName = "id", nullable = true)
+  @OnDelete(
+      action = OnDeleteAction.SET_NULL) // if brand deleted, product keeps existing, brand_id = null
+  @JsonIgnore
+  private Brand brand;
 
   // Warranty
   @Enumerated(EnumType.STRING)

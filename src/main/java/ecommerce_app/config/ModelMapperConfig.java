@@ -25,19 +25,19 @@ public class ModelMapperConfig {
   public ModelMapper modelMapper(
       FileManagerService fileManagerService,
       StorageConfigProperty storageConfigProperty,
-      StorageConfig  storageConfig,
+      StorageConfig storageConfig,
       AuditUserResolver auditUserResolver) {
     ModelMapper modelMapper = new ModelMapper();
     ProductMapper.setProperties(
         modelMapper, fileManagerService, storageConfigProperty, storageConfig, auditUserResolver);
 
+    modelMapper.getConfiguration().setMatchingStrategy(MatchingStrategies.STRICT);
     // Converter to prepend full path
     Converter<String, String> avatarPathConverter =
         ctx ->
             ctx.getSource() == null
                 ? null
-                : fileManagerService.getResourceUrl(
-                    storageConfig.getAvatarPath(), ctx.getSource());
+                : fileManagerService.getResourceUrl(storageConfig.getAvatarPath(), ctx.getSource());
 
     // Apply the converter
     modelMapper
@@ -51,7 +51,8 @@ public class ModelMapperConfig {
         .addMappings(
             mapper -> {
               mapper.skip(Product::setId);
-              mapper.skip((product, object) -> product.getCategory().setId(null));
+              mapper.skip(Product::setCategory);
+              mapper.skip(Product::setBrand);
             });
 
     // Add converter for PersistentSet to Set
