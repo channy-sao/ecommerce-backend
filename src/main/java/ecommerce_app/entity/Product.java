@@ -218,33 +218,39 @@ public class Product extends SoftDeletableEntity {
 
   @Transient
   public BigDecimal getDiscountedPrice() {
-    if (promotions != null && !promotions.isEmpty()) {
-      Promotion activePromo =
-          promotions.stream()
-              .filter(Promotion::getActive)
-              .filter(Promotion::isCurrentlyValid)
-              .max(Comparator.comparing(Promotion::getDiscountValue))
-              .orElse(null);
+    if (promotions == null || promotions.isEmpty()) return price;
 
-      if (activePromo != null && activePromo.getDiscountValue() != null) {
-        if (activePromo.getDiscountType() == PromotionType.PERCENTAGE) {
-          BigDecimal discount =
-              price
-                  .multiply(activePromo.getDiscountValue())
-                  .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-          return price.subtract(discount);
-        } else if (activePromo.getDiscountType() == PromotionType.FIXED_AMOUNT) {
-          return price.subtract(activePromo.getDiscountValue());
-        }
-      }
-    }
-    return price;
+    return promotions.stream()
+        .filter(Promotion::getActive)
+        .filter(Promotion::isCurrentlyValid)
+        .filter(p -> p.getDiscountValue() != null)
+        .max(Comparator.comparing(p -> calculateSaving(p, price)))
+        .map(
+            promo ->
+                switch (promo.getDiscountType()) {
+                  case PERCENTAGE -> {
+                    BigDecimal discount =
+                        price
+                            .multiply(promo.getDiscountValue())
+                            .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+                    yield price.subtract(discount);
+                  }
+                  case FIXED_AMOUNT -> {
+                    BigDecimal discounted2 = price.subtract(promo.getDiscountValue());
+                    yield discounted2.compareTo(BigDecimal.ZERO) < 0
+                        ? BigDecimal.ZERO
+                        : discounted2;
+                  }
+                  default -> price;
+                })
+        .orElse(price);
   }
 
   @Transient
   public Integer getDiscountPercentage() {
     BigDecimal discounted = getDiscountedPrice();
-    if (discounted.compareTo(price) < 0) {
+    // Only calculate if actually discounted
+    if (discounted.compareTo(price) < 0 && price.compareTo(BigDecimal.ZERO) > 0) {
       return price
           .subtract(discounted)
           .divide(price, 2, RoundingMode.HALF_UP)
@@ -252,6 +258,17 @@ public class Product extends SoftDeletableEntity {
           .intValue();
     }
     return null;
+  }
+
+  private BigDecimal calculateSaving(Promotion promo, BigDecimal price) {
+    return switch (promo.getDiscountType()) {
+      case PERCENTAGE ->
+          price
+              .multiply(promo.getDiscountValue())
+              .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+      case FIXED_AMOUNT -> promo.getDiscountValue().min(price);
+      default -> BigDecimal.ZERO;
+    };
   }
 
   @Transient
@@ -262,26 +279,11 @@ public class Product extends SoftDeletableEntity {
 
   @Transient
   public String getPromotionBadge() {
-    if (Boolean.FALSE.equals(getHasPromotion())) return null;
-    Promotion activePromo =
-        promotions.stream()
-            .filter(Promotion::getActive)
-            .filter(Promotion::isCurrentlyValid)
-            .findFirst()
-            .orElse(null);
-
-    if (activePromo != null) {
-      if (activePromo.getDiscountType() == PromotionType.BUY_X_GET_Y) {
-        return "BUY "
-            + activePromo.getBuyQuantity()
-            + " GET "
-            + activePromo.getGetQuantity()
-            + " FREE";
-      } else if (activePromo.getDiscountValue() != null) {
-        return activePromo.getDiscountValue() + "% OFF";
-      }
+    Integer pct = getDiscountPercentage();
+    if (pct != null) {
+      return pct + "% OFF";
     }
-    return "SALE";
+    return null;
   }
 
   @Transient

@@ -167,14 +167,18 @@ public class DataInitializer implements ApplicationRunner {
     return List.of(
         // ── Store ──────────────────────────────────────────────────────────
         build("store.name", "My Shop", "Store Name"),
-        build("store.email", "", "Contact Email"),
-        build("store.phone", "", "Contact Phone"),
-        build("store.address", "Phnom Penh", "Store Address"),
+        build("store.email", "mystore@gmail.com.kh", "Contact Email"),
+        build("store.phone", "+855 12334477", "Contact Phone"),
+        build("store.address", "Street 271, Stueng Meanchey, Phnom Penh, Cambodia", "Store Address"),
         build("store.currency", "USD", "Currency"),
         build("store.logo_url", "", "Logo URL"),
         build("store.facebook_url", "", "Facebook URL"),
+        build("store.open_at", "8:00 AM", "Store Open"),
         build("store.close_at", "11:30 PM", "Store Close"),
+        build("store.working_hours", "8:00 AM - 11:30 PM", "Store Working Hours"),
         build("store.telegram_url", "", "Telegram URL"),
+        build("store.location.latitude", "11.5564", "Store Latitude"),
+        build("store.location.longitude", "104.9282", "Store Longitude"),
 
         // ── Payment ────────────────────────────────────────────────────────
         build("payment.bakong.merchant_id", "", "Bakong Merchant ID"),

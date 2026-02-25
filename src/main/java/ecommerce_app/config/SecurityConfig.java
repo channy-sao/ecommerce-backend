@@ -55,7 +55,13 @@ public class SecurityConfig {
                     .requestMatchers(
                         "/api/v1/auth/login/**",
                         "/api/v1/auth/logout",
-                        "/api/v1/auth/refresh-token")
+                        "/api/v1/auth/refresh-token",
+                        "/api/v1/auth/register",
+                        "/api/v1/auth/forgot-password",
+                        "/api/v1/auth/reset-password",
+                        "/api/v1/auth/verify-email",
+                        "/api/v1/auth/resend-verification-email",
+                        "/api/v1/auth/social-login/**")
                     .permitAll()
                     .requestMatchers(
                         "/swagger-ui.html",
@@ -64,7 +70,14 @@ public class SecurityConfig {
                         "/v3/api-docs.yaml",
                         "/swagger-resources/**")
                     .permitAll()
-                    .requestMatchers("/api/v1/auth/me", "/api/admin/v1/**", "/api/client/v1/**")
+                    .requestMatchers(
+                        "/api/v1/auth/me",
+                        "/api/admin/v1/**",
+                        "/api/client/v1/orders/**",
+                        "/api/client/v1/payments/**",
+                        "/api/client/v1/reviews/**",
+                        "/api/client/v1/carts/**",
+                        "/api/client/v1/addresses/**")
                     .authenticated()
                     .anyRequest()
                     .permitAll())

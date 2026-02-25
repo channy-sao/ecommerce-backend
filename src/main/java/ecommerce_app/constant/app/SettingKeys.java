@@ -13,6 +13,12 @@ public final class SettingKeys {
   public static final String STORE_LOGO_URL = "store.logo_url";
   public static final String STORE_FACEBOOK_URL = "store.facebook_url";
   public static final String STORE_TELEGRAM_URL = "store.telegram_url";
+  public static final String STORE_WORKING_HOURS = "store.working_hours"; // e.g. "8:00 AM - 11:30 PM"
+  public static final String STORE_LATITUDE = "store.location.latitude";
+  public static final String STORE_LONGITUDE = "store.location.longitude";
+  public static final String STORE_OPEN_AT = "store.open_at"; // e.g. "8:00 AM"
+  public static final String STORE_CLOSE_AT = "store.close_at"; // e.g. "
+  public static final String STORE_WEBSITE = "store.website";
 
   // ── Payment (6) ───────────────────────────────────────────────────────────
   public static final String BAKONG_MERCHANT_ID = "payment.bakong.merchant_id";
