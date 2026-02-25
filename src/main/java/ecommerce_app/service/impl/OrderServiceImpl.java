@@ -5,6 +5,9 @@ import ecommerce_app.constant.enums.OrderStatus;
 import ecommerce_app.constant.enums.PaymentStatus;
 import ecommerce_app.constant.enums.PromotionType;
 import ecommerce_app.core.SimpleTry;
+import ecommerce_app.dto.request.ApplyCouponRequest;
+import ecommerce_app.dto.response.ApplyCouponResponse;
+import ecommerce_app.exception.BadRequestException;
 import ecommerce_app.exception.ResourceNotFoundException;
 import ecommerce_app.mapper.OrderMapper;
 import ecommerce_app.entity.Address;
@@ -19,9 +22,11 @@ import ecommerce_app.dto.response.OrderResponse;
 import ecommerce_app.entity.Order;
 import ecommerce_app.entity.OrderItem;
 import ecommerce_app.entity.OrderStatusHistory;
+import ecommerce_app.repository.CouponUsageRepository;
 import ecommerce_app.repository.OrderItemRepository;
 import ecommerce_app.repository.OrderRepository;
 import ecommerce_app.repository.OrderStatusHistoryRepository;
+import ecommerce_app.service.CouponService;
 import ecommerce_app.service.OrderService;
 import ecommerce_app.entity.Product;
 import ecommerce_app.service.facade.PromotionFacade;
@@ -68,6 +73,8 @@ public class OrderServiceImpl implements OrderService {
   private final OrderMapper orderMapper;
   private final OrderNumberGenerator orderNumberGenerator;
   private final StockRepository stockRepository;
+  private final CouponService couponService;
+  private final CouponUsageRepository couponUsageRepository;
 
   @Transactional(rollbackFor = Exception.class)
   @Override
@@ -93,6 +100,9 @@ public class OrderServiceImpl implements OrderService {
     CheckoutSummary checkoutSummary =
         calculateCheckoutSummary(cart, checkoutRequest.getPromotionCode());
 
+    // Add this — apply coupon on top of promotion discount
+    applyCouponToSummary(checkoutSummary, checkoutRequest.getCouponCode(), userId);
+
     // Apply free shipping if applicable
     if (isFreeShippingPromotion(checkoutSummary)) {
       shippingCost = BigDecimal.ZERO;
@@ -103,8 +113,15 @@ public class OrderServiceImpl implements OrderService {
     // Calculate totals
     final BigDecimal subtotalAmount = checkoutSummary.getSubtotal();
     final BigDecimal discountAmount = checkoutSummary.getTotalDiscount();
+    final BigDecimal couponDiscount = checkoutSummary.getCouponDiscount();
     final BigDecimal shippingAmount = shippingCost;
-    final BigDecimal totalAmount = checkoutSummary.getFinalTotal().add(shippingAmount);
+
+    final BigDecimal totalAmount =
+        checkoutSummary
+            .getFinalTotal()
+            .subtract(couponDiscount) // deduct coupon
+            .add(shippingAmount)
+            .max(BigDecimal.ZERO); // never go negative
 
     log.info(
         "Checkout totals - Subtotal: {}, Discount: {}, Shipping: {}, Total: {}",
@@ -123,7 +140,9 @@ public class OrderServiceImpl implements OrderService {
             subtotalAmount,
             discountAmount,
             shippingAmount,
-            totalAmount);
+            totalAmount,
+            couponDiscount, // ← add
+            checkoutRequest.getCouponCode());
 
     String orderNumber = orderNumberGenerator.generateOrderNumber();
     order.setOrderNumber(orderNumber);
@@ -149,6 +168,8 @@ public class OrderServiceImpl implements OrderService {
 
     // Record promotion usage if applicable
     recordPromotionUsageIfApplicable(checkoutSummary, savedOrder, currentUser);
+
+    recordCouponUsageIfApplicable(checkoutSummary, savedOrder, currentUser);
 
     // Update cart status
     updateCartStatus(cart);
@@ -417,13 +438,17 @@ public class OrderServiceImpl implements OrderService {
       BigDecimal subtotalAmount,
       BigDecimal discountAmount,
       BigDecimal shippingCost,
-      BigDecimal totalAmount) {
+      BigDecimal totalAmount,
+      BigDecimal couponDiscount,
+      String couponCode) {
     return Order.builder()
         .user(user)
         .cart(cart)
         .subtotalAmount(subtotalAmount)
         .discountAmount(discountAmount)
         .promotionCode(checkoutRequest.getPromotionCode())
+        .couponCode(checkoutRequest.getCouponCode())
+        .couponDiscount(couponDiscount)
         .shippingCost(shippingCost)
         .shippingAddressSnapshot(getAddressSnapshot(shippingAddress))
         .shippingMethod(checkoutRequest.getShippingMethod())
@@ -562,5 +587,40 @@ public class OrderServiceImpl implements OrderService {
             () ->
                 new ResourceNotFoundException(
                     "No default address found. Please add a delivery address first."));
+  }
+
+  private void applyCouponToSummary(CheckoutSummary summary, String couponCode, Long userId) {
+    if (StringUtils.isBlank(couponCode)) return;
+
+    try {
+      ApplyCouponRequest req = new ApplyCouponRequest();
+      req.setCode(couponCode);
+      req.setOrderTotal(summary.getFinalTotal()); // apply on top of promotion discount
+
+      ApplyCouponResponse result = couponService.applyCoupon(req, userId);
+
+      summary.setCouponCode(result.getCode());
+      summary.setCouponDiscount(result.getDiscountAmount());
+      summary.setAppliedCouponId(result.getCouponId());
+
+      log.info("Applied coupon {} with discount: {}", couponCode, result.getDiscountAmount());
+    } catch (BadRequestException e) {
+      // Coupon invalid — don't block checkout, just skip it
+      log.warn("Coupon not applied: {}", e.getMessage());
+      summary.setCouponCode(null);
+      summary.setCouponDiscount(BigDecimal.ZERO);
+    }
+  }
+
+  private void recordCouponUsageIfApplicable(CheckoutSummary summary, Order order, User user) {
+    if (summary.getAppliedCouponId() == null) return;
+
+    couponService.redeemCoupon(
+        summary.getAppliedCouponId(), user.getId(), order.getId(), summary.getCouponDiscount());
+
+    log.info(
+        "Recorded coupon usage for coupon ID: {}, order: {}",
+        summary.getAppliedCouponId(),
+        order.getOrderNumber());
   }
 }

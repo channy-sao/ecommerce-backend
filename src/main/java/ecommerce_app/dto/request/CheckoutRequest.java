@@ -35,4 +35,8 @@ public class CheckoutRequest {
 
   @Schema(description = "Promotion code for order-level discounts (e.g., free shipping)")
   private String promotionCode;
+
+  // Add this
+  @Schema(description = "Coupon code for order-level discount (e.g., SAVE10)")
+  private String couponCode;
 }

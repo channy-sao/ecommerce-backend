@@ -25,4 +25,8 @@ public class CheckoutSummary {
     private Promotion appliedPromotion;
     private Map<Long, BigDecimal> itemDiscounts; // productId -> discount amount
     private String promotionError;
+
+    private String couponCode;
+    private BigDecimal couponDiscount = BigDecimal.ZERO;
+    private Long appliedCouponId;
 }

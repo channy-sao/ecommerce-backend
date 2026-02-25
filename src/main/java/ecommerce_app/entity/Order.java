@@ -146,4 +146,10 @@ public class Order extends UserAuditableEntity {
       orphanRemoval = true,
       fetch = FetchType.LAZY)
   private List<OrderStatusHistory> statusHistories = new ArrayList<>();
+
+  @Column(name = "coupon_code", length = 50)
+  private String couponCode;
+
+  @Column(name = "coupon_discount", precision = 10, scale = 2)
+  private BigDecimal couponDiscount;
 }
