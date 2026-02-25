@@ -9,6 +9,7 @@ import ecommerce_app.constant.enums.PromotionType;
 import ecommerce_app.constant.enums.ShippingMethod;
 import ecommerce_app.core.io.service.StorageConfig;
 import ecommerce_app.entity.Banner;
+import ecommerce_app.entity.Brand;
 import ecommerce_app.entity.Promotion;
 import ecommerce_app.exception.BadRequestException;
 import ecommerce_app.exception.ResourceNotFoundException;
@@ -16,6 +17,7 @@ import ecommerce_app.entity.Address;
 import ecommerce_app.property.StorageConfigProperty;
 import ecommerce_app.repository.AddressRepository;
 import ecommerce_app.repository.BannerRepository;
+import ecommerce_app.repository.BrandRepository;
 import ecommerce_app.repository.PromotionRepository;
 import ecommerce_app.service.CartService;
 import ecommerce_app.entity.Category;
@@ -73,6 +75,7 @@ public class DummyService {
   private final StorageConfig storageConfig;
   private final PromotionRepository promotionRepository;
   private final BannerRepository bannerRepository;
+  private final BrandRepository brandRepository;
   private final Faker faker = new Faker();
 
   // dummy 15 rows
@@ -202,6 +205,58 @@ public class DummyService {
     dummy.setDummyDescription("Dummy Categories 20 rows");
     dummyRepository.save(dummy);
     log.info("Finish dummy category");
+  }
+
+
+  public void dummyBrand() {
+    log.info("Start dummy brands");
+
+    if (dummyRepository.existsByNameAndAgainFalse("Dummy Brands")) {
+      log.info("Dummy Brands already exist");
+      return;
+    }
+
+    List<String> brandNames = List.of(
+            "Nike", "Adidas", "Puma", "Reebok", "New Balance",
+            "Samsung", "Apple", "Sony", "LG", "Huawei",
+            "Zara", "H&M", "Uniqlo", "Gucci", "Louis Vuitton",
+            "Toyota", "Honda", "BMW", "Mercedes", "Hyundai"
+    );
+
+    for (int i = 0; i < brandNames.size(); i++) {
+      Brand brand = new Brand();
+      try {
+        brand.setName(brandNames.get(i));
+        brand.setDescription(faker.lorem().sentence(10));
+        brand.setIsActive(true);
+        brand.setDisplayOrder(i);
+
+        // Download logo image
+        try {
+          String imagePath = ImageDownloadUtils.downloadAndSave(
+                  "https://picsum.photos/200/200",
+                  storageConfig.getLogoPath() // ← make sure this path exists
+          );
+          brand.setLogo(Path.of(imagePath).getFileName().toString());
+        } catch (Exception e) {
+          log.warn("Failed to download logo for brand {}: {}", brand.getName(), e.getMessage());
+          brand.setLogo(null);
+        }
+
+        brandRepository.save(brand);
+
+      } catch (DataIntegrityViolationException e) {
+        log.warn("Duplicate brand name: {}", brand.getName());
+      }
+    }
+
+    Dummy dummy = new Dummy();
+    dummy.setName("Dummy Brands");
+    dummy.setNumRows((long) brandNames.size());
+    dummy.setDummyDescription("Dummy Brands %d rows".formatted(brandNames.size()));
+    dummyRepository.save(dummy);
+
+    log.info("Finish dummy brands");
   }
 
   // dummy 250 rows
@@ -667,6 +722,7 @@ public class DummyService {
   public void dummyAll() {
     log.info("Start dummy all data");
     dummyRoleAndUser();
+    dummyBrand();
     dummyCategoryAndProduct();
     dummyPromotion();
     dummyBanner();

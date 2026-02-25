@@ -57,6 +57,13 @@ public class DummyController {
         messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_SUCCESS));
   }
 
+  @PostMapping("/brand")
+  public ResponseEntity<BaseBodyResponse<Void>> dummyBrands() {
+    this.dummyService.dummyBrand();
+    return BaseBodyResponse.success(
+            messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_SUCCESS));
+  }
+
   @PostMapping("/category")
   public ResponseEntity<BaseBodyResponse<Void>> dummyCategories() {
     this.dummyService.dummyCategory();
