@@ -135,7 +135,7 @@ public class BrandServiceImpl implements BrandService {
   @Override
   public Page<BrandResponse> searchBrands(String search, int page, int size) {
     Page<Brand> brandPage =
-        brandRepository.findByIsActiveTrueAndNameContainingIgnoreCaseOrderByDisplayOrderAsc(
+        brandRepository.findBrandsByNameContaining(
             search, PageRequest.of(page - 1, size)); // start from 0
     return brandPage.map(brandMapper::toResponse);
   }

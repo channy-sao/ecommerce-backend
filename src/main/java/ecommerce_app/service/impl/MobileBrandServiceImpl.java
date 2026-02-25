@@ -48,7 +48,7 @@ public class MobileBrandServiceImpl implements MobileBrandService {
   @Override
   public Page<SimpleBrandResponse> searchBrands(String search, int page, int size) {
     Page<Brand> brandPage =
-        brandRepository.findByIsActiveTrueAndNameContainingIgnoreCaseOrderByDisplayOrderAsc(
+        brandRepository.findActiveBrandsByNameContaining(
             search, PageRequest.of(page - 1, size)); // start from 0
     return brandPage.map(brandMapper::toSimpleResponse);
   }
