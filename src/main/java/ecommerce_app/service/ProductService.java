@@ -30,7 +30,19 @@ public interface ProductService {
       String filter);
 
   ImportProductFromExcelResponse importProductFromExcel(MultipartFile file);
+
   List<NearEmptyStockResponse> getNearEmptyStockProducts();
 
   long countNearEmptyStockProducts();
+
+  /**
+   * Get paginated products by brand for admin. Includes all products regardless of stock status.
+   *
+   * @param brandId brand ID to filter by
+   * @param search optional product name search
+   * @param page page number
+   * @param size page size
+   * @return paginated list of all products for that brand
+   */
+  Page<ProductResponse> getProductsByBrandForAdmin(Long brandId, String search, int page, int size);
 }

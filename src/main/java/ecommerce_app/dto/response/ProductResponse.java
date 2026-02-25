@@ -51,6 +51,9 @@ public class ProductResponse {
   @Schema(description = "Category name of the product belongs to", example = "Electronic")
   private String categoryName;
 
+  @Schema(description = "Brand of the product")
+  private SimpleBrandResponse brand;
+
   @Schema(description = "Indicates whether the product is featured", example = "true")
   private Boolean isFeature;
 

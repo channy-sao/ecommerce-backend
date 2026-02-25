@@ -43,6 +43,9 @@ public class ProductRequest {
       example = "[3, 4, 5]")
   private List<Long> imageOrder;
 
+  @Schema(
+      description = "ID of the brand the product belongs to (optional, null = no brand)",
+      example = "1")
   private Long brandId; // optional, null = no brand
 
   @Schema(description = "ID of the category the product belongs to", example = "1")

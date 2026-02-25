@@ -2,6 +2,8 @@ package ecommerce_app.util;
 
 import ecommerce_app.core.io.service.FileManagerService;
 import ecommerce_app.core.io.service.StorageConfig;
+import ecommerce_app.dto.response.BrandResponse;
+import ecommerce_app.dto.response.SimpleBrandResponse;
 import ecommerce_app.dto.response.WarrantyResponse;
 import ecommerce_app.property.StorageConfigProperty;
 import ecommerce_app.dto.response.ProductImageResponse;
@@ -89,6 +91,21 @@ public class ProductMapper {
         WarrantyUtil.buildLabel(
             product.getWarrantyType(), product.getWarrantyDuration(), product.getWarrantyUnit()));
     response.setWarranty(warrantyResponse);
+
+    SimpleBrandResponse brandResponse = null;
+    if (product.getBrand() != null) {
+      brandResponse =
+          SimpleBrandResponse.builder()
+              .id(product.getBrand().getId())
+              .name(product.getBrand().getName())
+              .logo(
+                  product.getBrand().getLogo() != null
+                      ? fileManagerService.getResourceUrl(
+                          storageConfig.getLogoPath(), product.getBrand().getLogo())
+                      : null)
+              .build();
+    }
+    response.setBrand(brandResponse);
     return response;
   }
 }

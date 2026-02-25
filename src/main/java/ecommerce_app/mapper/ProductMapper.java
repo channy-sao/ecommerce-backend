@@ -3,6 +3,7 @@ package ecommerce_app.mapper;
 import ecommerce_app.core.io.service.StaticResourceService;
 import ecommerce_app.dto.response.MobileProductListResponse;
 import ecommerce_app.dto.response.MobileProductResponse;
+import ecommerce_app.dto.response.SimpleBrandResponse;
 import ecommerce_app.dto.response.WarrantyResponse;
 import ecommerce_app.entity.Product;
 import ecommerce_app.entity.ProductImage;
@@ -70,6 +71,7 @@ public class ProductMapper {
                   p -> p.getDiscountValue() != null ? p.getDiscountValue() : BigDecimal.ZERO))
           .ifPresent(activePromo -> response.setActivePromotion(toPromotionDetails(activePromo)));
     }
+    response.setBrand(resolveBrand(product));
 
     return response;
   }
@@ -100,6 +102,7 @@ public class ProductMapper {
       response.setCategoryId(product.getCategory().getId());
       response.setCategoryName(product.getCategory().getName());
     }
+    response.setBrand(resolveBrand(product));
 
     return response;
   }
@@ -131,6 +134,19 @@ public class ProductMapper {
                 product.getWarrantyType(),
                 product.getWarrantyDuration(),
                 product.getWarrantyUnit()))
+        .build();
+  }
+
+  private SimpleBrandResponse resolveBrand(Product product) {
+    if (product.getBrand() == null) return null;
+
+    return SimpleBrandResponse.builder()
+        .id(product.getBrand().getId())
+        .name(product.getBrand().getName())
+        .logo(
+            product.getBrand().getLogo() != null
+                ? staticResourceService.getLogoUrl(product.getBrand().getLogo())
+                : null)
         .build();
   }
 }

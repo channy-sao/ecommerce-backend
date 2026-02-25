@@ -270,4 +270,20 @@ public class MobileProductController {
         mobileProductService.getSuggestions(q),
         messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_SUCCESS));
   }
+
+  /**
+   * GET /api/mobile/products/brand/:brandId?search=shoes&page=1&size=10 Returns paginated products
+   * filtered by brand with optional search.
+   */
+  @GetMapping("/brand/{brandId}")
+  public ResponseEntity<BaseBodyResponse<List<MobileProductListResponse>>> getProductsByBrand(
+      @PathVariable Long brandId,
+      @RequestParam(value = "search", required = false) String search,
+      @RequestParam(value = "page", defaultValue = "1") int page,
+      @RequestParam(value = "pageSize", defaultValue = "10") int pageSize) {
+
+    return BaseBodyResponse.pageSuccess(
+        mobileProductService.getProductsByBrand(brandId, search, page, pageSize),
+        messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_SUCCESS));
+  }
 }

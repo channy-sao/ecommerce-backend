@@ -126,11 +126,35 @@ public interface ProductRepository
       @Param("excludeIds") List<Long> excludeIds,
       Pageable pageable);
 
-  @Query("""
+  @Query(
+      """
           SELECT DISTINCT p.name FROM Product p
           WHERE LOWER(p.name) LIKE LOWER(CONCAT('%', :q, '%'))
           ORDER BY p.name
           LIMIT 8
           """)
   List<String> findSuggestions(@Param("q") String q);
+
+  @Query(
+      """
+          SELECT p FROM Product p
+          JOIN p.stock s
+          WHERE p.brand.id = :brandId
+          AND (:search IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%')))
+          AND s.quantity > 0
+          ORDER BY p.createdAt DESC
+          """)
+  Page<Product> findByBrandId(
+      @Param("brandId") Long brandId, @Param("search") String search, Pageable pageable);
+
+  @Query(
+      """
+    SELECT p FROM Product p
+    LEFT JOIN p.stock s
+    WHERE p.brand.id = :brandId
+    AND (:search IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%')))
+    ORDER BY p.createdAt DESC
+    """)
+  Page<Product> findByBrandIdForAdmin(
+      @Param("brandId") Long brandId, @Param("search") String search, Pageable pageable);
 }

@@ -29,6 +29,7 @@ public class MobileProductResponse {
   @Schema(description = "Full name of the product")
   private String name;
 
+  @Schema(description = "Brand information of the product")
   private SimpleBrandResponse brand;
 
   @Schema(description = "Detailed description of the product")

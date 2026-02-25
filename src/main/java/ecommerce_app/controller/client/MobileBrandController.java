@@ -38,7 +38,7 @@ public class MobileBrandController {
    * GET Search and browse all active brands with
    * pagination.
    */
-  @GetMapping
+  @GetMapping("/filter")
   public ResponseEntity<BaseBodyResponse<List<BrandResponse>>> searchBrands(
           @RequestParam(required = false, value = "search", defaultValue = "") String search,
           @RequestParam(value = "page", defaultValue = "1") int page,

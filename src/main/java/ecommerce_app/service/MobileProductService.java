@@ -189,4 +189,16 @@ public interface MobileProductService {
   void trackProductView(Long userId, Long productId);
 
   List<String> getSuggestions(String q);
+
+  /**
+   * Get paginated products filtered by brand with optional search.
+   *
+   * @param brandId brand ID to filter by
+   * @param search  optional product name search, null returns all
+   * @param page    page number
+   * @param size    page size
+   * @return paginated list of products belonging to that brand
+   */
+  Page<MobileProductListResponse> getProductsByBrand(
+          Long brandId, String search, int page, int size);
 }

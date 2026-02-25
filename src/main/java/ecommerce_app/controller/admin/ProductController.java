@@ -231,4 +231,21 @@ public class ProductController {
         Map.of("count", productService.countNearEmptyStockProducts()),
         messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_SUCCESS));
   }
+
+  /**
+   * GET /api/admin/brands/:brandId/products?search=shoes&page=1&size=10 Returns all products by
+   * brand for admin management.
+   */
+  @GetMapping("/brands/{brandId}")
+  @PreAuthorize("hasAuthority('BRAND_READ')")
+  public ResponseEntity<BaseBodyResponse<List<ProductResponse>>> getProductsByBrand(
+      @PathVariable Long brandId,
+      @RequestParam(required = false) String search,
+      @RequestParam(defaultValue = "1") int page,
+      @RequestParam(defaultValue = "10") int size) {
+
+    return BaseBodyResponse.pageSuccess(
+        productService.getProductsByBrandForAdmin(brandId, search, page, size),
+        "Get products by brand successfully");
+  }
 }

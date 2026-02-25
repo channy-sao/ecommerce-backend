@@ -8,6 +8,7 @@ import ecommerce_app.mapper.ProductMapper;
 import ecommerce_app.dto.response.MobileProductListResponse;
 import ecommerce_app.dto.response.MobileProductResponse;
 import ecommerce_app.entity.Product;
+import ecommerce_app.repository.BrandRepository;
 import ecommerce_app.repository.ProductRepository;
 import ecommerce_app.repository.ProductViewRepository;
 import ecommerce_app.repository.UserRepository;
@@ -44,6 +45,7 @@ public class MobileProductServiceImpl implements MobileProductService {
   private final ProductMapper productMapper;
   private final ProductViewRepository productViewRepository;
   private final UserRepository userRepository;
+  private final BrandRepository brandRepository;
 
   /**
    * Get all products with filters and pagination Main method for product list screen in mobile app
@@ -140,7 +142,7 @@ public class MobileProductServiceImpl implements MobileProductService {
    * @return List of featured products
    */
   public Page<MobileProductListResponse> getFeaturedProducts(int page, int pageSize) {
-    Pageable pageable = PageRequest.of(page-1, pageSize);
+    Pageable pageable = PageRequest.of(page - 1, pageSize);
     return productRepository.findByIsFeatureTrue(pageable).map(productMapper::toListResponse);
   }
 
@@ -254,7 +256,7 @@ public class MobileProductServiceImpl implements MobileProductService {
   public Page<MobileProductListResponse> getNewArrivals(int page, int pageSize) {
     Pageable pageable =
         PageRequest.of(
-            page-1,
+            page - 1,
             pageSize,
             org.springframework.data.domain.Sort.by(
                 org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
@@ -330,20 +332,21 @@ public class MobileProductServiceImpl implements MobileProductService {
   /**
    * Track a product view for the authenticated user.
    *
-   * <p>Used to build user's view history for personalized recommendations.
-   * Duplicate views (same user + same product) are ignored to keep history clean.
+   * <p>Used to build user's view history for personalized recommendations. Duplicate views (same
+   * user + same product) are ignored to keep history clean.
    *
-   * <p>This method is called asynchronously from {@link #getProductById} so it
-   * does not affect response time of the product detail endpoint.
+   * <p>This method is called asynchronously from {@link #getProductById} so it does not affect
+   * response time of the product detail endpoint.
    *
    * <p>Example:
+   *
    * <pre>
    *   User opens Nike Shoes → saved to product_views
    *   User opens Nike Shoes again → ignored (duplicate)
    *   User opens Adidas Shoes → saved to product_views
    * </pre>
    *
-   * @param userId    authenticated user ID, null means guest (skips tracking)
+   * @param userId authenticated user ID, null means guest (skips tracking)
    * @param productId product being viewed
    * @throws ResourceNotFoundException if product or user not found
    */
@@ -357,22 +360,36 @@ public class MobileProductServiceImpl implements MobileProductService {
     }
 
     Product product = getById(productId);
-    User user = userRepository
+    User user =
+        userRepository
             .findById(userId)
             .orElseThrow(() -> new ResourceNotFoundException("User " + userId));
 
     productViewRepository.save(
-            ProductView.builder()
-                    .user(user)
-                    .product(product)
-                    .viewedAt(LocalDateTime.now())
-                    .build());
+        ProductView.builder().user(user).product(product).viewedAt(LocalDateTime.now()).build());
   }
 
   @Override
   public List<String> getSuggestions(String q) {
     if (q == null || q.trim().length() < 2) return List.of();
     return productRepository.findSuggestions(q.trim());
+  }
+
+  @Transactional(readOnly = true)
+  @Override
+  public Page<MobileProductListResponse> getProductsByBrand(
+      Long brandId, String search, int page, int size) {
+
+    brandRepository
+        .findById(brandId)
+        .orElseThrow(() -> new ResourceNotFoundException("Brand not found: " + brandId));
+
+    // Pass null if search is blank so JPQL condition is skipped
+    String searchParam = (search == null || search.isBlank()) ? null : search.trim();
+
+    return productRepository
+        .findByBrandId(brandId, searchParam, PageRequest.of(page - 1, size))
+        .map(productMapper::toListResponse);
   }
 
   /**

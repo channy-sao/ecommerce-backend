@@ -10,6 +10,7 @@ import ecommerce_app.core.io.service.FileManagerService;
 import ecommerce_app.core.io.service.StaticResourceService;
 import ecommerce_app.core.io.service.StorageConfig;
 import ecommerce_app.entity.Category;
+import ecommerce_app.repository.BrandRepository;
 import ecommerce_app.repository.CategoryRepository;
 import ecommerce_app.dto.response.ImportProductFromExcelResponse;
 import ecommerce_app.dto.response.NearEmptyStockResponse;
@@ -57,6 +58,7 @@ public class ProductServiceImpl implements ProductService {
   private final StaticResourceService staticResourceService;
   private final StorageConfig storageConfig;
   private final SettingService settingService;
+  private final BrandRepository brandRepository;
 
   // -------------------------------------------------------------------------
   // CREATE
@@ -68,7 +70,15 @@ public class ProductServiceImpl implements ProductService {
     log.info("Saving product request: {}", productRequest);
     try {
       Product product = modelMapper.map(productRequest, Product.class);
-      product.setId(null);
+      if (productRequest.getBrandId() != null) {
+        product.setBrand(
+            brandRepository
+                .findById(productRequest.getBrandId())
+                .orElseThrow(
+                    () -> new ResourceNotFoundException("Brand" + productRequest.getBrandId())));
+      } else {
+        product.setBrand(null);
+      }
       product.setImages(new ArrayList<>()); // must init before saveProductImages
       product.setSpecs(new ArrayList<>()); // init specs list
       product.setCategory(findCategoryById(productRequest.getCategoryId()));
@@ -104,6 +114,16 @@ public class ProductServiceImpl implements ProductService {
     try {
       final var existingProduct = getById(id);
       updateProductFields(productRequest, existingProduct);
+
+      if (productRequest.getBrandId() != null) {
+        existingProduct.setBrand(
+            brandRepository
+                .findById(productRequest.getBrandId())
+                .orElseThrow(
+                    () -> new ResourceNotFoundException("Brand" + productRequest.getBrandId())));
+      } else {
+        existingProduct.setBrand(null);
+      }
 
       // warranty
       existingProduct.setWarrantyType(
@@ -319,6 +339,22 @@ public class ProductServiceImpl implements ProductService {
   public long countNearEmptyStockProducts() {
     int threshold = settingService.getInt("order.low_stock_threshold");
     return productRepository.countNearEmptyStockProducts(threshold);
+  }
+
+  @Transactional(readOnly = true)
+  @Override
+  public Page<ProductResponse> getProductsByBrandForAdmin(
+      Long brandId, String search, int page, int size) {
+
+    brandRepository
+        .findById(brandId)
+        .orElseThrow(() -> new ResourceNotFoundException("Brand not found: " + brandId));
+
+    String searchParam = (search == null || search.isBlank()) ? null : search.trim();
+
+    return productRepository
+        .findByBrandIdForAdmin(brandId, searchParam, PageRequest.of(page - 1, size))
+        .map(ProductMapper::toProductResponse);
   }
 
   private NearEmptyStockResponse toNearEmptyStockResponse(Product product, int threshold) {

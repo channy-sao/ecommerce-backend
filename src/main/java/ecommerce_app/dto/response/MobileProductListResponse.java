@@ -32,6 +32,8 @@ public class MobileProductListResponse {
   private Long categoryId;
   private String categoryName;
 
+  private SimpleBrandResponse brand;
+
   // Stock info
   private Integer stockQuantity;
   private Boolean inStock;
