@@ -6,6 +6,7 @@ import ecommerce_app.dto.request.InitiatePaymentRequest;
 import ecommerce_app.dto.response.InitiatePaymentResponse;
 import ecommerce_app.dto.response.PaymentStatusResponse;
 import ecommerce_app.service.impl.PaymentService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -37,6 +38,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/client/v1/payments")
 @RequiredArgsConstructor
+@Tag(name = "Payment Controller", description = "APIs for handling payment initiation and status polling")
 public class PaymentController {
 
   private final PaymentService paymentService;

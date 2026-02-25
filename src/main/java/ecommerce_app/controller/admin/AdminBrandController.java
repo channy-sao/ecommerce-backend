@@ -6,6 +6,7 @@ import ecommerce_app.dto.response.BaseBodyResponse;
 import ecommerce_app.dto.response.BrandResponse;
 import ecommerce_app.service.BrandService;
 import ecommerce_app.util.MessageSourceService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +17,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/admin/v1/brands")
 @RequiredArgsConstructor
+@Tag(name = "Admin Brand Controller", description = "APIs for managing brands in the admin panel")
 public class AdminBrandController {
 
   private final BrandService brandService;

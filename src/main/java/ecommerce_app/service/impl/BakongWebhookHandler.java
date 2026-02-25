@@ -6,6 +6,8 @@ import ecommerce_app.repository.PaymentRepository;
 
 import java.time.LocalDateTime;
 import java.util.Map;
+
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -27,6 +29,7 @@ import org.springframework.http.ResponseEntity;
 @RestController
 @RequestMapping("/api/webhooks")
 @RequiredArgsConstructor
+@Tag(name = "Webhook Handlers", description = "Endpoints for handling payment gateway callbacks")
 public class BakongWebhookHandler {
 
   private final PaymentRepository paymentRepository;

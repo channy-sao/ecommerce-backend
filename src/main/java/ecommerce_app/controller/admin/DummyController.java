@@ -4,6 +4,7 @@ import ecommerce_app.constant.message.MessageKeyConstant;
 import ecommerce_app.dto.response.BaseBodyResponse;
 import ecommerce_app.service.impl.DummyService;
 import ecommerce_app.util.MessageSourceService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 @RequestMapping("/api/admin/v1/dummy")
 @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('ADMIN')")
+@Tag(name = "Dummy Controller", description = "APIs for generating dummy data for testing purposes")
 public class DummyController {
   // This controller is just a placeholder to demonstrate admin access control.
   // You can implement actual admin functionalities here in the future.
@@ -61,7 +63,7 @@ public class DummyController {
   public ResponseEntity<BaseBodyResponse<Void>> dummyBrands() {
     this.dummyService.dummyBrand();
     return BaseBodyResponse.success(
-            messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_SUCCESS));
+        messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_SUCCESS));
   }
 
   @PostMapping("/category")

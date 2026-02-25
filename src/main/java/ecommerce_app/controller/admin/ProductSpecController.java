@@ -6,6 +6,7 @@ import ecommerce_app.dto.response.BaseBodyResponse;
 import ecommerce_app.dto.response.ProductSpecResponse;
 import ecommerce_app.service.impl.ProductSpecService;
 import ecommerce_app.util.MessageSourceService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/admin/v1/products/{productId}/specs")
 @RequiredArgsConstructor
+@Tag(name = "Admin Product Specs", description = "APIs for managing product specifications")
 public class ProductSpecController {
 
   private final ProductSpecService productSpecService;
