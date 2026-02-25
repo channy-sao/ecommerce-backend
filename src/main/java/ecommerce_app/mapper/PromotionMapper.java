@@ -5,6 +5,7 @@ import ecommerce_app.entity.Product;
 import ecommerce_app.dto.response.MobilePromotionListResponse;
 import ecommerce_app.dto.response.MobilePromotionResponse;
 import ecommerce_app.entity.Promotion;
+import ecommerce_app.util.PromotionCalculator;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -77,7 +78,9 @@ public class PromotionMapper {
         .name(product.getName())
         .image(product.getPrimaryImagePath())
         .price(product.getPrice())
-        .discountedPrice(product.getDiscountedPrice())
+        .discountedPrice(
+            PromotionCalculator.calculateDiscountedPrice(
+                product.getPrice(), product.getPromotions()))
         .build();
   }
 

@@ -471,7 +471,7 @@ public class DummyService {
           continue;
         }
         CheckoutRequest checkoutRequest = new CheckoutRequest();
-        checkoutRequest.setCartId(cart.getId());
+//        checkoutRequest.setCartId(cart.getId());
         checkoutRequest.setShippingMethod(ShippingMethod.STANDARD);
         checkoutRequest.setShippingAddress(
             addressRepository.getAddressesByUserId(user.getId()).stream()

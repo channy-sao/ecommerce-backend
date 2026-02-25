@@ -14,6 +14,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 
+import ecommerce_app.util.PromotionCalculator;
 import ecommerce_app.util.WarrantyUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -24,6 +25,13 @@ public class ProductMapper {
   private final StaticResourceService staticResourceService;
 
   public MobileProductResponse toDetailResponse(Product product) {
+    final var discountPrice =
+        PromotionCalculator.calculateDiscountedPrice(product.getPrice(), product.getPromotions());
+    final var discountPercentage =
+        PromotionCalculator.calculateDiscountPercentage(product.getPrice(), discountPrice);
+    final var promotionBadge =
+        PromotionCalculator.buildPromotionBadge(
+            product.getPrice(), product.getPromotions(), discountPercentage);
     MobileProductResponse response =
         MobileProductResponse.builder()
             .id(product.getId())
@@ -32,8 +40,8 @@ public class ProductMapper {
             .description(product.getDescription())
             .shortDescription(product.getShortDescription())
             .price(product.getPrice())
-            .discountedPrice(product.getDiscountedPrice())
-            .discountPercentage(product.getDiscountPercentage())
+            .discountedPrice(discountPrice)
+            .discountPercentage(discountPercentage)
             // CHANGED: use getPrimaryImagePath() instead of getImage()
             // NEW: full image list for detail/gallery view
             .images(
@@ -50,7 +58,7 @@ public class ProductMapper {
             .inStock(product.getInStock())
             .stockStatus(product.getStockStatus())
             .hasPromotion(product.getHasPromotion())
-            .promotionBadge(product.getPromotionBadge())
+            .promotionBadge(promotionBadge)
             .quickAddAvailable(product.getQuickAddAvailable())
             .warranty(getWarranty(product))
             .createdAt(product.getCreatedAt())
@@ -77,6 +85,13 @@ public class ProductMapper {
   }
 
   public MobileProductListResponse toListResponse(Product product) {
+    final var discountPrice =
+        PromotionCalculator.calculateDiscountedPrice(product.getPrice(), product.getPromotions());
+    final var discountPercentage =
+        PromotionCalculator.calculateDiscountPercentage(product.getPrice(), discountPrice);
+    final var promotionBadge =
+        PromotionCalculator.buildPromotionBadge(
+            product.getPrice(), product.getPromotions(), discountPercentage);
     MobileProductListResponse response =
         MobileProductListResponse.builder()
             .id(product.getId())
@@ -84,8 +99,8 @@ public class ProductMapper {
             .name(product.getName())
             .shortDescription(product.getShortDescription())
             .price(product.getPrice())
-            .discountedPrice(product.getDiscountedPrice())
-            .discountPercentage(product.getDiscountPercentage())
+            .discountedPrice(discountPrice)
+            .discountPercentage(discountPercentage)
             // CHANGED: use getPrimaryImagePath() instead of getImage()
             .image(staticResourceService.getProductImageUrl(product.getPrimaryImagePath()))
             .isFeature(product.getIsFeature())
@@ -94,7 +109,7 @@ public class ProductMapper {
             .inStock(product.getInStock())
             .stockStatus(product.getStockStatus())
             .hasPromotion(product.getHasPromotion())
-            .promotionBadge(product.getPromotionBadge())
+            .promotionBadge(promotionBadge)
             .quickAddAvailable(product.getQuickAddAvailable())
             .build();
 

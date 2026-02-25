@@ -86,9 +86,6 @@ public class OrderServiceImpl implements OrderService {
     // Calculate shipping cost
     BigDecimal shippingCost = calculateShippingCost(checkoutRequest, cart, shippingAddress);
 
-    // Validate stock
-    validateStockAvailability(cart);
-
     // Calculate checkout summary
     CheckoutSummary checkoutSummary =
         calculateCheckoutSummary(cart, checkoutRequest.getPromotionCode());
@@ -187,15 +184,6 @@ public class OrderServiceImpl implements OrderService {
         .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
   }
 
-  private Address getShippingAddress(CheckoutRequest checkoutRequest, User user) {
-    return addressRepository
-        .findByIdAndUserId(checkoutRequest.getShippingAddress(), user.getId())
-        .orElseThrow(
-            () ->
-                new ResourceNotFoundException(
-                    "Address not found with ID: " + checkoutRequest.getShippingAddress()));
-  }
-
   private Cart retrieveCart(Long userId) {
     return cartRepository
         .findByUserIdAndStatus(userId, CartStatus.ACTIVE)
@@ -213,23 +201,6 @@ public class OrderServiceImpl implements OrderService {
       CheckoutRequest checkoutRequest, Cart cart, Address address) {
     return shippingCalculator.calculateShippingCost(
         checkoutRequest.getShippingMethod(), cart, address);
-  }
-
-  private void validateStockAvailability(Cart cart) {
-    for (CartItem cartItem : cart.getCartItems()) {
-      Product product = cartItem.getProduct();
-      int requestedQuantity = cartItem.getQuantity();
-
-      // Assuming product has a stock quantity field
-      int availableStock = product.getStockQuantity();
-
-      if (requestedQuantity > availableStock) {
-        throw new IllegalStateException(
-            String.format(
-                "Insufficient stock for product '%s'. Available: %d, Requested: %d",
-                product.getName(), availableStock, requestedQuantity));
-      }
-    }
   }
 
   private CheckoutSummary calculateCheckoutSummary(Cart cart, String promotionCode) {
@@ -269,20 +240,21 @@ public class OrderServiceImpl implements OrderService {
     try {
       Promotion promotion = promotionFacade.getPromotionByCode(promotionCode);
 
+      // ✅ 1. Check promotion exists
       if (promotion == null) {
         summary.setPromotionError("Promotion code not found");
         log.warn("Promotion code not found: {}", promotionCode);
         return;
       }
 
-      // Validate promotion is active using facade
+      // ✅ 2. Check promotion is active
       if (!promotionFacade.isPromotionActive(promotion)) {
         summary.setPromotionError("Promotion is not active or expired");
         log.warn("Promotion is not active: {}", promotionCode);
         return;
       }
 
-      // Check max usage limit
+      // ✅ 3. Check max usage limit
       if (promotion.getMaxUsage() != null && promotion.getUsages() != null) {
         int currentUsage = promotion.getUsages().size();
         if (currentUsage >= promotion.getMaxUsage()) {
@@ -291,10 +263,25 @@ public class OrderServiceImpl implements OrderService {
           return;
         }
       }
-      // have promotion and apply to summary
-      summary.setAppliedPromotion(promotion);
 
-      // Calculate discounts
+      // ✅ 4. Check min purchase amount
+      if (promotion.getMinPurchaseAmount() != null
+          && summary.getSubtotal().compareTo(promotion.getMinPurchaseAmount()) < 0) {
+        summary.setPromotionError(
+            "Minimum purchase of $" + promotion.getMinPurchaseAmount() + " required");
+        return;
+      }
+
+      // ✅ 5. FREE_SHIPPING — skip item loop, handled separately
+      if (promotion.getDiscountType() == PromotionType.FREE_SHIPPING) {
+        summary.setAppliedPromotion(promotion);
+        summary.setTotalDiscount(BigDecimal.ZERO);
+        log.info("Applied FREE_SHIPPING promotion: {}", promotionCode);
+        return; // shipping discount handled in isFreeShippingPromotion()
+      }
+
+      // ✅ 6. Apply promotion to items
+      summary.setAppliedPromotion(promotion);
       BigDecimal totalDiscount = BigDecimal.ZERO;
       Map<Long, BigDecimal> itemDiscounts = new HashMap<>();
 
@@ -306,15 +293,14 @@ public class OrderServiceImpl implements OrderService {
             BigDecimal itemDiscount =
                 promotionFacade.calculateDiscount(promotion, product, cartItem.getQuantity());
 
-            // Validate discount is not negative and not more than item price
             if (itemDiscount != null && itemDiscount.compareTo(BigDecimal.ZERO) > 0) {
               BigDecimal maxItemDiscount =
                   product.getPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity()));
 
-              // Ensure discount doesn't exceed item price
+              // Cap at item price
               itemDiscount = itemDiscount.min(maxItemDiscount);
 
-              // Ensure discount doesn't exceed subtotal
+              // Cap at subtotal
               itemDiscount = itemDiscount.min(summary.getSubtotal());
 
               itemDiscounts.put(product.getId(), itemDiscount);
@@ -327,7 +313,7 @@ public class OrderServiceImpl implements OrderService {
         }
       }
 
-      // Ensure total discount doesn't exceed subtotal
+      // ✅ 7. Cap total discount at subtotal
       if (totalDiscount.compareTo(summary.getSubtotal()) > 0) {
         totalDiscount = summary.getSubtotal();
         log.warn("Adjusted total discount to match subtotal");
@@ -505,28 +491,17 @@ public class OrderServiceImpl implements OrderService {
   }
 
   private void recordPromotionUsageIfApplicable(CheckoutSummary summary, Order order, User user) {
-    if (summary.getAppliedPromotion() != null
-        && summary.getTotalDiscount() != null
-        && summary.getTotalDiscount().compareTo(BigDecimal.ZERO) > 0) {
-
-      try {
-        PromotionUsage usage =
-            PromotionUsage.builder()
-                .promotion(summary.getAppliedPromotion())
-                .order(order)
-                .user(user)
-                .usedAt(LocalDateTime.now())
-                .discountAmount(summary.getTotalDiscount())
-                .build();
-
-        promotionUsageRepository.save(usage);
-        log.info(
-            "Recorded promotion usage for promotion: {} on order: {}",
-            summary.getAppliedPromotion().getCode(),
-            order.getId());
-      } catch (Exception e) {
-        log.error("Failed to record promotion usage: {}", e.getMessage(), e);
-      }
+    if (summary.getAppliedPromotion() != null) {
+      PromotionUsage usage =
+          PromotionUsage.builder()
+              .promotion(summary.getAppliedPromotion())
+              .order(order)
+              .user(user)
+              .usedAt(LocalDateTime.now())
+              .discountAmount(
+                  summary.getTotalDiscount() != null ? summary.getTotalDiscount() : BigDecimal.ZERO)
+              .build();
+      promotionUsageRepository.save(usage);
     }
   }
 
@@ -536,29 +511,53 @@ public class OrderServiceImpl implements OrderService {
     log.info("Updated cart {} status to CHECKED_OUT", cart.getId());
   }
 
-
   private void deductStock(Cart cart) {
     for (CartItem cartItem : cart.getCartItems()) {
       Product product = cartItem.getProduct();
       int orderedQuantity = cartItem.getQuantity();
 
-      Stock stock = stockRepository.findByProductId(product.getId())
-              .orElseThrow(() -> new ResourceNotFoundException(
-                      "Stock not found for product: " + product.getName()));
+      Stock stock =
+          stockRepository
+              .findByProductId(product.getId())
+              .orElseThrow(
+                  () ->
+                      new ResourceNotFoundException(
+                          "Stock not found for product: " + product.getName()));
 
       int newQuantity = stock.getQuantity() - orderedQuantity;
 
       if (newQuantity < 0) {
         throw new IllegalStateException(
-                String.format("Insufficient stock for '%s'. Available: %d, Requested: %d",
-                        product.getName(), stock.getQuantity(), orderedQuantity));
+            String.format(
+                "Insufficient stock for '%s'. Available: %d, Requested: %d",
+                product.getName(), stock.getQuantity(), orderedQuantity));
       }
 
       stock.setQuantity(newQuantity);
       stockRepository.save(stock);
 
-      log.info("Deducted {} units from product '{}'. Remaining stock: {}",
-              orderedQuantity, product.getName(), newQuantity);
+      log.info(
+          "Deducted {} units from product '{}'. Remaining stock: {}",
+          orderedQuantity,
+          product.getName(),
+          newQuantity);
     }
+  }
+
+  private Address getShippingAddress(CheckoutRequest request, User user) {
+    // User selected specific address
+    if (request.getShippingAddress() != null) {
+      return addressRepository
+          .findByIdAndUserId(request.getShippingAddress(), user.getId())
+          .orElseThrow(() -> new ResourceNotFoundException("Address not found"));
+    }
+
+    // Fallback to default address
+    return addressRepository
+        .findByUserIdAndIsDefaultTrue(user.getId())
+        .orElseThrow(
+            () ->
+                new ResourceNotFoundException(
+                    "No default address found. Please add a delivery address first."));
   }
 }

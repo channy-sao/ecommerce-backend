@@ -18,10 +18,6 @@ import lombok.Setter;
 @Schema(description = "Request payload for checking out a cart")
 public class CheckoutRequest {
 
-  @NotNull(message = "Cart ID is required")
-  @Schema(description = "ID of the cart to be checked out", example = "1001")
-  private Long cartId;
-
   @NotNull(message = "Payment method is required")
   @Schema(description = "Payment method selected by the user", example = "CASH")
   private PaymentMethod paymentMethod;
@@ -33,6 +29,8 @@ public class CheckoutRequest {
       description = "Shipping method selected",
       example = "STANDARD",
       allOf = ShippingMethod.class)
+  // Require it or set default
+  @NotNull(message = "Shipping method is required")
   private ShippingMethod shippingMethod;
 
   @Schema(description = "Promotion code for order-level discounts (e.g., free shipping)")

@@ -42,6 +42,14 @@ public class ProductMapper {
   public static ProductResponse toProductResponse(Product product) {
     ProductResponse response = modelMapper.map(product, ProductResponse.class);
 
+    final var discountPrice =
+        PromotionCalculator.calculateDiscountedPrice(product.getPrice(), product.getPromotions());
+    final var discountPercentage =
+        PromotionCalculator.calculateDiscountPercentage(product.getPrice(), discountPrice);
+    final var promotionBadge =
+        PromotionCalculator.buildPromotionBadge(
+            product.getPrice(), product.getPromotions(), discountPercentage);
+
     // Resolve each raw filename → full URL, sorted by sortOrder
     // This is the ONLY place URL resolution happens
     List<ProductImageResponse> imageDtos =
@@ -75,8 +83,8 @@ public class ProductMapper {
     response.setStockStatus(product.getStockStatus());
     response.setHasPromotion(product.getHasPromotion());
     response.setQuickAddAvailable(product.getQuickAddAvailable());
-    response.setDiscountedPrice(product.getDiscountedPrice());
-    response.setPromotionBadge(product.getPromotionBadge());
+    response.setDiscountedPrice(discountPrice);
+    response.setPromotionBadge(promotionBadge);
     response.setSpecs(product.getSpecTexts());
 
     // warranty

@@ -11,12 +11,11 @@ public class FixedAmountStrategy implements PromotionStrategy {
 
   @Override
   public BigDecimal calculateDiscount(Promotion promotion, Product product, Integer quantity) {
-    BigDecimal discountPerItem = promotion.getDiscountValue();
-    BigDecimal totalDiscount = discountPerItem.multiply(BigDecimal.valueOf(quantity));
     BigDecimal totalPrice = product.getPrice().multiply(BigDecimal.valueOf(quantity));
 
-    // Ensure discount doesn't exceed total price
-    return totalDiscount.min(totalPrice);
+    // fixed discount on total, not per item
+    // price=$100, qty=2, fixed=$30
+    return promotion.getDiscountValue().min(totalPrice);
   }
 
   @Override
