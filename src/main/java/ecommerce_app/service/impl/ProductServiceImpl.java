@@ -274,7 +274,9 @@ public class ProductServiceImpl implements ProductService {
     FileUtils.validateExcelFile(file);
 
     ImportProductFromExcelResponse response = new ImportProductFromExcelResponse();
-    int totalRows = 0, successRows = 0, errorRows = 0;
+    int totalRows = 0;
+    int successRows = 0;
+    int errorRows = 0;
 
     try (InputStream is = file.getInputStream();
         Workbook workbook = WorkbookFactory.create(is)) {

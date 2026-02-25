@@ -44,6 +44,9 @@ import ecommerce_app.util.SimpleShippingCalculator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
@@ -155,11 +158,11 @@ public class OrderServiceImpl implements OrderService {
 
   @Transactional(readOnly = true)
   @Override
-  public List<OrderResponse> getOrders(Long userId) {
+  public Page<OrderResponse> getOrders(Long userId, int page, int pageSize) {
     log.info("Fetching orders for user ID: {}", userId);
-    return orderRepository.findByUserId(userId).stream()
-        .map(orderMapper::toSimpleResponse)
-        .toList();
+    PageRequest pageRequest =
+        PageRequest.of(page - 1, pageSize, Sort.by(Sort.Direction.DESC, "orderDate"));
+    return orderRepository.findByUserId(userId, pageRequest).map(orderMapper::toSimpleResponse);
   }
 
   @Transactional(readOnly = true)

@@ -9,6 +9,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -19,7 +21,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface OrderRepository
     extends JpaRepository<Order, Long>, JpaSpecificationExecutor<Order> {
-  List<Order> findByUserId(Long userId);
+  Page<Order> findByUserId(Long userId, Pageable pageable);
 
   Optional<Order> findByIdAndUserId(Long orderId, Long userId);
 
@@ -82,7 +84,9 @@ public interface OrderRepository
       "SELECT o FROM Order o WHERE o.orderDate BETWEEN :fromDate AND :toDate "
           + "ORDER BY o.orderDate DESC")
   List<Order> findOrdersByDateRange(
-      @Param("fromDate") LocalDateTime fromDate, @Param("toDate") LocalDateTime toDate, Pageable pageable);
+      @Param("fromDate") LocalDateTime fromDate,
+      @Param("toDate") LocalDateTime toDate,
+      Pageable pageable);
 
   // Get order items by date range
   @Query(
@@ -112,7 +116,8 @@ public interface OrderRepository
     WHERE o.orderDate >= :previousStart
     """)
   OrderStatsProjection getAggregatedDashboardStats(
-      @Param("previousStart") LocalDateTime previousStart, @Param("currentStart") LocalDateTime currentStart);
+      @Param("previousStart") LocalDateTime previousStart,
+      @Param("currentStart") LocalDateTime currentStart);
 
   @Query(
       """
