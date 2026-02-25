@@ -59,9 +59,21 @@ public class AdminBrandController {
   }
 
   @DeleteMapping("/{id}")
-  public ResponseEntity<?> delete(@PathVariable Long id) {
+  public ResponseEntity<BaseBodyResponse<Void>> delete(@PathVariable Long id) {
     brandService.deleteBrand(id);
     return BaseBodyResponse.success(
-        null, messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_SUCCESS));
+        messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_SUCCESS));
+  }
+
+  /** GET Search and browse all active brands with pagination. */
+  @GetMapping
+  public ResponseEntity<BaseBodyResponse<List<BrandResponse>>> searchBrands(
+      @RequestParam(required = false, value = "search", defaultValue = "") String search,
+      @RequestParam(value = "page", defaultValue = "1") int page,
+      @RequestParam(value = "pageSize", defaultValue = "10") int pageSize) {
+
+    return BaseBodyResponse.pageSuccess(
+        brandService.searchBrands(search, page, pageSize),
+        messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_SUCCESS));
   }
 }

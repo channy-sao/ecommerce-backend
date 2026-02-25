@@ -1,6 +1,8 @@
 package ecommerce_app.repository;
 
 import ecommerce_app.entity.Brand;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
@@ -17,4 +19,9 @@ public interface BrandRepository
   Optional<Brand> findByNameIgnoreCase(String name);
 
   boolean existsByNameIgnoreCase(String name);
+
+  Page<Brand> findByIsActiveTrueOrderByDisplayOrderAsc(Pageable pageable);
+
+  Page<Brand> findByIsActiveTrueAndNameContainingIgnoreCaseOrderByDisplayOrderAsc(
+          String name, Pageable pageable);
 }

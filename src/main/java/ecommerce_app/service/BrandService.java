@@ -2,6 +2,7 @@ package ecommerce_app.service;
 
 import ecommerce_app.dto.request.BrandRequest;
 import ecommerce_app.dto.response.BrandResponse;
+import org.springframework.data.domain.Page;
 
 import java.util.List;
 
@@ -48,4 +49,14 @@ public interface BrandService {
   BrandResponse getById(Long id);
 
   void toggleStatus(Long id);
+
+  /**
+   * Search active brands by name with pagination.
+   * Used for brand browse/search screen.
+   *
+   * @param search optional name filter, null returns all
+   * @param page   page number
+   * @param size   page size
+   */
+  Page<BrandResponse> searchBrands(String search, int page, int size);
 }

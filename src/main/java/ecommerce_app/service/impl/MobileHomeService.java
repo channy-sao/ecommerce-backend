@@ -1,6 +1,7 @@
 package ecommerce_app.service.impl;
 
 import ecommerce_app.dto.response.MobileHomeScreenResponse;
+import ecommerce_app.service.BrandService;
 import ecommerce_app.service.MobileProductService;
 import ecommerce_app.service.MobilePromotionService;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +18,7 @@ public class MobileHomeService {
   private final MobilePromotionService promotionService;
   private final MobileCategoryService mobileCategoryService;
   private final MobileBannerServiceImpl bannerService;
+  private final BrandService brandService;
   private final Executor taskExecutor;
 
   public MobileHomeScreenResponse getHomeScreenData(
@@ -32,7 +34,8 @@ public class MobileHomeService {
         CompletableFuture.supplyAsync(() -> bannerService.getHomeBanners(bannerSize), taskExecutor);
 
     var middleBannerFuture =
-            CompletableFuture.supplyAsync(() -> bannerService.getMiddleBanner(middleBannerSize), taskExecutor);
+        CompletableFuture.supplyAsync(
+            () -> bannerService.getMiddleBanner(middleBannerSize), taskExecutor);
 
     var promotionsFuture =
         CompletableFuture.supplyAsync(
@@ -42,6 +45,8 @@ public class MobileHomeService {
         CompletableFuture.supplyAsync(
             () -> productService.getFeaturedProducts(1, featuredProductsSize).getContent(),
             taskExecutor);
+
+    var brandsFuture = CompletableFuture.supplyAsync(brandService::getActiveBrands, taskExecutor);
 
     var newArrivalsFuture =
         CompletableFuture.supplyAsync(
@@ -63,6 +68,7 @@ public class MobileHomeService {
             featuredProductsFuture,
             newArrivalsFuture,
             popularProductsFuture,
+            brandsFuture,
             categoriesFuture)
         .join();
 
@@ -72,6 +78,7 @@ public class MobileHomeService {
         .featuredProducts(featuredProductsFuture.join())
         .newArrivals(newArrivalsFuture.join())
         .popularProducts(popularProductsFuture.join())
+        .brands(brandsFuture.join())
         .categories(categoriesFuture.join())
         .build();
   }

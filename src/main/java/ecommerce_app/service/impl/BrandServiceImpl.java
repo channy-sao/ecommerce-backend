@@ -12,6 +12,8 @@ import ecommerce_app.repository.BrandRepository;
 import ecommerce_app.service.BrandService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.ResourceAccessException;
@@ -127,5 +129,14 @@ public class BrandServiceImpl implements BrandService {
         brandRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Brand", id));
     brand.setIsActive(!brand.getIsActive());
     brandRepository.save(brand);
+  }
+
+  @Transactional(readOnly = true)
+  @Override
+  public Page<BrandResponse> searchBrands(String search, int page, int size) {
+    Page<Brand> brandPage =
+        brandRepository.findByIsActiveTrueAndNameContainingIgnoreCaseOrderByDisplayOrderAsc(
+            search, PageRequest.of(page - 1, size)); // start from 0
+    return brandPage.map(brandMapper::toResponse);
   }
 }
