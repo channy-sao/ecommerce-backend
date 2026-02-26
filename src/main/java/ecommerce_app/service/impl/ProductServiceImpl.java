@@ -236,11 +236,15 @@ public class ProductServiceImpl implements ProductService {
       String sortBy,
       Sort.Direction direction,
       Long categoryId,
+      Long brandId,
       String filter) {
 
     Specification<Product> specification = Specification.allOf();
     if (categoryId != null) {
       specification = specification.and(ProductSpecification.withCategory(categoryId));
+    }
+    if (brandId != null) {
+      specification = specification.and(ProductSpecification.withBrand(brandId));
     }
     if (filter != null) {
       specification =

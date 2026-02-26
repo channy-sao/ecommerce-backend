@@ -121,9 +121,10 @@ public class ProductController {
       @RequestParam(value = "sortBy", defaultValue = "createdAt") String sortBy,
       @RequestParam(value = "sortDirection", defaultValue = "DESC") Sort.Direction sortDirection,
       @RequestParam(value = "categoryId", required = false) Long categoryId,
+      @RequestParam(value = "brandId", required = false) Long brandId,
       @RequestParam(value = "filter", required = false) String filter) {
     return BaseBodyResponse.pageSuccess(
-        productService.filter(isPaged, page, pageSize, sortBy, sortDirection, categoryId, filter),
+        productService.filter(isPaged, page, pageSize, sortBy, sortDirection, categoryId,brandId, filter),
         ResponseMessageConstant.FIND_ALL_SUCCESSFULLY);
   }
 

@@ -27,6 +27,7 @@ public interface ProductService {
       String sortBy,
       Sort.Direction direction,
       Long categoryId,
+      Long brandId,
       String filter);
 
   ImportProductFromExcelResponse importProductFromExcel(MultipartFile file);

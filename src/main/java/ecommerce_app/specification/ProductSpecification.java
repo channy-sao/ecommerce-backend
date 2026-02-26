@@ -16,6 +16,15 @@ public class ProductSpecification {
     };
   }
 
+  public static Specification<Product> withBrand(Long brandId) {
+    return (root, query, criteriaBuilder) -> {
+      if (brandId == null) {
+        return criteriaBuilder.conjunction(); // return all products
+      }
+      return criteriaBuilder.equal(root.get("brand").get("id"), brandId);
+    };
+  }
+
   public static Specification<Product> withCategoryName(String categoryName) {
     return (root, query, criteriaBuilder) -> {
       if (categoryName == null) {
