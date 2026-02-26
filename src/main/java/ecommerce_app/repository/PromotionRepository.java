@@ -8,12 +8,14 @@ import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface PromotionRepository extends JpaRepository<Promotion, Long> {
+public interface PromotionRepository
+    extends JpaRepository<Promotion, Long>, JpaSpecificationExecutor<Promotion> {
 
   Optional<Promotion> findByCode(String code);
 
@@ -89,7 +91,5 @@ public interface PromotionRepository extends JpaRepository<Promotion, Long> {
           + "AND (p.endAt IS NULL OR p.endAt >= :now)")
   long countActivePromotions(@Param("now") LocalDateTime now);
 
-  List<Promotion> findByActiveTrueAndEndAtBetween(
-          LocalDateTime start,
-          LocalDateTime end);
+  List<Promotion> findByActiveTrueAndEndAtBetween(LocalDateTime start, LocalDateTime end);
 }

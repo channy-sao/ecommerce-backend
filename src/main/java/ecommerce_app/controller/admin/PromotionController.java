@@ -73,6 +73,19 @@ public class PromotionController {
         messageSourceService.getMessage(MessageKeyConstant.PROMOTION_TITLE_LIST));
   }
 
+  @GetMapping("/filter")
+  @Operation(summary = "Get all promotions as page")
+  public ResponseEntity<BaseBodyResponse<List<PromotionResponse>>> getPromotionPage(
+      @RequestParam(value = "page", defaultValue = "1") int page,
+      @RequestParam(value = "pageSize", defaultValue = "20") int pageSize,
+      @RequestParam(value = "query", required = false) String query,
+      @RequestParam(value = "active", required = false) Boolean active,
+      @RequestParam(value = "discountType", required = false) String discountType) {
+    return BaseBodyResponse.pageSuccess(
+        promotionService.getPromotionsByPage(query, active, discountType, page, pageSize),
+        messageSourceService.getMessage(MessageKeyConstant.PROMOTION_TITLE_LIST));
+  }
+
   @GetMapping("/active")
   @Operation(summary = "Get all active promotions")
   public ResponseEntity<BaseBodyResponse<List<PromotionResponse>>> getActivePromotions() {

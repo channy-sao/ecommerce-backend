@@ -3,6 +3,8 @@ package ecommerce_app.service;
 import ecommerce_app.dto.request.PromotionRequest;
 import ecommerce_app.dto.response.PromotionResponse;
 import ecommerce_app.entity.Promotion;
+import org.springframework.data.domain.Page;
+
 import java.util.List;
 
 public interface PromotionService {
@@ -23,4 +25,6 @@ public interface PromotionService {
   List<PromotionResponse> getPromotionsByProduct(Long productId);
 
   Promotion validateAndApplyPromotion(Long productId, String promotionCode);
+
+  Page<PromotionResponse> getPromotionsByPage(String query, Boolean active, String discountType, Integer page, Integer pageSize);
 }

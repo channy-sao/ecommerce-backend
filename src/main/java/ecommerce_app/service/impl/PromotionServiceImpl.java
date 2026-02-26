@@ -10,6 +10,7 @@ import ecommerce_app.entity.Promotion;
 import ecommerce_app.repository.PromotionRepository;
 import ecommerce_app.repository.PromotionUsageRepository;
 import ecommerce_app.service.PromotionService;
+import ecommerce_app.specification.PromotionSpecification;
 import ecommerce_app.util.ProductMapper;
 import jakarta.persistence.EntityNotFoundException;
 import java.time.LocalDateTime;
@@ -17,8 +18,13 @@ import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 
 @Slf4j
 @Service
@@ -41,12 +47,8 @@ public class PromotionServiceImpl implements PromotionService {
 
     Promotion promotion = new Promotion();
     mapRequestToEntity(request, promotion);
-
-    if (request.getProductIds() != null && !request.getProductIds().isEmpty()) {
+    if (!request.isApplyToAll() && !CollectionUtils.isEmpty(request.getProductIds())) {
       List<Product> products = productRepository.findAllById(request.getProductIds());
-      if (products.size() != request.getProductIds().size()) {
-        throw new EntityNotFoundException("Some products not found");
-      }
       promotion.setProducts(products);
     }
     // apply to all products
@@ -54,6 +56,7 @@ public class PromotionServiceImpl implements PromotionService {
       List<Product> allProducts = productRepository.findAll();
       promotion.setProducts(allProducts);
     }
+    promotion.setApplyToAll(request.isApplyToAll());
 
     promotion.setMinPurchaseAmount(request.getMinPurchaseAmount());
     Promotion savedPromotion = promotionRepository.save(promotion);
@@ -78,14 +81,15 @@ public class PromotionServiceImpl implements PromotionService {
     }
 
     mapRequestToEntity(request, promotion);
-
-    if (request.getProductIds() != null) {
+    if (!request.isApplyToAll() && !CollectionUtils.isEmpty(request.getProductIds())) {
       List<Product> products = productRepository.findAllById(request.getProductIds());
-      if (products.size() != request.getProductIds().size()) {
-        throw new EntityNotFoundException("Some products not found");
-      }
       promotion.setProducts(products);
+    } else {
+      List<Product> allProducts = productRepository.findAll();
+      promotion.setProducts(allProducts);
     }
+
+    promotion.setApplyToAll(request.isApplyToAll());
 
     Promotion updatedPromotion = promotionRepository.save(promotion);
     log.info("Updated promotion: {}", updatedPromotion.getName());
@@ -191,13 +195,27 @@ public class PromotionServiceImpl implements PromotionService {
 
     // Check usage limit
     if (promotion.getMaxUsage() != null) {
-      Long currentUsage = promotionUsageRepository.countByPromotionId(promotion.getId());
+      long currentUsage = promotionUsageRepository.countByPromotionId(promotion.getId());
       if (currentUsage >= promotion.getMaxUsage()) {
         throw new IllegalStateException("Promotion usage limit reached");
       }
     }
 
     return promotion;
+  }
+
+  @Transactional(readOnly = true)
+  @Override
+  public Page<PromotionResponse> getPromotionsByPage(
+      String query, Boolean active, String discountType, Integer page, Integer pageSize) {
+    Specification<Promotion> specification =
+        PromotionSpecification.filter(query, active, discountType);
+    PageRequest pageRequest =
+        PageRequest.of(
+            page - 1,
+            pageSize,
+            Sort.by(Sort.Direction.DESC, "startAt")); // page - 1: Spring is 0-based
+    return promotionRepository.findAll(specification, pageRequest).map(this::mapToResponse);
   }
 
   private void mapRequestToEntity(PromotionRequest request, Promotion promotion) {
@@ -238,9 +256,7 @@ public class PromotionServiceImpl implements PromotionService {
     // Map products
     if (promotion.getProducts() != null) {
       List<ProductResponse> productInfos =
-          promotion.getProducts().stream()
-              .map(ProductMapper::toProductResponse)
-              .toList();
+          promotion.getProducts().stream().map(ProductMapper::toProductResponse).toList();
       response.setProducts(productInfos);
     }
 

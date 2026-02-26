@@ -23,11 +23,13 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+@Builder
 @Entity
 @Table(
     name = "promotions",
@@ -44,6 +46,8 @@ import lombok.Setter;
     })
 @Getter
 @Setter
+@AllArgsConstructor
+@NoArgsConstructor
 public class Promotion extends UserAuditableEntity {
 
   @Id
@@ -94,6 +98,7 @@ public class Promotion extends UserAuditableEntity {
       inverseJoinColumns = @JoinColumn(name = "product_id"))
   private List<Product> products;
 
+  @Builder.Default
   @Column(name = "apply_to_all", nullable = false)
   private Boolean applyToAll = false;
 
