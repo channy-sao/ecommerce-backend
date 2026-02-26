@@ -88,4 +88,8 @@ public interface PromotionRepository extends JpaRepository<Promotion, Long> {
           + "AND (p.startAt IS NULL OR p.startAt <= :now) "
           + "AND (p.endAt IS NULL OR p.endAt >= :now)")
   long countActivePromotions(@Param("now") LocalDateTime now);
+
+  List<Promotion> findByActiveTrueAndEndAtBetween(
+          LocalDateTime start,
+          LocalDateTime end);
 }

@@ -28,6 +28,7 @@ public class PromotionServiceImpl implements PromotionService {
   private final PromotionRepository promotionRepository;
   private final ProductRepository productRepository;
   private final PromotionUsageRepository promotionUsageRepository;
+  private final PromotionNotificationService promotionNotificationService;
 
   @Override
   @Transactional(rollbackFor = Exception.class)
@@ -57,6 +58,8 @@ public class PromotionServiceImpl implements PromotionService {
     promotion.setMinPurchaseAmount(request.getMinPurchaseAmount());
     Promotion savedPromotion = promotionRepository.save(promotion);
     log.info("Created promotion: {}", savedPromotion.getName());
+
+    promotionNotificationService.notifyNewPromotion(savedPromotion);
 
     return mapToResponse(savedPromotion);
   }

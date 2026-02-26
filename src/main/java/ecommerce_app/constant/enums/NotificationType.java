@@ -14,7 +14,11 @@ public enum NotificationType {
   PRODUCT_AVAILABLE,
   PAYMENT_SUCCESS,
   PAYMENT_FAILED,
-  PROMOTION,
+  NEW_PROMOTION,
+  NEW_COUPON,
+  PROMOTION_EXPIRING,   // remind before expires
+  COUPON_ASSIGNED,      // user specific coupon assigned
+  COUPON_EXPIRING,      // remind before coupon expires
   SYSTEM,
   CUSTOM,
   CHAT,
