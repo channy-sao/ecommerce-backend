@@ -23,6 +23,8 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+
+import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -91,6 +93,9 @@ public class Promotion extends UserAuditableEntity {
       joinColumns = @JoinColumn(name = "promotion_id"),
       inverseJoinColumns = @JoinColumn(name = "product_id"))
   private List<Product> products;
+
+  @Column(name = "apply_to_all", nullable = false)
+  private Boolean applyToAll = false;
 
   @OneToMany(mappedBy = "promotion", cascade = CascadeType.ALL, orphanRemoval = true)
   @JsonIgnore
