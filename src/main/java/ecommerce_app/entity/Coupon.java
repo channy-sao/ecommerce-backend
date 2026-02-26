@@ -75,18 +75,32 @@ public class Coupon extends TimeAuditableEntity {
   @Builder.Default
   private List<CouponUsage> usages = new ArrayList<>();
 
+  // null = public coupon, not null = user specific
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "assigned_user_id")
+  private User assignedUser;
+
   // ── Transient helpers ─────────────────────────────────────────────────────
 
   @Transient
   public boolean isCurrentlyValid() {
     LocalDateTime now = LocalDateTime.now();
     if (startDate != null && now.isBefore(startDate)) return false;
-    if (endDate != null && now.isAfter(endDate)) return false;
-    return true;
+    return endDate == null || !now.isAfter(endDate);
   }
 
   @Transient
   public boolean hasReachedUsageLimit() {
     return usageLimit != null && usedCount >= usageLimit;
+  }
+
+  @Transient
+  public boolean isUserSpecific() {
+    return assignedUser != null;
+  }
+
+  @Transient
+  public boolean isAssignedTo(Long userId) {
+    return assignedUser != null && assignedUser.getId().equals(userId);
   }
 }

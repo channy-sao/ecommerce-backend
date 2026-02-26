@@ -140,6 +140,10 @@ public class CouponServiceImpl implements CouponService {
       throw new BadRequestException("You have already used this coupon");
     }
 
+    if (coupon.isUserSpecific() && !coupon.isAssignedTo(userId)) {
+      throw new BadRequestException("This coupon is not valid for your account");
+    }
+
     // 4 — Check minimum order amount
     if (coupon.getMinOrderAmount() != null
         && request.getOrderTotal().compareTo(coupon.getMinOrderAmount()) < 0) {
