@@ -29,7 +29,7 @@ public interface UserService {
       int pageSize,
       String sortBy,
       Sort.Direction direction,
-      String filter);
+      String filter, String status, Long roleId);
 
   void changePassword(UpdatePasswordRequest changePasswordRequest);
 

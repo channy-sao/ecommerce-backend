@@ -220,8 +220,14 @@ public class UserServiceImpl implements UserService {
       int pageSize,
       String sortBy,
       Sort.Direction direction,
-      String filter) {
-    Specification<User> userSpecification = UserSpecification.byFilter(filter);
+      String filter,
+      String status,
+      Long roleId) {
+    Specification<User> userSpecification =
+        UserSpecification.byFilter(filter)
+            .and(UserSpecification.byRoleId(roleId))
+            .and(UserSpecification.byStatus(status));
+
     Sort sort = Sort.by(direction, sortBy);
     if (!isPage) {
       List<User> users = userRepository.findAll(userSpecification, sort);

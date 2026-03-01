@@ -200,9 +200,11 @@ public class UserController {
       @RequestParam(value = "pageSize", defaultValue = "10") int pageSize,
       @RequestParam(value = "sortBy", defaultValue = "createdAt") String sortBy,
       @RequestParam(value = "sortDirection", defaultValue = "DESC") Sort.Direction sortDirection,
-      @RequestParam(value = "filter", required = false) String filter) {
+      @RequestParam(value = "filter", required = false) String filter,
+      @RequestParam(value = "status", required = false) String status,
+      @RequestParam(value = "roleId", required = false) Long roleId) {
     return BaseBodyResponse.pageSuccess(
-        userService.filter(isPaged, page, pageSize, sortBy, sortDirection, filter),
+        userService.filter(isPaged, page, pageSize, sortBy, sortDirection, filter, status, roleId),
         messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_SUCCESS));
   }
 
