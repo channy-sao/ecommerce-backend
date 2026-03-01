@@ -92,15 +92,20 @@ public interface ProductRepository
 
   @Query(
       """
-    SELECT p FROM Product p
-    JOIN p.stock s
-    WHERE p.category.id = :categoryId
-    AND p.id != :excludeId
-    AND s.quantity > 0
-    ORDER BY p.createdAt DESC
-    """)
+  SELECT p FROM Product p
+  JOIN p.stock s
+  WHERE p.category.id = :categoryId
+  AND p.id != :excludeId
+  AND s.quantity > 0
+  ORDER BY
+    CASE WHEN (:brandId IS NOT NULL AND p.brand.id = :brandId) THEN 0 ELSE 1 END,
+    p.createdAt DESC
+  """)
   Page<Product> findRelatedProducts(
-      @Param("categoryId") Long categoryId, @Param("excludeId") Long excludeId, Pageable pageable);
+      @Param("categoryId") Long categoryId,
+      @Param("brandId") Long brandId,
+      @Param("excludeId") Long excludeId,
+      Pageable pageable);
 
   @Query(
       """

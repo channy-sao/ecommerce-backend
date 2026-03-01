@@ -164,7 +164,7 @@ public class MobileProductController {
   @GetMapping("/new")
   public ResponseEntity<BaseBodyResponse<List<MobileProductListResponse>>> getNewArrivals(
       @RequestParam(value = "page", defaultValue = "1") int page,
-      @RequestParam(value = "pageSize", defaultValue = "10") int pageSize) {
+      @RequestParam(value = "pageSize", defaultValue = "20") int pageSize) {
 
     return BaseBodyResponse.pageSuccess(
         mobileProductService.getNewArrivals(page, pageSize), "Get new arrivals successfully");
@@ -178,7 +178,7 @@ public class MobileProductController {
   @GetMapping("/popular")
   public ResponseEntity<BaseBodyResponse<List<MobileProductListResponse>>> getPopularProducts(
       @RequestParam(value = "page", defaultValue = "1") int page,
-      @RequestParam(value = "pageSize", defaultValue = "10") int pageSize) {
+      @RequestParam(value = "pageSize", defaultValue = "20") int pageSize) {
 
     return BaseBodyResponse.pageSuccess(
         mobileProductService.getPopularProducts(page, pageSize),
@@ -245,8 +245,8 @@ public class MobileProductController {
   @GetMapping("/recommended")
   public ResponseEntity<BaseBodyResponse<List<MobileProductListResponse>>> getRecommended(
       @AuthenticationPrincipal CustomUserDetails userDetails,
-      @RequestParam(defaultValue = "0") int page,
-      @RequestParam(defaultValue = "10") int size,
+      @RequestParam(defaultValue = "1") int page,
+      @RequestParam(defaultValue = "20") int size,
       @RequestParam(required = false) List<Long> excludeIds) {
 
     return BaseBodyResponse.pageSuccess(
@@ -280,7 +280,7 @@ public class MobileProductController {
       @PathVariable Long brandId,
       @RequestParam(value = "search", required = false) String search,
       @RequestParam(value = "page", defaultValue = "1") int page,
-      @RequestParam(value = "pageSize", defaultValue = "10") int pageSize) {
+      @RequestParam(value = "pageSize", defaultValue = "20") int pageSize) {
 
     return BaseBodyResponse.pageSuccess(
         mobileProductService.getProductsByBrand(brandId, search, page, pageSize),

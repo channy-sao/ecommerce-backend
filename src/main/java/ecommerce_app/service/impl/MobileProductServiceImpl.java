@@ -231,13 +231,12 @@ public class MobileProductServiceImpl implements MobileProductService {
       Long productId, int page, int pageSize) {
     Product product = getById(productId);
 
-    if (product.getCategory() == null) {
-      return Page.empty();
-    }
+    Long brandId = product.getBrand() != null ? product.getBrand().getId() : null;
 
     return productRepository
         .findRelatedProducts(
             product.getCategory().getId(),
+            brandId,
             productId,
             PageRequest.of(
                 page - 1,
@@ -272,7 +271,7 @@ public class MobileProductServiceImpl implements MobileProductService {
    */
   public Page<MobileProductListResponse> getPopularProducts(int page, int size) {
     return productRepository
-        .findPopularProducts(PageRequest.of(page, size))
+        .findPopularProducts(PageRequest.of(page - 1, size))
         .map(productMapper::toListResponse);
   }
 
