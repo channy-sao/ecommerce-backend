@@ -32,7 +32,7 @@ public class AdminCouponController {
 
   @GetMapping
   public ResponseEntity<BaseBodyResponse<List<CouponResponse>>> getAll(
-      @RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "10") int size) {
+      @RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "20") int size) {
     return BaseBodyResponse.pageSuccess(
         couponService.getAllCoupons(
             PageRequest.of(page - 1, size, Sort.by(Sort.Direction.DESC, "createdAt"))),

@@ -87,6 +87,13 @@ public class DummyController {
         messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_SUCCESS));
   }
 
+  @PostMapping("/coupons")
+  public ResponseEntity<BaseBodyResponse<Void>> dummyCoupon() {
+    this.dummyService.dummyCoupons();
+    return BaseBodyResponse.success(
+            messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_SUCCESS));
+  }
+
   @PostMapping("/stock")
   public ResponseEntity<BaseBodyResponse<Void>> dummyStock() {
     this.dummyService.dummyStock();

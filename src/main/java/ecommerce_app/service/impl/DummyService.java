@@ -4,12 +4,14 @@ import com.github.javafaker.Faker;
 import ecommerce_app.constant.enums.AuthProvider;
 import ecommerce_app.constant.enums.BannerLinkType;
 import ecommerce_app.constant.enums.BannerPosition;
+import ecommerce_app.constant.enums.CouponDiscountType;
 import ecommerce_app.constant.enums.PaymentMethod;
 import ecommerce_app.constant.enums.PromotionType;
 import ecommerce_app.constant.enums.ShippingMethod;
 import ecommerce_app.core.io.service.StorageConfig;
 import ecommerce_app.entity.Banner;
 import ecommerce_app.entity.Brand;
+import ecommerce_app.entity.Coupon;
 import ecommerce_app.entity.Promotion;
 import ecommerce_app.exception.BadRequestException;
 import ecommerce_app.exception.ResourceNotFoundException;
@@ -18,6 +20,7 @@ import ecommerce_app.property.StorageConfigProperty;
 import ecommerce_app.repository.AddressRepository;
 import ecommerce_app.repository.BannerRepository;
 import ecommerce_app.repository.BrandRepository;
+import ecommerce_app.repository.CouponRepository;
 import ecommerce_app.repository.PromotionRepository;
 import ecommerce_app.service.CartService;
 import ecommerce_app.entity.Category;
@@ -76,6 +79,7 @@ public class DummyService {
   private final PromotionRepository promotionRepository;
   private final BannerRepository bannerRepository;
   private final BrandRepository brandRepository;
+  private final CouponRepository couponRepository;
   private final Faker faker = new Faker();
 
   // dummy 15 rows
@@ -207,7 +211,6 @@ public class DummyService {
     log.info("Finish dummy category");
   }
 
-
   public void dummyBrand() {
     log.info("Start dummy brands");
 
@@ -216,12 +219,28 @@ public class DummyService {
       return;
     }
 
-    List<String> brandNames = List.of(
-            "Nike", "Adidas", "Puma", "Reebok", "New Balance",
-            "Samsung", "Apple", "Sony", "LG", "Huawei",
-            "Zara", "H&M", "Uniqlo", "Gucci", "Louis Vuitton",
-            "Toyota", "Honda", "BMW", "Mercedes", "Hyundai"
-    );
+    List<String> brandNames =
+        List.of(
+            "Nike",
+            "Adidas",
+            "Puma",
+            "Reebok",
+            "New Balance",
+            "Samsung",
+            "Apple",
+            "Sony",
+            "LG",
+            "Huawei",
+            "Zara",
+            "H&M",
+            "Uniqlo",
+            "Gucci",
+            "Louis Vuitton",
+            "Toyota",
+            "Honda",
+            "BMW",
+            "Mercedes",
+            "Hyundai");
 
     for (int i = 0; i < brandNames.size(); i++) {
       Brand brand = new Brand();
@@ -233,10 +252,11 @@ public class DummyService {
 
         // Download logo image
         try {
-          String imagePath = ImageDownloadUtils.downloadAndSave(
+          String imagePath =
+              ImageDownloadUtils.downloadAndSave(
                   "https://picsum.photos/200/200",
                   storageConfig.getLogoPath() // ← make sure this path exists
-          );
+                  );
           brand.setLogo(Path.of(imagePath).getFileName().toString());
         } catch (Exception e) {
           log.warn("Failed to download logo for brand {}: {}", brand.getName(), e.getMessage());
@@ -311,8 +331,8 @@ public class DummyService {
       ProductImage img = new ProductImage();
       try {
         String imagePath =
-                ImageDownloadUtils.downloadAndSave(
-                        "https://picsum.photos/300/300", storageConfig.getProductPath());
+            ImageDownloadUtils.downloadAndSave(
+                "https://picsum.photos/300/300", storageConfig.getProductPath());
 
         img.setImagePath(Path.of(imagePath).getFileName().toString());
 
@@ -455,6 +475,233 @@ public class DummyService {
     log.info("Finish dummy cart");
   }
 
+  public void dummyCoupons() {
+    log.info("Start dummy coupons");
+
+    if (dummyRepository.existsByNameAndAgainFalse("Dummy Coupons")) {
+      log.info("Dummy Coupons already exist");
+      return;
+    }
+
+    LocalDateTime now = LocalDateTime.now();
+    List<Coupon> coupons = new ArrayList<>();
+
+    // ── 1. Percentage coupons ─────────────────────────────────────────────────
+    coupons.add(
+        Coupon.builder()
+            .code("WELCOME10")
+            .description("Welcome discount - 10% off your first order")
+            .discountType(CouponDiscountType.PERCENTAGE)
+            .discountValue(new BigDecimal("10.00"))
+            .minOrderAmount(new BigDecimal("20.00"))
+            .maxDiscount(new BigDecimal("15.00"))
+            .usageLimit(1000)
+            .usagePerUser(1)
+            .usedCount(0)
+            .isActive(true)
+            .startDate(now.minusDays(1))
+            .endDate(now.plusDays(30))
+            .build());
+
+    coupons.add(
+        Coupon.builder()
+            .code("SAVE20")
+            .description("Save 20% on orders over $50")
+            .discountType(CouponDiscountType.PERCENTAGE)
+            .discountValue(new BigDecimal("20.00"))
+            .minOrderAmount(new BigDecimal("50.00"))
+            .maxDiscount(new BigDecimal("30.00"))
+            .usageLimit(500)
+            .usagePerUser(2)
+            .usedCount(120)
+            .isActive(true)
+            .startDate(now.minusDays(5))
+            .endDate(now.plusDays(25))
+            .build());
+
+    coupons.add(
+        Coupon.builder()
+            .code("FLASH50")
+            .description("Flash sale - 50% off, max $25 discount")
+            .discountType(CouponDiscountType.PERCENTAGE)
+            .discountValue(new BigDecimal("50.00"))
+            .minOrderAmount(new BigDecimal("30.00"))
+            .maxDiscount(new BigDecimal("25.00"))
+            .usageLimit(100)
+            .usagePerUser(1)
+            .usedCount(87)
+            .isActive(true)
+            .startDate(now)
+            .endDate(now.plusHours(24))
+            .build());
+
+    coupons.add(
+        Coupon.builder()
+            .code("VIP30")
+            .description("VIP members get 30% off")
+            .discountType(CouponDiscountType.PERCENTAGE)
+            .discountValue(new BigDecimal("30.00"))
+            .minOrderAmount(new BigDecimal("100.00"))
+            .maxDiscount(new BigDecimal("50.00"))
+            .usageLimit(200)
+            .usagePerUser(3)
+            .usedCount(45)
+            .isActive(true)
+            .startDate(now.minusDays(10))
+            .endDate(now.plusDays(60))
+            .build());
+
+    // ── 2. Fixed amount coupons ───────────────────────────────────────────────
+    coupons.add(
+        Coupon.builder()
+            .code("OFF5")
+            .description("$5 off any order")
+            .discountType(CouponDiscountType.FIXED_AMOUNT)
+            .discountValue(new BigDecimal("5.00"))
+            .minOrderAmount(new BigDecimal("15.00"))
+            .maxDiscount(null)
+            .usageLimit(null) // unlimited
+            .usagePerUser(1)
+            .usedCount(230)
+            .isActive(true)
+            .startDate(now.minusDays(7))
+            .endDate(now.plusDays(30))
+            .build());
+
+    coupons.add(
+        Coupon.builder()
+            .code("OFF15")
+            .description("$15 off orders over $75")
+            .discountType(CouponDiscountType.FIXED_AMOUNT)
+            .discountValue(new BigDecimal("15.00"))
+            .minOrderAmount(new BigDecimal("75.00"))
+            .maxDiscount(null)
+            .usageLimit(300)
+            .usagePerUser(2)
+            .usedCount(88)
+            .isActive(true)
+            .startDate(now.minusDays(3))
+            .endDate(now.plusDays(14))
+            .build());
+
+    coupons.add(
+        Coupon.builder()
+            .code("PAYDAY25")
+            .description("Payday special - $25 off orders over $100")
+            .discountType(CouponDiscountType.FIXED_AMOUNT)
+            .discountValue(new BigDecimal("25.00"))
+            .minOrderAmount(new BigDecimal("100.00"))
+            .maxDiscount(null)
+            .usageLimit(150)
+            .usagePerUser(1)
+            .usedCount(32)
+            .isActive(true)
+            .startDate(now)
+            .endDate(now.plusDays(3))
+            .build());
+
+    // ── 3. Free shipping coupons ──────────────────────────────────────────────
+    coupons.add(
+        Coupon.builder()
+            .code("FREESHIP")
+            .description("Free shipping on any order")
+            .discountType(CouponDiscountType.FREE_SHIPPING)
+            .discountValue(null)
+            .minOrderAmount(new BigDecimal("10.00"))
+            .maxDiscount(null)
+            .usageLimit(null) // unlimited
+            .usagePerUser(2)
+            .usedCount(540)
+            .isActive(true)
+            .startDate(now.minusDays(30))
+            .endDate(now.plusDays(30))
+            .build());
+
+    coupons.add(
+        Coupon.builder()
+            .code("SHIPFREE50")
+            .description("Free shipping on orders over $50")
+            .discountType(CouponDiscountType.FREE_SHIPPING)
+            .discountValue(null)
+            .minOrderAmount(new BigDecimal("50.00"))
+            .maxDiscount(null)
+            .usageLimit(500)
+            .usagePerUser(3)
+            .usedCount(210)
+            .isActive(true)
+            .startDate(now.minusDays(15))
+            .endDate(now.plusDays(45))
+            .build());
+
+    // ── 4. Expired coupons (for testing expired state) ────────────────────────
+    coupons.add(
+        Coupon.builder()
+            .code("EXPIRED10")
+            .description("Expired 10% discount - for testing")
+            .discountType(CouponDiscountType.PERCENTAGE)
+            .discountValue(new BigDecimal("10.00"))
+            .minOrderAmount(new BigDecimal("20.00"))
+            .maxDiscount(null)
+            .usageLimit(100)
+            .usagePerUser(1)
+            .usedCount(100)
+            .isActive(false)
+            .startDate(now.minusDays(60))
+            .endDate(now.minusDays(30))
+            .build());
+
+    // ── 5. Scheduled coupon (future) ──────────────────────────────────────────
+    coupons.add(
+        Coupon.builder()
+            .code("UPCOMING20")
+            .description("Upcoming sale - 20% off, starts next week")
+            .discountType(CouponDiscountType.PERCENTAGE)
+            .discountValue(new BigDecimal("20.00"))
+            .minOrderAmount(new BigDecimal("40.00"))
+            .maxDiscount(new BigDecimal("20.00"))
+            .usageLimit(300)
+            .usagePerUser(1)
+            .usedCount(0)
+            .isActive(true)
+            .startDate(now.plusDays(7))
+            .endDate(now.plusDays(14))
+            .build());
+
+    // ── 6. Limit-reached coupon (for testing) ────────────────────────────────
+    coupons.add(
+        Coupon.builder()
+            .code("SOLDOUT")
+            .description("All usage slots taken - for testing limit reached state")
+            .discountType(CouponDiscountType.FIXED_AMOUNT)
+            .discountValue(new BigDecimal("10.00"))
+            .minOrderAmount(new BigDecimal("30.00"))
+            .maxDiscount(null)
+            .usageLimit(50)
+            .usagePerUser(1)
+            .usedCount(50) // fully used
+            .isActive(true)
+            .startDate(now.minusDays(10))
+            .endDate(now.plusDays(20))
+            .build());
+
+    // ── Save all ──────────────────────────────────────────────────────────────
+    for (Coupon coupon : coupons) {
+      try {
+        couponRepository.save(coupon);
+      } catch (DataIntegrityViolationException e) {
+        log.warn("Duplicate coupon code: {}", coupon.getCode());
+      }
+    }
+
+    Dummy dummy = new Dummy();
+    dummy.setName("Dummy Coupons");
+    dummy.setNumRows((long) coupons.size());
+    dummy.setDummyDescription("Dummy Coupons %d rows".formatted(coupons.size()));
+    dummyRepository.save(dummy);
+
+    log.info("Finish dummy coupons — {} coupons created", coupons.size());
+  }
+
   public void dummyOrder() {
     log.info("Start dummy order");
     if (dummyRepository.existsByNameAndAgainFalse("Dummy Orders")) {
@@ -471,7 +718,7 @@ public class DummyService {
           continue;
         }
         CheckoutRequest checkoutRequest = new CheckoutRequest();
-//        checkoutRequest.setCartId(cart.getId());
+        //        checkoutRequest.setCartId(cart.getId());
         checkoutRequest.setShippingMethod(ShippingMethod.STANDARD);
         checkoutRequest.setShippingAddress(
             addressRepository.getAddressesByUserId(user.getId()).stream()
@@ -505,7 +752,6 @@ public class DummyService {
     log.info("Finish dummy cart and order");
   }
 
-
   public void dummyPromotion() {
     log.info("Start dummy promotions");
 
@@ -527,20 +773,15 @@ public class DummyService {
         promotion.setCode("PROMO-" + faker.number().digits(5));
 
         // 🔹 Random discount type
-        PromotionType type = faker.bool().bool()
-                ? PromotionType.PERCENTAGE
-                : PromotionType.FIXED_AMOUNT;
+        PromotionType type =
+            faker.bool().bool() ? PromotionType.PERCENTAGE : PromotionType.FIXED_AMOUNT;
 
         promotion.setDiscountType(type);
 
         if (type == PromotionType.PERCENTAGE) {
-          promotion.setDiscountValue(
-                  BigDecimal.valueOf(faker.number().numberBetween(5, 50))
-          );
+          promotion.setDiscountValue(BigDecimal.valueOf(faker.number().numberBetween(5, 50)));
         } else {
-          promotion.setDiscountValue(
-                  BigDecimal.valueOf(faker.number().numberBetween(5, 200))
-          );
+          promotion.setDiscountValue(BigDecimal.valueOf(faker.number().numberBetween(5, 200)));
         }
 
         // 🔹 Buy X Get Y (optional)
@@ -553,12 +794,9 @@ public class DummyService {
         promotion.setActive(faker.bool().bool());
 
         // 🔹 Date range
-        LocalDateTime start = LocalDateTime.now()
-                .minusDays(faker.number().numberBetween(0, 10));
+        LocalDateTime start = LocalDateTime.now().minusDays(faker.number().numberBetween(0, 10));
 
-        LocalDateTime end = start.plusDays(
-                faker.number().numberBetween(5, 30)
-        );
+        LocalDateTime end = start.plusDays(faker.number().numberBetween(5, 30));
 
         promotion.setStartAt(start);
         promotion.setEndAt(end);
@@ -568,9 +806,7 @@ public class DummyService {
         promotion.setMaxUsagePerUser(faker.number().numberBetween(1, 5));
 
         // 🔹 Minimum purchase
-        promotion.setMinPurchaseAmount(
-                BigDecimal.valueOf(faker.number().numberBetween(50, 500))
-        );
+        promotion.setMinPurchaseAmount(BigDecimal.valueOf(faker.number().numberBetween(50, 500)));
 
         // 🔹 Assign random products
         if (!products.isEmpty()) {
@@ -597,7 +833,6 @@ public class DummyService {
     log.info("Finish dummy promotions");
   }
 
-
   public void dummyBanner() {
 
     log.info("Start dummy banners");
@@ -621,10 +856,9 @@ public class DummyService {
         banner.setDescription(faker.lorem().sentence(10));
 
         // 🔹 Download random image (landscape banner size)
-        String imagePath = ImageDownloadUtils.downloadAndSave(
-                "https://picsum.photos/1200/400",
-                storageConfig.getBannerPath()
-        );
+        String imagePath =
+            ImageDownloadUtils.downloadAndSave(
+                "https://picsum.photos/1200/400", storageConfig.getBannerPath());
 
         // Store only filename
         banner.setImage(Path.of(imagePath).getFileName().toString());
@@ -636,27 +870,21 @@ public class DummyService {
         banner.setLinkType(BannerLinkType.valueOf(linkType));
 
         switch (linkType) {
-
           case "PRODUCT" -> {
             if (!products.isEmpty()) {
-              var product = products.get(
-                      faker.number().numberBetween(0, products.size())
-              );
+              var product = products.get(faker.number().numberBetween(0, products.size()));
               banner.setLinkId(product.getId());
             }
           }
 
           case "CATEGORY" -> {
             if (!categories.isEmpty()) {
-              var category = categories.get(
-                      faker.number().numberBetween(0, categories.size())
-              );
+              var category = categories.get(faker.number().numberBetween(0, categories.size()));
               banner.setLinkId(category.getId());
             }
           }
 
-          case "EXTERNAL" ->
-                  banner.setLinkUrl("https://picsum.photos/300/300");
+          case "EXTERNAL" -> banner.setLinkUrl("https://picsum.photos/300/300");
 
           default -> {
             banner.setLinkId(null);
@@ -671,32 +899,25 @@ public class DummyService {
         banner.setDisplayOrder(i);
 
         // 🔹 Dates
-        LocalDateTime start = LocalDateTime.now()
-                .minusDays(faker.number().numberBetween(0, 5));
+        LocalDateTime start = LocalDateTime.now().minusDays(faker.number().numberBetween(0, 5));
 
-        LocalDateTime end = start.plusDays(
-                faker.number().numberBetween(5, 20)
-        );
+        LocalDateTime end = start.plusDays(faker.number().numberBetween(5, 20));
 
         banner.setStartDate(start);
         banner.setEndDate(end);
 
         // 🔹 Position
-        List<BannerPosition> positions = List.of(
+        List<BannerPosition> positions =
+            List.of(
                 BannerPosition.HOME_CAROUSEL,
                 BannerPosition.MIDDLE_SECTION,
                 BannerPosition.CATEGORY_TOP,
-                BannerPosition.FLASH_DEAL
-        );
+                BannerPosition.FLASH_DEAL);
 
-        banner.setPosition(
-                positions.get(faker.number().numberBetween(0, positions.size()))
-        );
+        banner.setPosition(positions.get(faker.number().numberBetween(0, positions.size())));
 
         // 🔹 Random background color
-        banner.setBackgroundColor(
-                "#" + faker.color().hex().substring(0, 6)
-        );
+        banner.setBackgroundColor("#" + faker.color().hex().substring(0, 6));
 
         bannerRepository.save(banner);
 
@@ -714,16 +935,13 @@ public class DummyService {
     log.info("Finish dummy banners");
   }
 
-
-
-
-
-//  @Async
+  //  @Async
   public void dummyAll() {
     log.info("Start dummy all data");
     dummyRoleAndUser();
     dummyBrand();
     dummyCategoryAndProduct();
+    dummyCoupons();
     dummyPromotion();
     dummyBanner();
     dummyAddress();
