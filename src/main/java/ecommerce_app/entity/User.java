@@ -91,6 +91,9 @@ public class User extends TimeAuditableEntity {
   @Column(name = "uuid", nullable = false, unique = true, updatable = false)
   private UUID uuid;
 
+  @Column(name = "fcm_token")
+  private String fcmToken;
+
   @ManyToMany(fetch = FetchType.LAZY)
   @JoinTable(
       name = "user_roles",
