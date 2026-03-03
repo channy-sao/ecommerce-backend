@@ -7,6 +7,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class EcommerceAppApplication {
 
   public static void main(String[] args) {
+    System.setProperty("GOOGLE_API_USE_CLIENT_CERTIFICATE", "false");
     SpringApplication.run(EcommerceAppApplication.class, args);
   }
 }

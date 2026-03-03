@@ -1,72 +1,114 @@
+// ChatRestController.java
 package ecommerce_app.controller;
 
 import ecommerce_app.constant.enums.SenderType;
 import ecommerce_app.core.identify.custom.CustomUserDetails;
 import ecommerce_app.dto.request.ChatMessageRequest;
-import ecommerce_app.entity.ChatMessage;
-import ecommerce_app.entity.ChatSession;
+import ecommerce_app.dto.request.FcmTokenRequest;
+import ecommerce_app.dto.response.BaseBodyResponse;
+import ecommerce_app.dto.response.ChatMessageResponse;
+import ecommerce_app.dto.response.ChatSessionResponse;
 import ecommerce_app.service.impl.FirebaseChatService;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import java.util.List;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-
-import java.util.Objects;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/chat")
 @RequiredArgsConstructor
+@Tag(name = "Chat Controller", description = "For Chat Management")
 public class ChatRestController {
 
   private final FirebaseChatService chatService;
 
+  // ── FCM Token ─────────────────────────────────────────────────────────────
+
+  @PatchMapping("/fcm-token")
+  public ResponseEntity<BaseBodyResponse<Void>> updateFcmToken(
+      @AuthenticationPrincipal CustomUserDetails user,
+      @Valid @RequestBody FcmTokenRequest request) {
+    chatService.updateFcmToken(user.getId(), request.getToken());
+    return BaseBodyResponse.success("Success");
+  }
+
+  // ── Sessions ──────────────────────────────────────────────────────────────
+
   @PostMapping("/sessions/start")
-  public ResponseEntity<ChatSession> startChat(@RequestParam Long customerId) {
-    return ResponseEntity.ok(chatService.createSession(customerId));
+  public ResponseEntity<BaseBodyResponse<ChatSessionResponse>> startChat(
+      @AuthenticationPrincipal CustomUserDetails user) {
+    return BaseBodyResponse.success(chatService.createSession(user.getId()), "Success");
   }
 
   @PostMapping("/sessions/{sessionId}/join")
-  public ResponseEntity<ChatSession> agentJoin(
-      @PathVariable Long sessionId, @RequestParam Long agentId) {
-    return ResponseEntity.ok(chatService.assignAgent(sessionId, agentId));
-  }
-
-  @PostMapping("/sessions/{sessionId}/message")
-  public ResponseEntity<ChatMessage> sendMessage(
-      @PathVariable Long sessionId,
-      @RequestBody ChatMessageRequest request,
-      @AuthenticationPrincipal CustomUserDetails user) {
-    SenderType senderType = resolveSenderType(user);
-    return ResponseEntity.ok(
-        chatService.saveMessage(sessionId, user.getId(), request.getContent(), senderType));
+  public ResponseEntity<BaseBodyResponse<ChatSessionResponse>> agentJoin(
+      @PathVariable Long sessionId, @AuthenticationPrincipal CustomUserDetails user) {
+    return BaseBodyResponse.success(chatService.assignAgent(sessionId, user.getId()), "Success");
   }
 
   @PostMapping("/sessions/{sessionId}/close")
-  public ResponseEntity<Void> closeChat(@PathVariable Long sessionId) {
+  public ResponseEntity<BaseBodyResponse<Void>> closeChat(@PathVariable Long sessionId) {
     chatService.closeSession(sessionId);
-    return ResponseEntity.ok().build();
+    return BaseBodyResponse.success("Success");
+  }
+
+  @GetMapping("/sessions/waiting")
+  public ResponseEntity<BaseBodyResponse<List<ChatSessionResponse>>> getWaiting() {
+    return BaseBodyResponse.success(chatService.getWaitingSessions(), "Success");
+  }
+
+  @GetMapping("/sessions/my")
+  public ResponseEntity<BaseBodyResponse<List<ChatSessionResponse>>> getMySessions(
+      @AuthenticationPrincipal CustomUserDetails user) {
+    List<ChatSessionResponse> sessions =
+        isAgentOrAdmin(user)
+            ? chatService.getMySessionsAsAgent(user.getId())
+            : chatService.getMySessionsAsCustomer(user.getId());
+    return BaseBodyResponse.success(sessions, "Success");
+  }
+
+  // ── Messages ──────────────────────────────────────────────────────────────
+
+  @PostMapping("/sessions/{sessionId}/message")
+  public ResponseEntity<BaseBodyResponse<ChatMessageResponse>> sendMessage(
+      @PathVariable Long sessionId,
+      @Valid @RequestBody ChatMessageRequest request,
+      @AuthenticationPrincipal CustomUserDetails user) {
+    return BaseBodyResponse.success(
+        chatService.sendMessage(
+            sessionId, user.getId(), request.getContent(), resolveSenderType(user)),
+        "");
+  }
+
+  @GetMapping("/sessions/{sessionId}/messages")
+  public ResponseEntity<BaseBodyResponse<List<ChatMessageResponse>>> getHistory(
+      @PathVariable Long sessionId) {
+    return BaseBodyResponse.success(chatService.getHistory(sessionId), "Success");
   }
 
   @PatchMapping("/sessions/{sessionId}/read")
-  public ResponseEntity<Void> markRead(
-      @PathVariable Long sessionId, @RequestParam SenderType readerType) {
-    chatService.markAsRead(sessionId, readerType);
-    return ResponseEntity.ok().build();
+  public ResponseEntity<BaseBodyResponse<Void>> markRead(
+      @PathVariable Long sessionId, @AuthenticationPrincipal CustomUserDetails user) {
+    chatService.markAsRead(sessionId, resolveSenderType(user));
+    return BaseBodyResponse.success("Success");
   }
 
+  // ── Helpers ───────────────────────────────────────────────────────────────
+
   private SenderType resolveSenderType(CustomUserDetails user) {
+    return isAgentOrAdmin(user) ? SenderType.AGENT : SenderType.CUSTOMER;
+  }
+
+  private boolean isAgentOrAdmin(CustomUserDetails user) {
     return user.getAuthorities().stream()
-            .map(GrantedAuthority::getAuthority)
-            .filter(Objects::nonNull)
-            .anyMatch(r -> r.equals("ROLE_AGENT") || r.equals("ROLE_ADMIN"))
-        ? SenderType.AGENT
-        : SenderType.CUSTOMER;
+        .map(GrantedAuthority::getAuthority)
+        .filter(Objects::nonNull)
+        .anyMatch(
+            r -> r.equals("ROLE_AGENT") || r.equals("ROLE_ADMIN") || r.equals("ROLE_SUPER_ADMIN"));
   }
 }

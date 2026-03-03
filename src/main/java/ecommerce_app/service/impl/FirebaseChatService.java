@@ -1,27 +1,32 @@
+// FirebaseChatService.java
 package ecommerce_app.service.impl;
 
 import com.google.cloud.Timestamp;
-import com.google.cloud.firestore.CollectionReference;
-import com.google.cloud.firestore.Firestore;
-import com.google.firebase.messaging.FirebaseMessaging;
-import com.google.firebase.messaging.FirebaseMessagingException;
-import com.google.firebase.messaging.Message;
-import com.google.firebase.messaging.Notification;
+import com.google.cloud.firestore.*;
+import com.google.firebase.messaging.*;
 import ecommerce_app.constant.enums.SenderType;
 import ecommerce_app.constant.enums.SessionStatus;
+import ecommerce_app.dto.response.ChatMessageResponse;
+import ecommerce_app.dto.response.ChatSessionResponse;
 import ecommerce_app.entity.ChatMessage;
 import ecommerce_app.entity.ChatSession;
 import ecommerce_app.entity.User;
+import ecommerce_app.exception.ApiException;
+import ecommerce_app.exception.InternalServerErrorException;
 import ecommerce_app.exception.ResourceNotFoundException;
+import ecommerce_app.mapper.ChatMapper;
 import ecommerce_app.repository.ChatMessageRepository;
 import ecommerce_app.repository.ChatSessionRepository;
 import ecommerce_app.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -32,84 +37,206 @@ public class FirebaseChatService {
   private final Firestore firestore;
   private final FirebaseMessaging firebaseMessaging;
   private final UserRepository userRepository;
-  private final ChatSessionRepository sessionRepository; // still persist to your DB
+  private final ChatSessionRepository sessionRepository;
   private final ChatMessageRepository messageRepository;
+  private final ChatMapper chatMapper;
 
-  private static final String SESSIONS_COLLECTION = "chat_sessions";
-  private static final String MESSAGES_COLLECTION = "messages";
+  private static final String SESSIONS_COL = "chat_sessions";
+  private static final String MESSAGES_COL = "messages";
 
-  // ── Session ──────────────────────────────────────────────────────────────
+  // ── FCM Token ─────────────────────────────────────────────────────────────
 
-  public ChatSession createSession(Long customerId) {
-    // 1. Guard: no duplicate open session
-    sessionRepository
-        .findByCustomerIdAndStatus(customerId, SessionStatus.WAITING)
-        .ifPresent(
-            s -> {
-              throw new RuntimeException("You already have an open session");
-            });
+  @Transactional
+  public void updateFcmToken(Long userId, String token) {
+    User user =
+        userRepository
+            .findById(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
+    user.setFcmToken(token);
+    userRepository.save(user);
+  }
+
+  // ── Sessions ──────────────────────────────────────────────────────────────
+
+  @Transactional
+  public ChatSessionResponse createSession(Long customerId) {
+    boolean hasOpen =
+        sessionRepository.existsByCustomerIdAndStatusIn(
+            customerId, List.of(SessionStatus.WAITING, SessionStatus.ACTIVE));
+    if (hasOpen) {
+      throw new ApiException(HttpStatus.MULTI_STATUS, "You already have an open support session.");
+    }
 
     User customer =
         userRepository
             .findById(customerId)
-            .orElseThrow(() -> new RuntimeException("User not found"));
+            .orElseThrow(() -> new ResourceNotFoundException("User not found: " + customerId));
 
-    // 2. Save to your DB
     ChatSession session =
         sessionRepository.save(
             ChatSession.builder().customer(customer).status(SessionStatus.WAITING).build());
 
-    // 3. Mirror to Firestore so agents see it in real-time
-    syncSessionToFirestore(session, 0);
-
-    return session;
+    syncSessionToFirestore(session, true);
+    return chatMapper.toSessionResponse(session, 0);
   }
 
-  public ChatSession assignAgent(Long sessionId, Long agentId) {
+  @Transactional
+  public ChatSessionResponse assignAgent(Long sessionId, Long agentId) {
     ChatSession session = getSessionOrThrow(sessionId);
+    if (session.getStatus() == SessionStatus.CLOSED) {
+      throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Cannot join a closed session.");
+    }
+
     User agent =
-        userRepository.findById(agentId).orElseThrow(() -> new RuntimeException("Agent not found"));
+        userRepository
+            .findById(agentId)
+            .orElseThrow(() -> new ResourceNotFoundException("Agent not found: " + agentId));
 
     session.setAgent(agent);
     session.setStatus(SessionStatus.ACTIVE);
     sessionRepository.save(session);
+    syncSessionToFirestore(session, false);
 
-    // Update Firestore session doc
-    syncSessionToFirestore(session, 0);
-
-    // Send system message
-    saveMessage(
-        sessionId,
+    internalSaveMessage(
+        session,
         null,
-        "Agent " + agent.getFullName() + " has joined. How can we help you?",
+        "Agent " + agent.getFullName() + " has joined. How can I help you today?",
         SenderType.SYSTEM);
 
-    return session;
+    return chatMapper.toSessionResponse(session, 0);
   }
 
+  @Transactional
   public void closeSession(Long sessionId) {
     ChatSession session = getSessionOrThrow(sessionId);
+    if (session.getStatus() == SessionStatus.CLOSED) {
+      throw new InternalServerErrorException("Session is already closed.");
+    }
+
     session.setStatus(SessionStatus.CLOSED);
     session.setClosedAt(LocalDateTime.now());
     sessionRepository.save(session);
 
-    saveMessage(sessionId, null, "Chat session has been closed. Thank you!", SenderType.SYSTEM);
+    internalSaveMessage(
+        session,
+        null,
+        "This chat has been closed. Thank you for contacting us!",
+        SenderType.SYSTEM);
 
-    // Update Firestore
     firestore
-        .collection(SESSIONS_COLLECTION)
+        .collection(SESSIONS_COL)
         .document(sessionId.toString())
         .update("status", "CLOSED", "closedAt", Timestamp.now());
   }
 
-  // ── Messages ─────────────────────────────────────────────────────────────
+  // ── Messages ──────────────────────────────────────────────────────────────
 
-  public ChatMessage saveMessage(
+  @Transactional
+  public ChatMessageResponse sendMessage(
       Long sessionId, Long senderId, String content, SenderType senderType) {
     ChatSession session = getSessionOrThrow(sessionId);
-    User sender = senderId != null ? userRepository.findById(senderId).orElse(null) : null;
 
-    // 1. Save to your DB
+    if (session.getStatus() == SessionStatus.CLOSED) {
+      throw new InternalServerErrorException("Cannot send messages to a closed session.");
+    }
+
+    User sender =
+        userRepository
+            .findById(senderId)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found: " + senderId));
+
+    ChatMessage message = internalSaveMessage(session, sender, content, senderType);
+
+    // Atomically increment unread count
+    firestore
+        .collection(SESSIONS_COL)
+        .document(sessionId.toString())
+        .update(
+            "unreadCount", FieldValue.increment(1),
+            "lastMessage", content,
+            "lastMessageAt", Timestamp.now());
+
+    return chatMapper.toMessageResponse(message);
+  }
+
+  @Transactional
+  public void markAsRead(Long sessionId, SenderType readerType) {
+    SenderType opposite = readerType == SenderType.AGENT ? SenderType.CUSTOMER : SenderType.AGENT;
+
+    messageRepository.markAllAsRead(sessionId, opposite);
+
+    CollectionReference msgCol =
+        firestore.collection(SESSIONS_COL).document(sessionId.toString()).collection(MESSAGES_COL);
+
+    // ✅ Fixed: actually batch-update Firestore docs
+    msgCol
+        .whereEqualTo("senderType", opposite.name())
+        .whereEqualTo("isRead", false)
+        .get()
+        .addListener(
+            () -> {
+              try {
+                QuerySnapshot snap =
+                    msgCol
+                        .whereEqualTo("senderType", opposite.name())
+                        .whereEqualTo("isRead", false)
+                        .get()
+                        .get();
+
+                if (snap.isEmpty()) return;
+
+                WriteBatch batch = firestore.batch();
+                snap.getDocuments()
+                    .forEach(doc -> batch.update(doc.getReference(), "isRead", true));
+                batch.commit();
+
+                firestore
+                    .collection(SESSIONS_COL)
+                    .document(sessionId.toString())
+                    .update("unreadCount", 0);
+
+              } catch (Exception e) {
+                log.error("Firestore markAsRead failed for session {}", sessionId, e);
+              }
+            },
+            Runnable::run);
+  }
+
+  // ── Queries ───────────────────────────────────────────────────────────────
+
+  @Transactional(readOnly = true)
+  public List<ChatMessageResponse> getHistory(Long sessionId) {
+    getSessionOrThrow(sessionId);
+    return messageRepository.findBySessionIdOrderByCreatedAtAsc(sessionId).stream()
+        .map(chatMapper::toMessageResponse)
+        .toList();
+  }
+
+  @Transactional(readOnly = true)
+  public List<ChatSessionResponse> getWaitingSessions() {
+    return sessionRepository.findByStatusOrderByCreatedAtAsc(SessionStatus.WAITING).stream()
+        .map(s -> chatMapper.toSessionResponse(s, countUnread(s.getId())))
+        .toList();
+  }
+
+  @Transactional(readOnly = true)
+  public List<ChatSessionResponse> getMySessionsAsCustomer(Long customerId) {
+    return sessionRepository.findByCustomerIdOrderByCreatedAtDesc(customerId).stream()
+        .map(s -> chatMapper.toSessionResponse(s, countUnread(s.getId())))
+        .toList();
+  }
+
+  @Transactional(readOnly = true)
+  public List<ChatSessionResponse> getMySessionsAsAgent(Long agentId) {
+    return sessionRepository.findByAgentIdOrderByCreatedAtDesc(agentId).stream()
+        .map(s -> chatMapper.toSessionResponse(s, countUnread(s.getId())))
+        .toList();
+  }
+
+  // ── Internal ──────────────────────────────────────────────────────────────
+
+  private ChatMessage internalSaveMessage(
+      ChatSession session, User sender, String content, SenderType senderType) {
     ChatMessage message =
         messageRepository.save(
             ChatMessage.builder()
@@ -120,86 +247,59 @@ public class FirebaseChatService {
                 .isRead(false)
                 .build());
 
-    // 2. Write to Firestore subcollection → clients get real-time update
-    Map<String, Object> msgDoc = new HashMap<>();
-    msgDoc.put("id", message.getId());
-    msgDoc.put("senderId", sender != null ? sender.getId() : null);
-    msgDoc.put("senderName", sender != null ? sender.getFullName() : "System");
-    msgDoc.put("senderType", senderType.name());
-    msgDoc.put("content", content);
-    msgDoc.put("isRead", false);
-    msgDoc.put("sentAt", Timestamp.now());
+    Map<String, Object> doc = new HashMap<>();
+    doc.put("id", message.getId());
+    doc.put("senderId", sender != null ? sender.getId() : null);
+    doc.put("senderName", sender != null ? sender.getFullName() : "System");
+    doc.put("senderType", senderType.name());
+    doc.put("content", content);
+    doc.put("isRead", false);
+    doc.put("sentAt", Timestamp.now());
 
     firestore
-        .collection(SESSIONS_COLLECTION)
-        .document(sessionId.toString())
-        .collection(MESSAGES_COLLECTION)
+        .collection(SESSIONS_COL)
+        .document(session.getId().toString())
+        .collection(MESSAGES_COL)
         .document(message.getId().toString())
-        .set(msgDoc);
+        .set(doc);
 
-    // 3. Push notification to the other party via FCM
     sendPushNotification(session, sender, content, senderType);
-
     return message;
   }
 
-  public void markAsRead(Long sessionId, SenderType readerType) {
-    SenderType opposite = readerType == SenderType.AGENT ? SenderType.CUSTOMER : SenderType.AGENT;
-
-    // Update DB
-    messageRepository.markAllAsRead(sessionId, opposite);
-
-    // Update Firestore — batch update all unread messages
-    CollectionReference messages =
-        firestore
-            .collection(SESSIONS_COLLECTION)
-            .document(sessionId.toString())
-            .collection(MESSAGES_COLLECTION);
-
-    messages
-        .whereEqualTo("senderType", opposite.name())
-        .whereEqualTo("isRead", false)
-        .get()
-        .addListener(
-            () -> {}, Runnable::run); // fire-and-forget; use ApiFuture if you need to await
-  }
-
-  // ── FCM Push Notification ────────────────────────────────────────────────
-
   private void sendPushNotification(
       ChatSession session, User sender, String content, SenderType senderType) {
+    User recipient = senderType == SenderType.CUSTOMER ? session.getAgent() : session.getCustomer();
     try {
-      // Determine recipient: agent gets customer messages, customer gets agent messages
-      User recipient =
-          senderType == SenderType.CUSTOMER ? session.getAgent() : session.getCustomer();
 
       if (recipient == null || recipient.getFcmToken() == null) return;
 
-      String senderName = sender != null ? sender.getFullName() : "System";
-
-      Message fcmMessage =
+      Message fcmMsg =
           Message.builder()
               .setToken(recipient.getFcmToken())
-              .setNotification(
-                  Notification.builder()
-                      .setTitle("New message from " + senderName)
-                      .setBody(content)
-                      .build())
-              .putData("sessionId", session.getId().toString())
-              .putData("senderType", senderType.name())
+              // ...
               .build();
 
-      firebaseMessaging.send(fcmMessage);
+      firebaseMessaging.send(fcmMsg);
 
     } catch (FirebaseMessagingException e) {
-      // log but don't fail the message save
-      log.warn("FCM push failed for session {}: {}", session.getId(), e.getMessage());
+      // ✅ Token is stale/invalid — clear it so we stop trying
+      if (e.getMessagingErrorCode() == MessagingErrorCode.UNREGISTERED) {
+        userRepository
+            .findById(recipient.getId())
+            .ifPresent(
+                u -> {
+                  u.setFcmToken(null);
+                  userRepository.save(u);
+                  log.info("Cleared stale FCM token for user {}", u.getId());
+                });
+      } else {
+        log.warn("FCM push failed for session {}: {}", session.getId(), e.getMessage());
+      }
     }
   }
 
-  // ── Firestore Sync Helper ────────────────────────────────────────────────
-
-  private void syncSessionToFirestore(ChatSession session, int unreadCount) {
+  private void syncSessionToFirestore(ChatSession session, boolean isNew) {
     Map<String, Object> doc = new HashMap<>();
     doc.put("customerId", session.getCustomer().getId());
     doc.put("customerName", session.getCustomer().getFullName());
@@ -207,10 +307,26 @@ public class FirebaseChatService {
     doc.put("agentId", session.getAgent() != null ? session.getAgent().getId() : null);
     doc.put("agentName", session.getAgent() != null ? session.getAgent().getFullName() : null);
     doc.put("status", session.getStatus().name());
-    doc.put("createdAt", Timestamp.now());
-    doc.put("unreadCount", unreadCount);
+    doc.put("unreadCount", 0);
+    doc.put("updatedAt", Timestamp.now());
 
-    firestore.collection(SESSIONS_COLLECTION).document(session.getId().toString()).set(doc);
+    if (isNew) {
+      doc.put("createdAt", Timestamp.now());
+      doc.put("lastMessage", null);
+      doc.put("lastMessageAt", null);
+      firestore.collection(SESSIONS_COL).document(session.getId().toString()).set(doc);
+    } else {
+      // merge: preserves createdAt and lastMessage fields
+      firestore
+          .collection(SESSIONS_COL)
+          .document(session.getId().toString())
+          .set(doc, SetOptions.merge());
+    }
+  }
+
+  private long countUnread(Long sessionId) {
+    return messageRepository.countBySessionIdAndIsReadFalseAndSenderTypeNot(
+        sessionId, SenderType.AGENT);
   }
 
   private ChatSession getSessionOrThrow(Long sessionId) {

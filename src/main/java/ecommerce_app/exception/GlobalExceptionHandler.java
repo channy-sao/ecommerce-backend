@@ -58,7 +58,8 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
   @ExceptionHandler(BadRequestException.class)
   public ResponseEntity<BaseBodyResponse<Void>> handleBadRequestException(BadRequestException ex) {
     log.error(ex.getMessage(), ex);
-    String message = ex.getMessage() != null
+    String message =
+        ex.getMessage() != null
             ? ex.getMessage()
             : messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_ERROR);
     return BaseBodyResponse.failed(HttpStatus.BAD_REQUEST, message);
@@ -97,8 +98,16 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
   public ResponseEntity<BaseBodyResponse<Void>> handleInternalServerErrorException(
       InternalServerErrorException ex) {
     log.error(ex.getMessage(), ex);
-    String message = messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_SERVER_ERROR);
+    String message =
+        messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_SERVER_ERROR);
 
     return BaseBodyResponse.failed(HttpStatus.INTERNAL_SERVER_ERROR, message);
+  }
+
+  @ExceptionHandler(BusinessException.class)
+  public ResponseEntity<BaseBodyResponse<Void>> handleBusinessException(BusinessException ex) {
+    log.error(ex.getMessage(), ex);
+    String message = messageSourceService.getMessage(ex.getMessage());
+    return BaseBodyResponse.failed(HttpStatus.BAD_REQUEST, message);
   }
 }

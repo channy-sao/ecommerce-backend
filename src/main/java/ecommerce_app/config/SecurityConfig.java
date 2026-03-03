@@ -79,6 +79,8 @@ public class SecurityConfig {
                         "/api/client/v1/carts/**",
                         "/api/client/v1/addresses/**")
                     .authenticated()
+                    .requestMatchers("/api/v1/chat/**")
+                    .authenticated()
                     .anyRequest()
                     .permitAll())
         .sessionManagement(

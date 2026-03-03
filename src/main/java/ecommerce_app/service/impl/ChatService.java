@@ -5,6 +5,7 @@ import ecommerce_app.constant.enums.SessionStatus;
 import ecommerce_app.entity.ChatMessage;
 import ecommerce_app.entity.ChatSession;
 import ecommerce_app.entity.User;
+import ecommerce_app.exception.BusinessException;
 import ecommerce_app.exception.ResourceNotFoundException;
 import ecommerce_app.repository.ChatMessageRepository;
 import ecommerce_app.repository.ChatSessionRepository;
@@ -31,7 +32,7 @@ public class ChatService {
         .findByCustomerIdAndStatus(customerId, SessionStatus.WAITING)
         .ifPresent(
             s -> {
-              throw new RuntimeException("You already have an open session");
+              throw new BusinessException("You already have an open session");
             });
 
     User customer =
@@ -75,25 +76,6 @@ public class ChatService {
     sessionRepository.save(session);
   }
 
-  public List<ChatMessage> getHistory(Long sessionId) {
-    return messageRepository.findBySessionIdOrderByCreatedAtAsc(sessionId);
-  }
-
-  public List<ChatSession> getWaitingSessions() {
-    return sessionRepository.findByStatus(SessionStatus.WAITING);
-  }
-
-  public long getUnreadCount(Long sessionId, SenderType viewerType) {
-    // If agent is viewing → count unread CUSTOMER messages
-    // If customer is viewing → count unread AGENT messages
-    SenderType opposite = viewerType == SenderType.AGENT ? SenderType.CUSTOMER : SenderType.AGENT;
-    return messageRepository.countBySessionIdAndIsReadFalseAndSenderTypeNot(sessionId, viewerType);
-  }
-
-  public void markAsRead(Long sessionId, SenderType readerType) {
-    SenderType opposite = readerType == SenderType.AGENT ? SenderType.CUSTOMER : SenderType.AGENT;
-    messageRepository.markAllAsRead(sessionId, opposite);
-  }
 
   private ChatSession getSessionOrThrow(Long sessionId) {
     return sessionRepository
