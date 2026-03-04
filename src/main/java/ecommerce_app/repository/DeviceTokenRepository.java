@@ -21,6 +21,8 @@ public interface DeviceTokenRepository extends JpaRepository<DeviceToken, Long> 
   // Find active tokens by user
   List<DeviceToken> findByUserAndIsActiveTrue(User user);
 
+  List<DeviceToken> findByUserIdAndIsActiveTrue(Long userId);
+
   // Find all tokens by user
   List<DeviceToken> findByUser(User user);
 

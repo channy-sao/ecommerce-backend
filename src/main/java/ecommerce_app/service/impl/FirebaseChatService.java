@@ -10,6 +10,7 @@ import ecommerce_app.dto.response.ChatMessageResponse;
 import ecommerce_app.dto.response.ChatSessionResponse;
 import ecommerce_app.entity.ChatMessage;
 import ecommerce_app.entity.ChatSession;
+import ecommerce_app.entity.DeviceToken;
 import ecommerce_app.entity.User;
 import ecommerce_app.exception.ApiException;
 import ecommerce_app.exception.InternalServerErrorException;
@@ -17,6 +18,7 @@ import ecommerce_app.exception.ResourceNotFoundException;
 import ecommerce_app.mapper.ChatMapper;
 import ecommerce_app.repository.ChatMessageRepository;
 import ecommerce_app.repository.ChatSessionRepository;
+import ecommerce_app.repository.DeviceTokenRepository;
 import ecommerce_app.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -39,22 +41,11 @@ public class FirebaseChatService {
   private final UserRepository userRepository;
   private final ChatSessionRepository sessionRepository;
   private final ChatMessageRepository messageRepository;
+  private final DeviceTokenRepository deviceTokenRepository;
   private final ChatMapper chatMapper;
 
   private static final String SESSIONS_COL = "chat_sessions";
   private static final String MESSAGES_COL = "messages";
-
-  // ── FCM Token ─────────────────────────────────────────────────────────────
-
-  @Transactional
-  public void updateFcmToken(Long userId, String token) {
-    User user =
-        userRepository
-            .findById(userId)
-            .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
-    user.setFcmToken(token);
-    userRepository.save(user);
-  }
 
   // ── Sessions ──────────────────────────────────────────────────────────────
 
@@ -268,34 +259,63 @@ public class FirebaseChatService {
   }
 
   private void sendPushNotification(
-      ChatSession session, User sender, String content, SenderType senderType) {
-    User recipient = senderType == SenderType.CUSTOMER ? session.getAgent() : session.getCustomer();
+          ChatSession session,
+          User sender,
+          String content,
+          SenderType senderType) {
+
+    User recipient =
+            senderType == SenderType.CUSTOMER
+                    ? session.getAgent()
+                    : session.getCustomer();
+
+    if (recipient == null) return;
+
+    List<DeviceToken> activeTokens =
+            deviceTokenRepository.findByUserIdAndIsActiveTrue(recipient.getId());
+
+    if (activeTokens.isEmpty()) return;
+
+    List<String> tokenStrings =
+            activeTokens.stream()
+                    .map(DeviceToken::getToken)
+                    .toList();
+
     try {
 
-      if (recipient == null || recipient.getFcmToken() == null) return;
-
-      Message fcmMsg =
-          Message.builder()
-              .setToken(recipient.getFcmToken())
-              // ...
+      MulticastMessage message = MulticastMessage.builder()
+              .addAllTokens(tokenStrings)
+              .putData("sessionId", session.getId().toString())
+              .putData("content", content)
               .build();
 
-      firebaseMessaging.send(fcmMsg);
+      BatchResponse response = firebaseMessaging.sendEachForMulticast(message);
 
-    } catch (FirebaseMessagingException e) {
-      // ✅ Token is stale/invalid — clear it so we stop trying
-      if (e.getMessagingErrorCode() == MessagingErrorCode.UNREGISTERED) {
-        userRepository
-            .findById(recipient.getId())
-            .ifPresent(
-                u -> {
-                  u.setFcmToken(null);
-                  userRepository.save(u);
-                  log.info("Cleared stale FCM token for user {}", u.getId());
-                });
-      } else {
-        log.warn("FCM push failed for session {}: {}", session.getId(), e.getMessage());
+      // Handle invalid tokens
+      for (int i = 0; i < response.getResponses().size(); i++) {
+
+        SendResponse sendResponse = response.getResponses().get(i);
+
+        if (!sendResponse.isSuccessful()) {
+
+          FirebaseMessagingException ex = sendResponse.getException();
+
+          if (ex.getMessagingErrorCode() == MessagingErrorCode.UNREGISTERED) {
+
+            String badToken = tokenStrings.get(i);
+
+            deviceTokenRepository.findByToken(badToken)
+                    .ifPresent(token -> {
+                      token.setIsActive(false);
+                      deviceTokenRepository.save(token);
+                      log.info("Disabled invalid FCM token: {}", badToken);
+                    });
+          }
+        }
       }
+
+    } catch (Exception e) {
+      log.error("Push notification failed for session {}", session.getId(), e);
     }
   }
 

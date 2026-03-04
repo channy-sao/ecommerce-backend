@@ -27,16 +27,6 @@ public class ChatRestController {
 
   private final FirebaseChatService chatService;
 
-  // ── FCM Token ─────────────────────────────────────────────────────────────
-
-  @PatchMapping("/fcm-token")
-  public ResponseEntity<BaseBodyResponse<Void>> updateFcmToken(
-      @AuthenticationPrincipal CustomUserDetails user,
-      @Valid @RequestBody FcmTokenRequest request) {
-    chatService.updateFcmToken(user.getId(), request.getToken());
-    return BaseBodyResponse.success("Success");
-  }
-
   // ── Sessions ──────────────────────────────────────────────────────────────
 
   @PostMapping("/sessions/start")
