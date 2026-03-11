@@ -1,21 +1,193 @@
+#server:
+#  port: ${SERVER_PORT:8080}
+#  address: 0.0.0.0
+#  tomcat:
+#    max-part-count: 100
+#
+#logging:
+#  file:
+#    name: ${LOG_FILE_DIR:./logs/ecommerce_app.log}
+#  logback:
+#    rollingPolicy:
+#      max-file-size: ${LOGBACK_MAX_FILE_SIZE:50MB}
+#      max-history: ${LOGBACK_MAX_HISTORY:7}
+#      file-name-pattern: ${logging.file.name}.%d{yyyy-MM-dd}.%i.log
+#  level:
+#    org:
+#      springframework:
+#        security: ${SERVER_SECURITY_LOG_LEVEL:info}
+#        # Transaction management
+#        transaction: ERROR
+#        orm:
+#          jpa: ERROR
+#      hibernate:
+#        SQL: ERROR
+#        type:
+#          descriptor:
+#            sql:
+#              BasicBinder: ERROR
+#        engine:
+#          transaction:
+#            internal:
+#              transactionImpl: TRACE
+#          jdbc:
+#            spi:
+#              SqlExceptionHelper: ERROR
+#
+#    web: ${SERVER_WEB_LOG_LEVEL:info}
+#    root: ${SERVER_ROOT_LOG_LEVEL:info}
+#
+#spring:
+#  application:
+#    name: ${APP_NAME}
+#  profiles:
+#    active: ${SPRING_ENV:dev}
+#  devtools:
+#    restart:
+#      enabled: false
+#      livereload: false
+#  main:
+#    allow-bean-definition-overriding: true
+#  jackson:
+#    serialization:
+#      fail-on-empty-beans: false
+#    deserialization:
+#      fail-on-unknown-properties: false
+#  datasource:
+#    url: ${DB_URL:jdbc:postgresql://localhost:5432/ecommerce}
+#    username: ${DB_USERNAME:postgres}
+#    password: ${DB_PASSWORD:postgres}
+#    driver-class-name: org.postgresql.Driver
+#
+#    hikari:
+#      # PostgreSQL-specific settings
+#      connection-timeout: 10000
+#      maximum-pool-size: 20  # Smaller for PostgreSQL
+#      minimum-idle: 5
+#      idle-timeout: 300000
+#      max-lifetime: 1800000
+#      leak-detection-threshold: 50000  # Lower for PostgreSQL
+#      connection-test-query: SELECT 1
+#
+#      # PostgreSQL optimization
+#      data-source-properties:
+#        # PostgreSQL specific
+#        socketTimeout: 30
+#        loginTimeout: 10
+#        tcpKeepAlive: true
+#        preferQueryMode: simple
+#        # Disable batch for now
+#        reWriteBatchedInserts: false
+#
+#  servlet:
+#    multipart:
+#      enabled: true
+#      max-file-size: "100MB"
+#      max-request-size: "100MB"
+#
+#  jpa:
+#    hibernate:
+#      ddl-auto: update
+#      bytecode:
+#        provider: none
+#        use_reflection_optimizer: false
+#      properties:
+#        enable_lazy_load_no_trans: false  # IMPORTANT: Prevents lazy loading outside transactions
+#        default_batch_fetch_size: 20      # Optimizes batch loading
+#        jdbc:
+#          batch_size: 20                  # Batches updates
+#    show-sql: true
+#    generate-ddl: true
+#    open-in-view: false
+#  #    properties:
+#  #      hibernate:
+#  #        format_sql: true
+#  #        use_sql_comments: true
+#
+#  mail:
+#    host: ${SMTP_SERVER_HOST:smtp.gmail.com}
+#    port: ${SMTP_SERVER_PORT:587}
+#    username: ${SMTP_SERVER_USERNAME}
+#    password: ${SMTP_SERVER_PASSWORD}
+#    properties:
+#      mail:
+#        smtp:
+#          auth: ${SMTP_SERVER_AUTH:false}
+#          connection-timeout: 5000
+#          timeout: 5000
+#          write-timeout: 5000
+#          starttls.enable: true
+#
+#  engine:
+#    template:
+#      prefix: classpath:/
+#      suffix: .html
+#springdoc:
+#  swagger-ui:
+#    path: /swagger-ui/index.html
+#  api-docs:
+#    enabled: true
+#
+#app:
+#  baseUrl: ${APP_BASE_URL:http://localhost:8080}
+#  jwt:
+#    secretKey: ${JWT_SECRET}
+#    access-expired-in-minute: ${JWT_ACCESS_EXPIRES_MINUTE}
+#    refresh-expired-in-minute: ${JWT_REFRESH_EXPIRES_MINUTE}
+#  storage:
+#    upload: ./storage/upload
+#
+#  # Custom I18n Configuration
+#
+#  i18n:
+#    basename: i18n/messages
+#    default-locale: en
+#    supported-locales:
+#      - en
+#      - es
+#      - fr
+#      - km
+#    param-name: lang
+#    cache-seconds: -1 # Disable cache in dev for hot reload
+#
+#  mail:
+#    from: ${MAIL_FROM}
+#    from-name: "Online Store"
+#    frontend-url: ${FRONTEND_URL:http://localhost:3000}
+#
+## Bakong (NBC Cambodia) Open API
+#bakong:
+#  api:
+#    #base-url: https://api-bakong.nbc.gov.kh       # Production
+#    base-url: https://api-sandbox.nbc.gov.kh    # Sandbox
+#    token: ""   # JWT from POST /v1/verify (see Bakong API setup)
+#  app:
+#    icon-url: https://yourapp.com/icon.png
+#    name: Channy Shop
+#
+## Stripe
+#stripe:
+#  secret-key: sk_test_XXXXXXXXXXXXXXXXXXXX         # Replace with your key
+#  webhook-secret: whsec_XXXXXXXXXXXXXXXXXXXX       # From Stripe Dashboard → Webhooks
+#  currency: usd
 server:
-  port: ${SERVER_PORT:8080}
+  port: 8080
   address: 0.0.0.0
   tomcat:
     max-part-count: 100
 
 logging:
   file:
-    name: ${LOG_FILE_DIR:./logs/ecommerce_app.log}
+    name: ./logs/ecommerce_app.log
   logback:
     rollingPolicy:
-      max-file-size: ${LOGBACK_MAX_FILE_SIZE:50MB}
-      max-history: ${LOGBACK_MAX_HISTORY:7}
+      max-file-size: 50MB
+      max-history: 7
       file-name-pattern: ${logging.file.name}.%d{yyyy-MM-dd}.%i.log
   level:
     org:
       springframework:
-        security: ${SERVER_SECURITY_LOG_LEVEL:info}
+        security: info
         # Transaction management
         transaction: ERROR
         orm:
@@ -34,14 +206,14 @@ logging:
             spi:
               SqlExceptionHelper: ERROR
 
-    web: ${SERVER_WEB_LOG_LEVEL:info}
-    root: ${SERVER_ROOT_LOG_LEVEL:info}
+    web: info
+    root: info
 
 spring:
   application:
-    name: ${APP_NAME}
+    name: ECOMMERCE_APP
   profiles:
-    active: ${SPRING_ENV:dev}
+    active: dev
   devtools:
     restart:
       enabled: false
@@ -54,9 +226,9 @@ spring:
     deserialization:
       fail-on-unknown-properties: false
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/ecommerce}
-    username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:postgres}
+    url: jdbc:postgresql://localhost:5432/ecommerce
+    username: postgres
+    password: postgres
     driver-class-name: org.postgresql.Driver
 
     hikari:
@@ -105,14 +277,14 @@ spring:
   #        use_sql_comments: true
 
   mail:
-    host: ${SMTP_SERVER_HOST:smtp.gmail.com}
-    port: ${SMTP_SERVER_PORT:587}
-    username: ${SMTP_SERVER_USERNAME}
-    password: ${SMTP_SERVER_PASSWORD}
+    host: smtp.gmail.com
+    port: 587
+    username: saochanny9944@gmail.com
+    password: zyzjnkfvbkistybw
     properties:
       mail:
         smtp:
-          auth: ${SMTP_SERVER_AUTH:false}
+          auth: true
           connection-timeout: 5000
           timeout: 5000
           write-timeout: 5000
@@ -122,6 +294,7 @@ spring:
     template:
       prefix: classpath:/
       suffix: .html
+
 springdoc:
   swagger-ui:
     path: /swagger-ui/index.html
@@ -129,16 +302,15 @@ springdoc:
     enabled: true
 
 app:
-  baseUrl: ${APP_BASE_URL:http://localhost:8080}
+  baseUrl: http://localhost:8080
   jwt:
-    secretKey: ${JWT_SECRET}
-    access-expired-in-minute: ${JWT_ACCESS_EXPIRES_MINUTE}
-    refresh-expired-in-minute: ${JWT_REFRESH_EXPIRES_MINUTE}
+    secretKey: jeBCNE3Lw9gtfS1MCHxmvzkZuYys1LR5MBMKi6Ll5tE=
+    access-expired-in-minute: 360
+    refresh-expired-in-minute: 900
   storage:
     upload: ./storage/upload
 
   # Custom I18n Configuration
-
   i18n:
     basename: i18n/messages
     default-locale: en
@@ -151,9 +323,9 @@ app:
     cache-seconds: -1 # Disable cache in dev for hot reload
 
   mail:
-    from: ${MAIL_FROM}
+    from: online.store@gmail.com
     from-name: "Online Store"
-    frontend-url: ${FRONTEND_URL:http://localhost:3000}
+    frontend-url: http://localhost:3000
 
 # Bakong (NBC Cambodia) Open API
 bakong:

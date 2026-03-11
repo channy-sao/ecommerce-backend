@@ -1,9 +1,12 @@
 package ecommerce_app.service.impl;
 
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.FirebaseToken;
 import ecommerce_app.constant.app.TokenTypeConstant;
 import ecommerce_app.constant.enums.AuthProvider;
+import ecommerce_app.core.SimpleTry;
+import ecommerce_app.exception.BadRequestException;
 import ecommerce_app.exception.UnauthorizedException;
 import ecommerce_app.mapper.UserMapper;
 import ecommerce_app.core.identify.custom.AuthUserLoader;
@@ -50,7 +53,13 @@ public class AuthenticationServiceImpl implements AuthenticationService {
   private LoginResponse verifyAndGenerateToken(String idToken, String firstName, String lastName) {
     try {
       log.info("Login with firebase with idToken: {}", idToken);
-      FirebaseToken decodedToken = FirebaseAuth.getInstance().verifyIdToken(idToken);
+      FirebaseToken decodedToken =
+          SimpleTry.ofReThrowChecked(
+              () -> FirebaseAuth.getInstance().verifyIdToken(idToken),
+              throwable -> {
+                log.error("Verify Firebase with idToken: {}", idToken, throwable);
+                throw new BadRequestException("Firebase idToken verification failed");
+              });
       final String email = decodedToken.getEmail();
       final String uid = decodedToken.getUid();
       final String name = decodedToken.getName();
