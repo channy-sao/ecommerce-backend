@@ -64,18 +64,17 @@ public class BannerServiceImpl implements BannerService {
           bannerRepository
               .findById(bannerId)
               .orElseThrow(() -> new ResourceNotFoundException("Banner", bannerId));
-        this.prepareBannerEntity(bannerRequest, existingBanner);
-        if (bannerRequest.getImage() != null) {
-            String imagePath =
-                fileManagerService.saveFile(bannerRequest.getImage(), storageConfig.getBannerPath());
-            if (imagePath != null) {
-                existingBanner.setImage(imagePath);
-            }
+      this.prepareBannerEntity(bannerRequest, existingBanner);
+      if (bannerRequest.getImage() != null) {
+        String imagePath =
+            fileManagerService.saveFile(bannerRequest.getImage(), storageConfig.getBannerPath());
+        if (imagePath != null) {
+          existingBanner.setImage(imagePath);
         }
+      }
       Banner updated = bannerRepository.save(existingBanner);
       return bannerMapper.toResponse(updated);
-    }
-    catch (Exception ex) {
+    } catch (Exception ex) {
       log.error(ex.getMessage(), ex);
       throw new BadRequestException(ex.getMessage());
     }
@@ -127,17 +126,17 @@ public class BannerServiceImpl implements BannerService {
 
   @Transactional(readOnly = true)
   @Override
-  public Page<BannerResponse> getBanners(int page, int pageSize, String filter, String activeFilter) {
+  public Page<BannerResponse> getBanners(
+      int page, int pageSize, String filter, String activeFilter) {
     log.info("Getting banners with pagination: page={}, pageSize={}", page, pageSize);
     // start from 0
     Pageable pageable = PageRequest.of(page - 1, pageSize);
     Page<Banner> bannerPage = null;
-    if(activeFilter!= null && !activeFilter.equalsIgnoreCase("all")) {
+    if (activeFilter != null && !activeFilter.equalsIgnoreCase("all")) {
       log.info("Filtering banners by active status: {}", activeFilter);
-    boolean isActive = activeFilter.equalsIgnoreCase("active");
-     bannerPage = bannerRepository.findAllByTitleLike(filter, isActive, pageable);
-    }
-    else {
+      boolean isActive = activeFilter.equalsIgnoreCase("active");
+      bannerPage = bannerRepository.findAllByTitleLike(filter, isActive, pageable);
+    } else {
       bannerPage = bannerRepository.findAllByTitleLike(filter, pageable);
     }
     return bannerPage.map(bannerMapper::toResponse);
