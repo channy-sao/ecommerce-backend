@@ -1,5 +1,6 @@
 package ecommerce_app.service.impl;
 
+import ecommerce_app.dto.response.SimpleProductResponse;
 import ecommerce_app.exception.ResourceNotFoundException;
 import ecommerce_app.dto.response.ProductResponse;
 import ecommerce_app.entity.Product;
@@ -255,8 +256,8 @@ public class PromotionServiceImpl implements PromotionService {
 
     // Map products
     if (promotion.getProducts() != null) {
-      List<ProductResponse> productInfos =
-          promotion.getProducts().stream().map(ProductMapper::toProductResponse).toList();
+      List<SimpleProductResponse> productInfos =
+          promotion.getProducts().stream().map(ProductMapper::toSimpleProductResponse).toList();
       response.setProducts(productInfos);
     }
 

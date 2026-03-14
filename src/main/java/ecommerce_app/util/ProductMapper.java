@@ -2,17 +2,16 @@ package ecommerce_app.util;
 
 import ecommerce_app.core.io.service.FileManagerService;
 import ecommerce_app.core.io.service.StorageConfig;
-import ecommerce_app.dto.response.BrandResponse;
-import ecommerce_app.dto.response.SimpleBrandResponse;
-import ecommerce_app.dto.response.WarrantyResponse;
-import ecommerce_app.property.StorageConfigProperty;
 import ecommerce_app.dto.response.ProductImageResponse;
 import ecommerce_app.dto.response.ProductResponse;
+import ecommerce_app.dto.response.SimpleBrandResponse;
+import ecommerce_app.dto.response.SimpleProductResponse;
+import ecommerce_app.dto.response.WarrantyResponse;
 import ecommerce_app.entity.Product;
 import ecommerce_app.entity.ProductImage;
+import ecommerce_app.property.StorageConfigProperty;
 import java.util.Comparator;
 import java.util.List;
-
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import org.modelmapper.ModelMapper;
@@ -99,6 +98,45 @@ public class ProductMapper {
         WarrantyUtil.buildLabel(
             product.getWarrantyType(), product.getWarrantyDuration(), product.getWarrantyUnit()));
     response.setWarranty(warrantyResponse);
+
+    SimpleBrandResponse brandResponse = null;
+    if (product.getBrand() != null) {
+      brandResponse =
+          SimpleBrandResponse.builder()
+              .id(product.getBrand().getId())
+              .name(product.getBrand().getName())
+              .logo(
+                  product.getBrand().getLogo() != null
+                      ? fileManagerService.getResourceUrl(
+                          storageConfig.getLogoPath(), product.getBrand().getLogo())
+                      : null)
+              .build();
+    }
+    response.setBrand(brandResponse);
+    return response;
+  }
+
+  public static SimpleProductResponse toSimpleProductResponse(Product product) {
+    SimpleProductResponse response = modelMapper.map(product, SimpleProductResponse.class);
+
+    List<ProductImageResponse> imageDtos =
+        product.getImages().stream()
+            .sorted(Comparator.comparing(ProductImage::getSortOrder))
+            .map(
+                img ->
+                    new ProductImageResponse(
+                        img.getId(),
+                        fileManagerService.getResourceUrl(
+                            storageConfig.getProductPath(), img.getImagePath()),
+                        img.getSortOrder()))
+            .toList();
+
+    // First image in sorted order is the primary
+    String primaryImageUrl = imageDtos.isEmpty() ? null : imageDtos.getFirst().getImagePath();
+
+    response.setPrimaryImage(primaryImageUrl);
+    response.setCategoryName(product.getCategory().getName());
+    response.setStockStatus(product.getStockStatus());
 
     SimpleBrandResponse brandResponse = null;
     if (product.getBrand() != null) {

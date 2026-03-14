@@ -54,7 +54,7 @@ public class PromotionResponse {
   private Integer currentUsage;
 
   @Schema(description = "Products this promotion applies to (null if applyToAll = true)")
-  private List<ProductResponse> products;
+  private List<SimpleProductResponse> products;
 
   @Schema(description = "Indicates if promotion applies to all products", example = "false")
   private boolean applyToAll;
