@@ -15,7 +15,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/mobile/products/{productId}/reviews")
+@RequestMapping("/api/client/v1/products/{productId}/reviews")
 @RequiredArgsConstructor
 @Tag(name = "Mobile Review Controller", description = "Review APIs for mobile app")
 public class ReviewController {
