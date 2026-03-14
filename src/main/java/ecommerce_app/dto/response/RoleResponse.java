@@ -3,8 +3,15 @@ package ecommerce_app.dto.response;
 import ecommerce_app.entity.Permission;
 import ecommerce_app.entity.Role;
 import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import java.util.List;
 import java.util.Set;
-import lombok.*;
+import java.util.stream.Collectors;
 
 @Getter
 @Setter
@@ -24,7 +31,7 @@ public class RoleResponse {
   private String description;
 
   @Schema(description = "Permissions assigned to the role")
-  private Set<Permission> permissions;
+  private Set<SimplePermissionResponse> permissions;
 
   @Schema(description = "Status Role", example = "Status of role")
   private boolean isActive;
@@ -34,8 +41,15 @@ public class RoleResponse {
     roleResponse.setId(role.getId());
     roleResponse.setName(role.getName());
     roleResponse.setDescription(role.getDescription());
-    roleResponse.setPermissions(role.getPermissions());
+    roleResponse.setPermissions(toSimplePermissionResponse(role.getPermissions()));
     roleResponse.setActive(role.isActive());
     return roleResponse;
+  }
+
+  public static Set<SimplePermissionResponse> toSimplePermissionResponse(
+      final Set<Permission> permissions) {
+    return permissions.stream()
+        .map(SimplePermissionResponse::toSimplePermissionResponse)
+        .collect(Collectors.toSet());
   }
 }

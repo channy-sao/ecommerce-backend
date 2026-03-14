@@ -3,6 +3,8 @@ package ecommerce_app.mapper;
 import ecommerce_app.core.io.service.FileManagerService;
 import ecommerce_app.core.io.service.StorageConfig;
 import ecommerce_app.dto.response.RoleResponse;
+import ecommerce_app.dto.response.SimplePermissionResponse;
+import ecommerce_app.dto.response.SimpleRoleResponse;
 import ecommerce_app.dto.response.UserResponse;
 import ecommerce_app.entity.Permission;
 import ecommerce_app.entity.Role;
@@ -63,16 +65,16 @@ public class UserMapper {
   }
 
   /**
-   * Converts a set of {@link Role} entities to a set of {@link RoleResponse} DTOs.
+   * Converts a set of {@link Role} entities to a set of {@link SimpleRoleResponse} DTOs.
    *
    * @param roles the roles assigned to a user
    * @return a set of role responses, or an empty set if roles are null or empty
    */
-  public static Set<RoleResponse> getRoleResponses(Set<Role> roles) {
+  public static Set<SimpleRoleResponse> getRoleResponses(Set<Role> roles) {
     if (CollectionUtils.isEmpty(roles)) {
       return Collections.emptySet();
     }
-    return roles.stream().map(RoleResponse::toRoleResponse).collect(Collectors.toSet());
+    return roles.stream().map(SimpleRoleResponse::roleResponse).collect(Collectors.toSet());
   }
 
   /**
@@ -83,12 +85,13 @@ public class UserMapper {
    * @param roles the roles assigned to a user
    * @return a unique set of permissions, or an empty set if roles are null or empty
    */
-  public static Set<Permission> getPermissions(Set<Role> roles) {
+  public static Set<SimplePermissionResponse> getPermissions(Set<Role> roles) {
     if (CollectionUtils.isEmpty(roles)) {
       return Collections.emptySet();
     }
     return roles.stream()
         .flatMap(role -> role.getPermissions().stream())
+        .map(SimplePermissionResponse::toSimplePermissionResponse)
         .collect(Collectors.toSet());
   }
 

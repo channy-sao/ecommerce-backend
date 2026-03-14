@@ -9,6 +9,7 @@ import ecommerce_app.exception.ResourceNotFoundException;
 import ecommerce_app.dto.request.CategoryRequest;
 import ecommerce_app.dto.response.CategoryResponse;
 import ecommerce_app.entity.Category;
+import ecommerce_app.mapper.CategoryMapper;
 import ecommerce_app.repository.CategoryRepository;
 import ecommerce_app.service.CategoryService;
 import ecommerce_app.specification.CategorySpecification;
@@ -41,25 +42,26 @@ import org.springframework.web.multipart.MultipartFile;
 public class CategoryServiceImpl implements CategoryService {
   private final CategoryRepository categoryRepository;
   private final ModelMapper modelMapper;
+  private final CategoryMapper categoryMapper;
 
   @Transactional(readOnly = true)
   @Override
   public CategoryResponse getCategoryByName(String name) {
     Category category = categoryRepository.findByName(name);
-    return toCategoryResponse(category);
+    return categoryMapper.toResponse(category);
   }
 
   @Transactional(readOnly = true)
   @Override
   public CategoryResponse getCategoryById(Long id) {
     log.info("Find category by id : {}", id);
-    return toCategoryResponse(this.findById(id));
+    return categoryMapper.toResponse(this.findById(id));
   }
 
   @Transactional(rollbackFor = Exception.class)
   @Override
   public CategoryResponse saveCategory(CategoryRequest categoryRequest) {
-    if (categoryRepository.existsByName(categoryRequest.getName())) {
+    if (Boolean.TRUE.equals(categoryRepository.existsByName(categoryRequest.getName()))) {
       throw new DuplicateResourceException("Category", "name", categoryRequest.getName());
     }
     Category category = modelMapper.map(categoryRequest, Category.class);
@@ -67,7 +69,7 @@ public class CategoryServiceImpl implements CategoryService {
       category.setDisplayOrder(0);
     }
     Category savedCategory = categoryRepository.save(category);
-    return toCategoryResponse(savedCategory);
+    return categoryMapper.toResponse(savedCategory);
   }
 
   @Transactional(rollbackFor = Exception.class)
@@ -76,14 +78,14 @@ public class CategoryServiceImpl implements CategoryService {
     final Category existingCategory = findById(id);
     // check duplicate name only if name is actually changing
     if (!existingCategory.getName().equalsIgnoreCase(categoryRequest.getName())
-            && categoryRepository.existsByName(categoryRequest.getName())) {
+        && Boolean.TRUE.equals(categoryRepository.existsByName(categoryRequest.getName()))) {
       throw new DuplicateResourceException("Category", "name", categoryRequest.getName());
     }
     // map field
     modelMapper.map(categoryRequest, existingCategory);
     // save update
     Category savedCategory = categoryRepository.save(existingCategory);
-    return toCategoryResponse(savedCategory);
+    return categoryMapper.toResponse(savedCategory);
   }
 
   @Override
@@ -183,25 +185,18 @@ public class CategoryServiceImpl implements CategoryService {
     if (!isPage) {
       List<Category> categories = categoryRepository.findAll(specs, sort);
       List<CategoryResponse> responseList =
-          categories.stream().map(this::toCategoryResponse).toList();
+          categories.stream().map(categoryMapper::toResponse).toList();
       return new PageImpl<>(responseList);
     }
     // default it starts from zero
     PageRequest pageRequest = PageRequest.of(page - 1, pageSize, sort);
 
-    return categoryRepository.findAll(specs, pageRequest).map(this::toCategoryResponse);
+    return categoryRepository.findAll(specs, pageRequest).map(categoryMapper::toResponse);
   }
 
   private Category findById(Long id) {
     return categoryRepository
         .findById(id)
         .orElseThrow(() -> new ResourceNotFoundException("Category", id));
-  }
-
-  private CategoryResponse toCategoryResponse(Category category) {
-    final CategoryResponse categoryResponse = modelMapper.map(category, CategoryResponse.class);
-    int productCount = Objects.isNull(category.getProducts()) ? 0 : category.getProducts().size();
-    categoryResponse.setProductCount(productCount);
-    return categoryResponse;
   }
 }

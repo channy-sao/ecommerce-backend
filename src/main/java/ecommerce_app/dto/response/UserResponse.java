@@ -57,8 +57,8 @@ public class UserResponse {
   private LocalDateTime updatedAt;
 
   @Schema(description = "Role representation of user")
-  private Set<RoleResponse> roles;
+  private Set<SimpleRoleResponse> roles;
 
   @Schema(description = "Permission of user")
-  private Set<Permission> permissions;
+  private Set<SimplePermissionResponse> permissions;
 }
