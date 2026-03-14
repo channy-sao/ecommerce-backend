@@ -45,10 +45,10 @@ public class NotificationController {
   @GetMapping
   public ResponseEntity<BaseBodyResponse<List<NotificationResponse>>> getUserNotifications(
       @AuthenticationPrincipal @Parameter(hidden = true) CustomUserDetails userDetails,
-      @RequestParam(defaultValue = "0") int page,
-      @RequestParam(defaultValue = "50") int size) {
+      @RequestParam(defaultValue = "1") int page,
+      @RequestParam(defaultValue = "50") int pageSize) {
 
-    Pageable pageable = PageRequest.of(page, size);
+    Pageable pageable = PageRequest.of(page-1, pageSize);
     Page<NotificationResponse> notifications =
         notificationService.getUserNotifications(userDetails.getId(), pageable);
 
