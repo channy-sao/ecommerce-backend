@@ -36,9 +36,9 @@ public class MobilePromotionController {
    */
   @GetMapping("/active")
   public ResponseEntity<BaseBodyResponse<List<MobilePromotionListResponse>>> getActivePromotions(
-      @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
+      @RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "20") int pageSize) {
 
-    Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+    Pageable pageable = PageRequest.of(page-1, pageSize, Sort.by(Sort.Direction.DESC, "createdAt"));
 
     return BaseBodyResponse.pageSuccess(
         promotionService.getActivePromotions(pageable), "Get active promotions successfully");
