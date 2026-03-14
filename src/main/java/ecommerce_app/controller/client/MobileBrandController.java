@@ -2,18 +2,14 @@ package ecommerce_app.controller.client;
 
 import ecommerce_app.constant.message.MessageKeyConstant;
 import ecommerce_app.dto.response.BaseBodyResponse;
-import ecommerce_app.dto.response.BrandResponse;
 import ecommerce_app.dto.response.SimpleBrandResponse;
-import ecommerce_app.service.BrandService;
-
 import ecommerce_app.service.MobileBrandService;
 import ecommerce_app.util.MessageSourceService;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/client/v1/brands")
