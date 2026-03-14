@@ -2,7 +2,6 @@ package ecommerce_app.dto.response;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDateTime;
-import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -46,12 +45,6 @@ public class CategoryResponse {
       description = "Timestamp when the category was last updated",
       example = "2025-06-01T12:34:56.123Z")
   private LocalDateTime updatedAt;
-
-  @Schema(description = "ID of the user who created the category")
-  private AuditUserDto createdBy;
-
-  @Schema(description = "ID of the user who last updated the category")
-  private AuditUserDto updatedBy;
 
   @Schema(description = "Total number of products in this category", example = "42")
   private Integer productCount;
