@@ -3,6 +3,7 @@ package ecommerce_app.service.impl;
 import static ecommerce_app.util.ExcelCellUtils.getStringCell;
 
 import ecommerce_app.exception.BadRequestException;
+import ecommerce_app.exception.DuplicateResourceException;
 import ecommerce_app.exception.InternalServerErrorException;
 import ecommerce_app.exception.ResourceNotFoundException;
 import ecommerce_app.dto.request.CategoryRequest;
@@ -15,6 +16,8 @@ import ecommerce_app.util.FileUtils;
 import ecommerce_app.util.ProductMapper;
 import java.io.InputStream;
 import java.util.List;
+import java.util.Objects;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.Row;
@@ -56,6 +59,9 @@ public class CategoryServiceImpl implements CategoryService {
   @Transactional(rollbackFor = Exception.class)
   @Override
   public CategoryResponse saveCategory(CategoryRequest categoryRequest) {
+    if (categoryRepository.existsByName(categoryRequest.getName())) {
+      throw new DuplicateResourceException("Category", "name", categoryRequest.getName());
+    }
     Category category = modelMapper.map(categoryRequest, Category.class);
     if (category.getDisplayOrder() == null) {
       category.setDisplayOrder(0);
@@ -68,6 +74,11 @@ public class CategoryServiceImpl implements CategoryService {
   @Override
   public CategoryResponse updateCategory(CategoryRequest categoryRequest, Long id) {
     final Category existingCategory = findById(id);
+    // check duplicate name only if name is actually changing
+    if (!existingCategory.getName().equalsIgnoreCase(categoryRequest.getName())
+            && categoryRepository.existsByName(categoryRequest.getName())) {
+      throw new DuplicateResourceException("Category", "name", categoryRequest.getName());
+    }
     // map field
     modelMapper.map(categoryRequest, existingCategory);
     // save update
@@ -189,10 +200,8 @@ public class CategoryServiceImpl implements CategoryService {
 
   private CategoryResponse toCategoryResponse(Category category) {
     final CategoryResponse categoryResponse = modelMapper.map(category, CategoryResponse.class);
-    if (!CollectionUtils.isEmpty(category.getProducts())) {
-      var products = category.getProducts().stream().map(ProductMapper::toProductResponse).toList();
-      categoryResponse.setProducts(products);
-    }
+    int productCount = Objects.isNull(category.getProducts()) ? 0 : category.getProducts().size();
+    categoryResponse.setProductCount(productCount);
     return categoryResponse;
   }
 }

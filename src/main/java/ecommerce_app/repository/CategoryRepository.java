@@ -13,6 +13,8 @@ public interface CategoryRepository
     extends JpaRepository<Category, Long>, JpaSpecificationExecutor<Category> {
   Category findByName(String name);
 
+  Boolean existsByName(String name);
+
   // Get all active categories ordered by name
   @Query("SELECT c FROM Category c ORDER BY c.name ASC")
   List<Category> findAllOrderByName();

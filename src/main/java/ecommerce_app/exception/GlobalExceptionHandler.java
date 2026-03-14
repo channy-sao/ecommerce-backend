@@ -3,8 +3,14 @@ package ecommerce_app.exception;
 import ecommerce_app.constant.message.MessageKeyConstant;
 import ecommerce_app.dto.response.BaseBodyResponse;
 import ecommerce_app.util.MessageSourceService;
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.ConstraintViolationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataAccessException;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -14,6 +20,7 @@ import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
@@ -109,5 +116,77 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     log.error(ex.getMessage(), ex);
     String message = messageSourceService.getMessage(ex.getMessage());
     return BaseBodyResponse.failed(HttpStatus.BAD_REQUEST, message);
+  }
+
+  @ExceptionHandler(DuplicateResourceException.class)
+  public ResponseEntity<BaseBodyResponse<Void>> handleDuplicate(
+          DuplicateResourceException ex, HttpServletRequest request) {
+
+    return BaseBodyResponse.failed(HttpStatus.CONFLICT, ex.getMessage());
+  }
+
+  @ExceptionHandler(EntityNotFoundException.class)
+  public ResponseEntity<BaseBodyResponse<Void>> handleNotFound(
+          EntityNotFoundException ex, HttpServletRequest request) {
+    return BaseBodyResponse.failed(HttpStatus.NOT_FOUND, ex.getMessage());
+  }
+
+  @ExceptionHandler(ConstraintViolationException.class)
+  public ResponseEntity<BaseBodyResponse<Void>> handleConstraint(
+          ConstraintViolationException ex, HttpServletRequest request) {
+
+    String message = ex.getConstraintViolations()
+            .stream()
+            .map(v -> v.getPropertyPath() + ": " + v.getMessage())
+            .collect(Collectors.joining(", "));
+
+    return BaseBodyResponse.failed(HttpStatus.BAD_REQUEST, message);
+  }
+
+  // --- Database ---
+
+  @ExceptionHandler(DataIntegrityViolationException.class)
+  public ResponseEntity<BaseBodyResponse<Void>> handleDataIntegrity(
+          DataIntegrityViolationException ex, HttpServletRequest request) {
+
+    String message = "Database constraint violation";
+    String causeMsg = ex.getMostSpecificCause().getMessage().toLowerCase();
+
+    if (causeMsg.contains("duplicate key") || causeMsg.contains("unique constraint")) {
+      message = "Resource already exists";
+    } else if (causeMsg.contains("foreign key")) {
+      message = "Referenced resource does not exist";
+    } else if (causeMsg.contains("null value in column")) {
+      message = "Required field is missing";
+    } else if (causeMsg.contains("check constraint")) {
+      message = "Field value is out of allowed range";
+    } else if (causeMsg.contains("value too long")) {
+      message = "Field value exceeds maximum length";
+    }
+
+    return BaseBodyResponse.failed(HttpStatus.CONFLICT, message);
+  }
+
+  @ExceptionHandler(OptimisticLockingFailureException.class)
+  public ResponseEntity<BaseBodyResponse<Void>> handleOptimisticLock(
+          OptimisticLockingFailureException ex, HttpServletRequest request) {
+    return BaseBodyResponse.failed(HttpStatus.CONFLICT,
+            "Resource was modified by another request, please retry");
+  }
+
+  @ExceptionHandler(DataAccessException.class)
+  public ResponseEntity<BaseBodyResponse<Void>> handleDataAccess(
+          DataAccessException ex, HttpServletRequest request) {
+    return BaseBodyResponse.failed(HttpStatus.SERVICE_UNAVAILABLE,
+            "Database is temporarily unavailable");
+  }
+
+  // --- Fallback ---
+
+  @ExceptionHandler(Exception.class)
+  public ResponseEntity<BaseBodyResponse<Void>> handleAll(
+          Exception ex, HttpServletRequest request) {
+    return BaseBodyResponse.failed(HttpStatus.INTERNAL_SERVER_ERROR,
+            "An unexpected error occurred");
   }
 }

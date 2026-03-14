@@ -189,22 +189,22 @@ logging:
       springframework:
         security: info
         # Transaction management
-        transaction: ERROR
-        orm:
-          jpa: ERROR
-      hibernate:
-        SQL: ERROR
-        type:
-          descriptor:
-            sql:
-              BasicBinder: ERROR
-        engine:
-          transaction:
-            internal:
-              transactionImpl: TRACE
-          jdbc:
-            spi:
-              SqlExceptionHelper: ERROR
+#        transaction: ERROR
+#        orm:
+#          jpa: ERROR
+#      hibernate:
+#        SQL: ERROR
+#        type:
+#          descriptor:
+#            sql:
+#              BasicBinder: ERROR
+#        engine:
+#          transaction:
+#            internal:
+#              transactionImpl: TRACE
+#          jdbc:
+#            spi:
+#              SqlExceptionHelper: ERROR
 
     web: info
     root: info

@@ -5,6 +5,7 @@ import static ecommerce_app.util.ExcelCellUtils.*;
 import ecommerce_app.constant.enums.WarrantyType;
 import ecommerce_app.entity.ProductSpec;
 import ecommerce_app.exception.BadRequestException;
+import ecommerce_app.exception.DuplicateResourceException;
 import ecommerce_app.exception.ResourceNotFoundException;
 import ecommerce_app.core.io.service.FileManagerService;
 import ecommerce_app.core.io.service.StaticResourceService;
@@ -69,6 +70,9 @@ public class ProductServiceImpl implements ProductService {
   public ProductResponse saveProduct(ProductRequest productRequest) {
     log.info("Saving product request: {}", productRequest);
     try {
+      if(productRepository.existsByName(productRequest.getName())) {
+        throw new DuplicateResourceException("Product", "name", productRequest.getName());
+      }
       Product product = modelMapper.map(productRequest, Product.class);
       if (productRequest.getBrandId() != null) {
         product.setBrand(
@@ -113,6 +117,12 @@ public class ProductServiceImpl implements ProductService {
     log.info("Updating product request: {}", productRequest);
     try {
       final var existingProduct = getById(id);
+
+      // check duplicate product name
+      if(!existingProduct.getName().equals(productRequest.getName()) && productRepository.existsByName(productRequest.getName())) {
+        throw new DuplicateResourceException("Product", "name", productRequest.getName());
+      }
+
       updateProductFields(productRequest, existingProduct);
 
       if (productRequest.getBrandId() != null) {

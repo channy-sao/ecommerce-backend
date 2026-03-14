@@ -53,6 +53,6 @@ public class CategoryResponse {
   @Schema(description = "ID of the user who last updated the category")
   private AuditUserDto updatedBy;
 
-  @Schema(description = "Products in category", example = "[]")
-  private List<ProductResponse> products;
+  @Schema(description = "Total number of products in this category", example = "42")
+  private Integer productCount;
 }
