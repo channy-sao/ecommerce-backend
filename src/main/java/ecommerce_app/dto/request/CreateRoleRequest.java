@@ -23,9 +23,9 @@ public class CreateRoleRequest {
   @NotBlank(message = "Role name is required")
   @Size(min = 2, max = 50, message = "Role name must be between 2 and 50 characters")
   @Pattern(
-      regexp = "^[A-Z][A-Z0-9_]*$",
+      regexp = "^[a-zA-Z][a-zA-Z0-9_\\s]*$",
       message =
-          "Role name must be uppercase letters, digits, or underscores (e.g. ADMIN, SUPER_ADMIN)")
+          "Role name must start with a letter and contain only letters, digits, underscores, or spaces")
   @Schema(description = "Name of the role", example = "SUPER_ADMIN")
   private String roleName;
 
