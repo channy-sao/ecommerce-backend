@@ -25,10 +25,6 @@ public class UpdateUserRequest {
   private String email;
 
   @Size(min = 6, max = 100, message = "Password must be between 6 and 100 characters")
-  @Pattern(
-      regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{6,}$",
-      message =
-          "Password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character (@$!%*?&)")
   @Schema(description = "User password", example = "Secure@123")
   private String password;
 
