@@ -1,7 +1,10 @@
 package ecommerce_app.dto.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -17,13 +20,20 @@ import lombok.Setter;
 @Schema(description = "Request DTO to create a new role with permissions")
 public class CreateRoleRequest {
 
-  @NotNull(message = "Role name could be not null or empty")
-  @Schema(description = "Name of the role", example = "Admin")
+  @NotBlank(message = "Role name is required")
+  @Size(min = 2, max = 50, message = "Role name must be between 2 and 50 characters")
+  @Pattern(
+      regexp = "^[A-Z][A-Z0-9_]*$",
+      message =
+          "Role name must be uppercase letters, digits, or underscores (e.g. ADMIN, SUPER_ADMIN)")
+  @Schema(description = "Name of the role", example = "SUPER_ADMIN")
   private String roleName;
 
+  @Size(max = 255, message = "Description must not exceed 255 characters")
   @Schema(description = "Description of the role", example = "Administrator role with full access")
   private String description;
 
+  @NotEmpty(message = "At least one permission is required")
   @Schema(description = "Set of permission IDs to assign to the role", example = "[1, 2, 3]")
   private Set<Long> permissionIds;
 }

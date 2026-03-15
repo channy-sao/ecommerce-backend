@@ -1,18 +1,18 @@
 package ecommerce_app.service.impl;
 
-import ecommerce_app.dto.response.SimpleProductResponse;
-import ecommerce_app.exception.ResourceNotFoundException;
-import ecommerce_app.dto.response.ProductResponse;
-import ecommerce_app.entity.Product;
-import ecommerce_app.repository.ProductRepository;
 import ecommerce_app.dto.request.PromotionRequest;
 import ecommerce_app.dto.response.PromotionResponse;
+import ecommerce_app.dto.response.SimpleProductResponse;
+import ecommerce_app.entity.Product;
 import ecommerce_app.entity.Promotion;
+import ecommerce_app.exception.ResourceNotFoundException;
+import ecommerce_app.repository.ProductRepository;
 import ecommerce_app.repository.PromotionRepository;
 import ecommerce_app.repository.PromotionUsageRepository;
 import ecommerce_app.service.PromotionService;
 import ecommerce_app.specification.PromotionSpecification;
 import ecommerce_app.util.ProductMapper;
+import ecommerce_app.util.PromotionValidator;
 import jakarta.persistence.EntityNotFoundException;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -36,11 +36,12 @@ public class PromotionServiceImpl implements PromotionService {
   private final ProductRepository productRepository;
   private final PromotionUsageRepository promotionUsageRepository;
   private final PromotionNotificationService promotionNotificationService;
+  private final PromotionValidator promotionValidator;
 
   @Override
   @Transactional(rollbackFor = Exception.class)
   public PromotionResponse createPromotion(PromotionRequest request) {
-    request.validate();
+    promotionValidator.validate(request);
 
     if (request.getCode() != null && promotionRepository.existsByCode(request.getCode())) {
       throw new IllegalArgumentException("Promotion code already exists");
@@ -71,7 +72,7 @@ public class PromotionServiceImpl implements PromotionService {
   @Override
   @Transactional(rollbackFor = Exception.class)
   public PromotionResponse updatePromotion(Long id, PromotionRequest request) {
-    request.validate();
+    promotionValidator.validate(request);
 
     Promotion promotion = getById(id);
 

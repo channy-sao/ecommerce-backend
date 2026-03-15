@@ -2,6 +2,7 @@ package ecommerce_app.dto.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -18,9 +19,13 @@ import lombok.Setter;
     name = "CategoryRequest",
     description = "Request object for category registration or update")
 public class CategoryRequest {
+  @NotBlank(message = "Category name is required")
+  @Size(min = 2, max = 100, message = "Category name must be between 2 and 100 characters")
   @Schema(description = "Name of the category", example = "Electronics")
   private String name;
 
+  @NotBlank(message = "Category name is required")
+  @Size(min = 2, max = 100, message = "Category name must be between 2 and 100 characters")
   @Schema(
       description = "Detailed description of the category",
       example = "Devices and gadgets including phones, laptops, etc.")

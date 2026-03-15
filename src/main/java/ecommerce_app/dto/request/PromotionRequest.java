@@ -1,116 +1,82 @@
 package ecommerce_app.dto.request;
 
 import ecommerce_app.constant.enums.PromotionType;
+import ecommerce_app.exception.BadRequestException;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
-import lombok.Data;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-@Data
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 @Schema(name = "PromotionRequest", description = "Request payload for creating or updating a promotion")
 public class PromotionRequest {
 
-  @Schema(
-          description = "Unique promotion code (optional for automatic promotions)",
-          example = "SUMMER2026",
-          maxLength = 50)
-  @Size(max = 50)
+  @Size(max = 50, message = "Promotion code must not exceed 50 characters")
+  @Pattern(
+          regexp = "^[A-Z0-9_-]*$",
+          message = "Promotion code must contain only uppercase letters, digits, hyphens, or underscores"
+  )
+  @Schema(description = "Unique promotion code (optional for automatic promotions)", example = "SUMMER2026")
   private String code;
 
-  @Schema(
-          description = "Promotion display name",
-          example = "Summer Sale 2026",
-          requiredMode = Schema.RequiredMode.REQUIRED)
-  @NotBlank
-  @Size(min = 3, max = 100)
+  @NotBlank(message = "Promotion name is required")
+  @Size(min = 3, max = 100, message = "Promotion name must be between 3 and 100 characters")
+  @Schema(description = "Promotion display name", example = "Summer Sale 2026", requiredMode = Schema.RequiredMode.REQUIRED)
   private String name;
 
-  @Schema(
-          description = "Type of promotion (PERCENTAGE, FIXED_AMOUNT, BUY_X_GET_Y)",
-          requiredMode = Schema.RequiredMode.REQUIRED)
-  @NotNull
+  @NotNull(message = "Discount type is required")
+  @Schema(description = "Type of promotion (PERCENTAGE, FIXED_AMOUNT, BUY_X_GET_Y)", requiredMode = Schema.RequiredMode.REQUIRED)
   private PromotionType discountType;
 
-  @Schema(
-          description = "Discount value. For percentage type: 0–100. For fixed amount: monetary value.",
-          example = "10.0")
-  @DecimalMin(value = "0.0", inclusive = false)
-  @DecimalMax(value = "100.0")
+  @DecimalMin(value = "0.0", inclusive = false, message = "Discount value must be greater than 0")
+  @DecimalMax(value = "100.0", message = "Discount value must not exceed 100")
+  @Schema(description = "Discount value. For percentage type: 0–100. For fixed amount: monetary value.", example = "10.0")
   private BigDecimal discountValue;
 
-  @Schema(
-          description = "Required quantity to buy (used for BUY_X_GET_Y)",
-          example = "2")
-  @PositiveOrZero
+  @PositiveOrZero(message = "Buy quantity must be 0 or greater")
+  @Schema(description = "Required quantity to buy (used for BUY_X_GET_Y)", example = "2")
   private Integer buyQuantity;
 
-  @Schema(
-          description = "Quantity given for free (used for BUY_X_GET_Y)",
-          example = "1")
-  @PositiveOrZero
+  @PositiveOrZero(message = "Get quantity must be 0 or greater")
+  @Schema(description = "Quantity given for free (used for BUY_X_GET_Y)", example = "1")
   private Integer getQuantity;
 
-  @Schema(
-          description = "Whether the promotion is currently active",
-          example = "true",
-          defaultValue = "true")
-  @NotNull
+  @NotNull(message = "Active status is required")
+  @Builder.Default
+  @Schema(description = "Whether the promotion is currently active", example = "true", defaultValue = "true")
   private Boolean active = true;
 
-  @Schema(
-          description = "Promotion start date and time",
-          example = "2026-06-01T00:00:00")
-  @Future
+  @Future(message = "Start date must be in the future")
+  @Schema(description = "Promotion start date and time", example = "2026-06-01T00:00:00")
   private LocalDateTime startAt;
 
-  @Schema(
-          description = "Promotion end date and time",
-          example = "2026-06-30T23:59:59")
-  @Future
+  @Future(message = "End date must be in the future")
+  @Schema(description = "Promotion end date and time", example = "2026-06-30T23:59:59")
   private LocalDateTime endAt;
 
-  @Schema(
-          description = "Maximum number of times the promotion can be used",
-          example = "100")
-  @Positive
+  @Positive(message = "Max usage must be greater than 0")
+  @Schema(description = "Maximum number of times the promotion can be used", example = "100")
   private Integer maxUsage;
 
-  @Schema(
-          description = "List of product IDs that this promotion applies to (ignored if applyToAll = true)",
-          example = "[1, 2, 3]")
+  @Schema(description = "List of product IDs that this promotion applies to (ignored if applyToAll = true)", example = "[1, 2, 3]")
   private List<Long> productIds;
 
-  @Schema(
-          description = "If true, promotion applies to all products",
-          example = "false",
-          defaultValue = "false")
-  private boolean applyToAll;
+  @Builder.Default
+  @Schema(description = "If true, promotion applies to all products", example = "false", defaultValue = "false")
+  private boolean applyToAll = false;
 
-  @Schema(
-          description = "Minimum purchase amount required to apply promotion",
-          example = "50.00",
-          defaultValue = "0.00")
-  @PositiveOrZero
+  @PositiveOrZero(message = "Minimum purchase amount must be 0 or greater")
+  @Builder.Default
+  @Schema(description = "Minimum purchase amount required to apply promotion", example = "50.00", defaultValue = "0.00")
   private BigDecimal minPurchaseAmount = BigDecimal.ZERO;
-
-  // Validation method
-  public void validate() {
-    if (discountType == PromotionType.PERCENTAGE
-            && (discountValue == null || discountValue.compareTo(new BigDecimal("100")) > 0)) {
-      throw new IllegalArgumentException("Percentage discount must be between 0 and 100");
-    }
-
-    if (discountType == PromotionType.BUY_X_GET_Y
-            && (buyQuantity == null || getQuantity == null)) {
-      throw new IllegalArgumentException(
-              "Buy X Get Y requires both buyQuantity and getQuantity");
-    }
-
-    if (endAt != null && startAt != null && endAt.isBefore(startAt)) {
-      throw new IllegalArgumentException(
-              "End date must be after start date");
-    }
-  }
 }
