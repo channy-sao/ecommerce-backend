@@ -6,6 +6,10 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
 import java.util.List;
 
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -18,14 +22,19 @@ import org.springframework.web.multipart.MultipartFile;
 @Schema(name = "ProductRequest", description = "Request object for product creation or update")
 public class ProductRequest {
 
+  @NotBlank(message = "Product name is required")
+  @Size(min = 2, max = 200, message = "Product name must be between 2 and 200 characters")
   @Schema(description = "Name of the product", example = "iPhone 15 Pro")
   private String name;
 
+  @Size(max = 500, message = "Description must not exceed 500 characters")
   @Schema(
       description = "Description of the product",
       example = "Latest Apple smartphone with A17 chip")
   private String description;
 
+  @NotNull(message = "Price is required")
+  @DecimalMin(value = "0.0", inclusive = false, message = "Price must be greater than 0")
   @Schema(description = "Price of the product", example = "1299.99")
   private BigDecimal price;
 
@@ -48,12 +57,14 @@ public class ProductRequest {
       example = "1")
   private Long brandId; // optional, null = no brand
 
+  @NotNull(message = "Category is required")
   @Schema(description = "ID of the category the product belongs to", example = "1")
   private Long categoryId;
 
   @Schema(description = "Indicates whether the product is featured", example = "true")
   private Boolean isFeature;
 
+  @Size(max = 20, message = "Specs must not exceed 20 items")
   @Schema(
       description = "List of product spec texts",
       example = "[\"Bluetooth 5.1\", \"IP67 waterproof\", \"30W RMS output\"]")
@@ -67,6 +78,7 @@ public class ProductRequest {
       implementation = WarrantyType.class)
   private WarrantyType warrantyType = WarrantyType.NONE;
 
+  @Min(value = 1, message = "Warranty duration must be at least 1")
   @Schema(
       description = "Warranty duration value (required if warrantyType is not NONE)",
       example = "12",
@@ -79,7 +91,7 @@ public class ProductRequest {
       implementation = WarrantyUnit.class)
   private WarrantyUnit warrantyUnit;
 
-  @Size(max = 500)
+  @Size(max = 500, message = "Warranty description must not exceed 500 characters")
   @Schema(
       description = "Detailed warranty description (max 500 characters)",
       example = "Covers manufacturing defects only.",

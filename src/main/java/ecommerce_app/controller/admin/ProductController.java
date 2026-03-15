@@ -23,6 +23,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.ByteArrayResource;
@@ -32,6 +33,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -47,6 +49,7 @@ import org.springframework.web.multipart.MultipartFile;
 @RequestMapping("/api/admin/v1/products")
 @RequiredArgsConstructor
 @Slf4j
+@Validated
 @Tag(name = "Product Management", description = "For admin manage product")
 public class ProductController {
   private final ProductService productService;
@@ -66,7 +69,7 @@ public class ProductController {
                       mediaType = MediaType.MULTIPART_FORM_DATA_VALUE,
                       schema = @Schema(implementation = ProductRequest.class))))
   public ResponseEntity<BaseBodyResponse<ProductResponse>> createProduct(
-      @ModelAttribute ProductRequest productRequest) {
+      @ModelAttribute @Validated ProductRequest productRequest) {
     return BaseBodyResponse.success(
         this.productService.saveProduct(productRequest),
         messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_SUCCESS));
@@ -100,7 +103,7 @@ public class ProductController {
                       mediaType = MediaType.MULTIPART_FORM_DATA_VALUE,
                       schema = @Schema(implementation = ProductRequest.class))))
   public ResponseEntity<BaseBodyResponse<ProductResponse>> updateProduct(
-      @ModelAttribute ProductRequest productRequest, @PathVariable(value = "id") Long id) {
+          @ModelAttribute @Valid ProductRequest productRequest, @PathVariable(value = "id") Long id) {
     return BaseBodyResponse.success(
         productService.updateProduct(productRequest, id),
         messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_UPDATE_SUCCESS));
