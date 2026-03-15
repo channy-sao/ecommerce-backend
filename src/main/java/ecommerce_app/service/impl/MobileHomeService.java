@@ -4,11 +4,10 @@ import ecommerce_app.dto.response.MobileHomeScreenResponse;
 import ecommerce_app.service.BrandService;
 import ecommerce_app.service.MobileProductService;
 import ecommerce_app.service.MobilePromotionService;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
@@ -74,6 +73,7 @@ public class MobileHomeService {
 
     return MobileHomeScreenResponse.builder()
         .heroBanners(bannersFuture.join())
+        .middleBanners(middleBannerFuture.join())
         .featuredPromotions(promotionsFuture.join())
         .featuredProducts(featuredProductsFuture.join())
         .newArrivals(newArrivalsFuture.join())

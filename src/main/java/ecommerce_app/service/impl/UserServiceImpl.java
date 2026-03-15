@@ -2,18 +2,18 @@ package ecommerce_app.service.impl;
 
 import ecommerce_app.config.DataInitializer;
 import ecommerce_app.constant.enums.AuthProvider;
-import ecommerce_app.exception.BadRequestException;
-import ecommerce_app.exception.ForbiddenException;
-import ecommerce_app.exception.ResourceNotFoundException;
 import ecommerce_app.core.io.service.FileManagerService;
 import ecommerce_app.core.io.service.StorageConfig;
-import ecommerce_app.mapper.UserMapper;
 import ecommerce_app.dto.request.CreateUserRequest;
 import ecommerce_app.dto.request.UpdatePasswordRequest;
 import ecommerce_app.dto.request.UpdateUserRequest;
 import ecommerce_app.dto.response.UserResponse;
 import ecommerce_app.entity.Role;
 import ecommerce_app.entity.User;
+import ecommerce_app.exception.BadRequestException;
+import ecommerce_app.exception.ForbiddenException;
+import ecommerce_app.exception.ResourceNotFoundException;
+import ecommerce_app.mapper.UserMapper;
 import ecommerce_app.repository.RoleRepository;
 import ecommerce_app.repository.UserRepository;
 import ecommerce_app.service.UserService;
@@ -87,6 +87,10 @@ public class UserServiceImpl implements UserService {
 
     try {
       final User user = findUserById(userId);
+      if (userRepository.existsByEmailAndIdNot(user.getEmail(), user.getId())) {
+        log.error("User email is already in use");
+        throw new BadRequestException("User email is already in use");
+      }
 
       validateUniqueFields(request, userId);
 
@@ -127,6 +131,10 @@ public class UserServiceImpl implements UserService {
   public UserResponse create(CreateUserRequest createUserRequest) {
     try {
       log.info("Creating user: {}", createUserRequest);
+      if (userRepository.existsByEmail(createUserRequest.getEmail())) {
+        log.error("User email is already in use");
+        throw new BadRequestException("User email is already in use");
+      }
       User user = modelMapper.map(createUserRequest, User.class);
       user.setAuthProvider(AuthProvider.LOCAL);
       if (createUserRequest.getPhone() != null && createUserRequest.getPhone().isBlank()) {
