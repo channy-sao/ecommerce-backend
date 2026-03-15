@@ -1,6 +1,9 @@
 package ecommerce_app.dto.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -16,21 +19,39 @@ import org.springframework.web.multipart.MultipartFile;
 @Schema(name = "UserRequest", description = "Request object for user registration or update")
 public class UpdateUserRequest {
 
+  @Email(message = "Email must be a valid email address")
+  @Size(max = 100, message = "Email must not exceed 100 characters")
   @Schema(description = "User email address", example = "user@example.com")
   private String email;
 
-  @Schema(description = "User password", example = "securePassword123")
+  @Size(min = 6, max = 100, message = "Password must be between 6 and 100 characters")
+  @Pattern(
+      regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{6,}$",
+      message =
+          "Password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character (@$!%*?&)")
+  @Schema(description = "User password", example = "Secure@123")
   private String password;
 
+  @Size(min = 2, max = 50, message = "First name must be between 2 and 50 characters")
+  @Pattern(
+      regexp = "^[a-zA-Z\\s'-]+$",
+      message = "First name must contain only letters, spaces, hyphens, or apostrophes")
   @Schema(description = "First name of the user", example = "John")
   private String firstName;
 
+  @Size(min = 2, max = 50, message = "Last name must be between 2 and 50 characters")
+  @Pattern(
+      regexp = "^[a-zA-Z\\s'-]+$",
+      message = "Last name must contain only letters, spaces, hyphens, or apostrophes")
   @Schema(description = "Last name of the user", example = "Doe")
   private String lastName;
 
+  @Pattern(
+      regexp = "^\\+?[0-9]{7,15}$",
+      message = "Phone number must be between 7 and 15 digits and may start with +")
   @Schema(description = "Phone number", example = "+85512345678")
   private String phone;
 
-  @Schema(description = "MultipartFile")
+  @Schema(description = "Profile image file (jpg, jpeg, png only, max 2MB)")
   private MultipartFile profile;
 }

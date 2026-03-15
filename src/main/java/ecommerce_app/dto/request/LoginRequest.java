@@ -17,14 +17,15 @@ import lombok.Setter;
 @AllArgsConstructor
 public class LoginRequest {
 
+    @NotBlank(message = "Email is required")
+    @Email(message = "Please provide a valid email address")
+    @Size(max = 100, message = "Email must not exceed 100 characters")
     @Schema(
             description = "User's email address",
             example = "admin@gmail.com",
             requiredMode = Schema.RequiredMode.REQUIRED,
             pattern = "^[A-Za-z0-9+_.-]+@(.+)$"
     )
-    @NotBlank(message = "Email is required")
-    @Email(message = "Please provide a valid email address")
     private String email;
 
     @Schema(

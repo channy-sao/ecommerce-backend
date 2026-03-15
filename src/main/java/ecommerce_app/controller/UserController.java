@@ -2,11 +2,11 @@ package ecommerce_app.controller;
 
 import ecommerce_app.constant.message.MessageKeyConstant;
 import ecommerce_app.constant.message.ResponseMessageConstant;
-import ecommerce_app.dto.response.BaseBodyResponse;
 import ecommerce_app.dto.request.AssignRoleToUserRequest;
 import ecommerce_app.dto.request.CreateUserRequest;
 import ecommerce_app.dto.request.UpdatePasswordRequest;
 import ecommerce_app.dto.request.UpdateUserRequest;
+import ecommerce_app.dto.response.BaseBodyResponse;
 import ecommerce_app.dto.response.UserResponse;
 import ecommerce_app.service.UserService;
 import ecommerce_app.util.MessageSourceService;
@@ -21,6 +21,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -40,6 +41,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/users")
 @RequiredArgsConstructor
 @Slf4j
+@Validated
 @Tag(name = "User Management", description = "For admin manage user")
 public class UserController {
   private final UserService userService;
@@ -63,14 +65,15 @@ public class UserController {
       "hasAuthority('USER_CREATE') or hasAnyRole('ADMIN', 'SUPER_ADMIN', 'MANAGER', 'SUPERVISOR')")
   @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   public ResponseEntity<BaseBodyResponse<UserResponse>> createUser(
-      @ModelAttribute CreateUserRequest createUserRequest) {
+      @ModelAttribute @Valid CreateUserRequest createUserRequest) {
+
     return BaseBodyResponse.success(
         this.userService.create(createUserRequest),
         messageSourceService.getMessage(MessageKeyConstant.USER_MESSAGE_ADD_SUCCESS));
   }
 
   @Operation(summary = "Change user password")
-  @PutMapping("change-password")
+  @PutMapping("/change-password")
   public ResponseEntity<BaseBodyResponse<Void>> changePassword(
       @Valid @RequestBody UpdatePasswordRequest updateRequest) {
     this.userService.changePassword(updateRequest);

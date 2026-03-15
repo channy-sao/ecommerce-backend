@@ -1,16 +1,16 @@
 package ecommerce_app.service.impl;
 
-import ecommerce_app.constant.enums.BannerLinkType;
-import ecommerce_app.exception.BadRequestException;
-import ecommerce_app.exception.ResourceNotFoundException;
 import ecommerce_app.core.io.service.FileManagerService;
 import ecommerce_app.core.io.service.StorageConfig;
-import ecommerce_app.mapper.BannerMapper;
 import ecommerce_app.dto.request.BannerRequest;
 import ecommerce_app.dto.response.BannerResponse;
 import ecommerce_app.entity.Banner;
+import ecommerce_app.exception.BadRequestException;
+import ecommerce_app.exception.ResourceNotFoundException;
+import ecommerce_app.mapper.BannerMapper;
 import ecommerce_app.repository.BannerRepository;
 import ecommerce_app.service.BannerService;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
@@ -20,8 +20,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor

@@ -5,7 +5,9 @@ import ecommerce_app.dto.response.BaseBodyResponse;
 import ecommerce_app.util.MessageSourceService;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataAccessException;
@@ -16,17 +18,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.TransactionSystemException;
-import org.springframework.validation.ObjectError;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
-import java.util.stream.Collectors;
-
-@ControllerAdvice
+@RestControllerAdvice
 @Slf4j
 @RequiredArgsConstructor
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
@@ -53,13 +52,26 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
       WebRequest request) {
     log.error(ex.getMessage(), ex);
     String message =
-        ex.getBindingResult().getAllErrors().stream()
-            .map(ObjectError::getDefaultMessage)
-            .collect(Collectors.joining("; "));
+        ex.getBindingResult().getFieldErrors().stream()
+            .findFirst()
+            .map(FieldError::getDefaultMessage)
+            .orElse("Validation error");
 
     return ResponseEntity.status(HttpStatus.BAD_REQUEST)
         .headers(headers)
         .body(BaseBodyResponse.bodyFailed(HttpStatus.BAD_REQUEST, message));
+  }
+
+  @ExceptionHandler(ConstraintViolationException.class)
+  public ResponseEntity<BaseBodyResponse<Void>> handleConstraintViolation(ConstraintViolationException ex) {
+    log.error(ex.getMessage(), ex);
+    String message = ex.getConstraintViolations()
+            .stream()
+            .findFirst()
+            .map(ConstraintViolation::getMessage)  // ← returns clean message only, no path prefix
+            .orElse("Validation error");
+
+    return BaseBodyResponse.failed(HttpStatus.BAD_REQUEST, message);
   }
 
   @ExceptionHandler(BadRequestException.class)
@@ -120,34 +132,22 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
   @ExceptionHandler(DuplicateResourceException.class)
   public ResponseEntity<BaseBodyResponse<Void>> handleDuplicate(
-          DuplicateResourceException ex, HttpServletRequest request) {
+      DuplicateResourceException ex, HttpServletRequest request) {
 
     return BaseBodyResponse.failed(HttpStatus.CONFLICT, ex.getMessage());
   }
 
   @ExceptionHandler(EntityNotFoundException.class)
   public ResponseEntity<BaseBodyResponse<Void>> handleNotFound(
-          EntityNotFoundException ex, HttpServletRequest request) {
+      EntityNotFoundException ex, HttpServletRequest request) {
     return BaseBodyResponse.failed(HttpStatus.NOT_FOUND, ex.getMessage());
-  }
-
-  @ExceptionHandler(ConstraintViolationException.class)
-  public ResponseEntity<BaseBodyResponse<Void>> handleConstraint(
-          ConstraintViolationException ex, HttpServletRequest request) {
-
-    String message = ex.getConstraintViolations()
-            .stream()
-            .map(v -> v.getPropertyPath() + ": " + v.getMessage())
-            .collect(Collectors.joining(", "));
-
-    return BaseBodyResponse.failed(HttpStatus.BAD_REQUEST, message);
   }
 
   // --- Database ---
 
   @ExceptionHandler(DataIntegrityViolationException.class)
   public ResponseEntity<BaseBodyResponse<Void>> handleDataIntegrity(
-          DataIntegrityViolationException ex, HttpServletRequest request) {
+      DataIntegrityViolationException ex, HttpServletRequest request) {
 
     String message = "Database constraint violation";
     String causeMsg = ex.getMostSpecificCause().getMessage().toLowerCase();
@@ -169,24 +169,24 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
   @ExceptionHandler(OptimisticLockingFailureException.class)
   public ResponseEntity<BaseBodyResponse<Void>> handleOptimisticLock(
-          OptimisticLockingFailureException ex, HttpServletRequest request) {
-    return BaseBodyResponse.failed(HttpStatus.CONFLICT,
-            "Resource was modified by another request, please retry");
+      OptimisticLockingFailureException ex, HttpServletRequest request) {
+    return BaseBodyResponse.failed(
+        HttpStatus.CONFLICT, "Resource was modified by another request, please retry");
   }
 
   @ExceptionHandler(DataAccessException.class)
   public ResponseEntity<BaseBodyResponse<Void>> handleDataAccess(
-          DataAccessException ex, HttpServletRequest request) {
-    return BaseBodyResponse.failed(HttpStatus.SERVICE_UNAVAILABLE,
-            "Database is temporarily unavailable");
+      DataAccessException ex, HttpServletRequest request) {
+    return BaseBodyResponse.failed(
+        HttpStatus.SERVICE_UNAVAILABLE, "Database is temporarily unavailable");
   }
 
   // --- Fallback ---
 
   @ExceptionHandler(Exception.class)
   public ResponseEntity<BaseBodyResponse<Void>> handleAll(
-          Exception ex, HttpServletRequest request) {
-    return BaseBodyResponse.failed(HttpStatus.INTERNAL_SERVER_ERROR,
-            "An unexpected error occurred");
+      Exception ex, HttpServletRequest request) {
+    return BaseBodyResponse.failed(
+        HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred");
   }
 }
