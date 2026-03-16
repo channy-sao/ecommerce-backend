@@ -221,8 +221,8 @@ public class PromotionServiceImpl implements PromotionService {
   }
 
   private void mapRequestToEntity(PromotionRequest request, Promotion promotion) {
-    promotion.setCode(request.getCode());
-    promotion.setName(request.getName());
+    promotion.setCode(request.getCode()== null ? null : request.getCode().trim());
+    promotion.setName(request.getName().trim());
     promotion.setDiscountType(request.getDiscountType());
     promotion.setDiscountValue(request.getDiscountValue());
     promotion.setBuyQuantity(request.getBuyQuantity());

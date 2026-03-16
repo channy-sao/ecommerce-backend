@@ -61,10 +61,17 @@ public class CategoryServiceImpl implements CategoryService {
   @Transactional(rollbackFor = Exception.class)
   @Override
   public CategoryResponse saveCategory(CategoryRequest categoryRequest) {
-    if (Boolean.TRUE.equals(categoryRepository.existsByName(categoryRequest.getName()))) {
-      throw new DuplicateResourceException("Category", "name", categoryRequest.getName());
+    log.info("Save category : {}", categoryRequest);
+    final var categoryName = categoryRequest.getName().trim(); // remove leading/trailing spaces
+    final var categoryDescription =
+        categoryRequest.getDescription().trim(); // remove leading/trailing spaces
+    if (Boolean.TRUE.equals(categoryRepository.existsByName(categoryName))) {
+      throw new DuplicateResourceException("Category", "name", categoryName);
     }
-    Category category = modelMapper.map(categoryRequest, Category.class);
+    Category category = new Category();
+    category.setName(categoryName);
+    category.setDescription(categoryDescription);
+    category.setIcon(categoryRequest.getIcon());
     if (category.getDisplayOrder() == null) {
       category.setDisplayOrder(0);
     }
@@ -76,13 +83,20 @@ public class CategoryServiceImpl implements CategoryService {
   @Override
   public CategoryResponse updateCategory(CategoryRequest categoryRequest, Long id) {
     final Category existingCategory = findById(id);
-    // check duplicate name only if name is actually changing
-    if (!existingCategory.getName().equalsIgnoreCase(categoryRequest.getName())
-        && Boolean.TRUE.equals(categoryRepository.existsByName(categoryRequest.getName()))) {
-      throw new DuplicateResourceException("Category", "name", categoryRequest.getName());
+    final var categoryName = categoryRequest.getName().trim(); // remove leading/trailing spaces
+    final var categoryDescription = categoryRequest.getDescription().trim();
+    // check duplicate name only if the name is actually changing
+    if (!existingCategory.getName().equalsIgnoreCase(categoryName)
+        && Boolean.TRUE.equals(categoryRepository.existsByName(categoryName))) {
+      throw new DuplicateResourceException("Category", "name", categoryName);
     }
     // map field
-    modelMapper.map(categoryRequest, existingCategory);
+    existingCategory.setName(categoryName);
+    existingCategory.setDescription(categoryDescription);
+    existingCategory.setIcon(categoryRequest.getIcon());
+    existingCategory.setDisplayOrder(categoryRequest.getDisplayOrder());
+    existingCategory.setDisplayOrder(
+        categoryRequest.getDisplayOrder() == null ? 0 : categoryRequest.getDisplayOrder());
     // save update
     Category savedCategory = categoryRepository.save(existingCategory);
     return categoryMapper.toResponse(savedCategory);
@@ -117,9 +131,9 @@ public class CategoryServiceImpl implements CategoryService {
           CategoryRequest request = mapRowToProductRequest(row);
           // Map request → entity
           Category category = modelMapper.map(request, Category.class);
-          // Set default display order if not in Excel
+          // Set the default display order if not in Excel
           if (category.getDisplayOrder() == null) {
-            category.setDisplayOrder(i); // Use row number as default order
+            category.setDisplayOrder(i); // Use row number as the default order
           }
           categoryRepository.save(category);
         }
@@ -188,7 +202,7 @@ public class CategoryServiceImpl implements CategoryService {
           categories.stream().map(categoryMapper::toResponse).toList();
       return new PageImpl<>(responseList);
     }
-    // default it starts from zero
+    // by default, it starts from zero
     PageRequest pageRequest = PageRequest.of(page - 1, pageSize, sort);
 
     return categoryRepository.findAll(specs, pageRequest).map(categoryMapper::toResponse);

@@ -1,24 +1,23 @@
 package ecommerce_app.service.impl;
 
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.FirebaseToken;
 import ecommerce_app.constant.app.TokenTypeConstant;
 import ecommerce_app.constant.enums.AuthProvider;
 import ecommerce_app.core.SimpleTry;
-import ecommerce_app.exception.BadRequestException;
-import ecommerce_app.exception.UnauthorizedException;
-import ecommerce_app.mapper.UserMapper;
 import ecommerce_app.core.identify.custom.AuthUserLoader;
 import ecommerce_app.core.identify.custom.CustomUserDetails;
 import ecommerce_app.dto.request.LoginRequest;
 import ecommerce_app.dto.request.SignupRequest;
 import ecommerce_app.dto.response.LoginResponse;
 import ecommerce_app.dto.response.RefreshTokenResponse;
-import ecommerce_app.service.AuthenticationService;
 import ecommerce_app.dto.response.UserResponse;
 import ecommerce_app.entity.User;
+import ecommerce_app.exception.BadRequestException;
+import ecommerce_app.exception.UnauthorizedException;
+import ecommerce_app.mapper.UserMapper;
 import ecommerce_app.repository.UserRepository;
+import ecommerce_app.service.AuthenticationService;
 import ecommerce_app.util.JwtService;
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -131,10 +130,11 @@ public class AuthenticationServiceImpl implements AuthenticationService {
   @Override
   public LoginResponse loginLocal(LoginRequest loginRequest) {
     log.info("Login local with email: {}", loginRequest.getEmail());
+    String email = loginRequest.getEmail().trim(); // remove leading/trailing spaces
+    String password = loginRequest.getPassword().trim(); // remove leading/trailing spaces
     final Authentication authentication =
         authenticationManager.authenticate(
-            new UsernamePasswordAuthenticationToken(
-                loginRequest.getEmail(), loginRequest.getPassword()));
+            new UsernamePasswordAuthenticationToken(email, password));
     if (authentication.isAuthenticated()) {
       log.info("Authentication is authenticated");
       CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();

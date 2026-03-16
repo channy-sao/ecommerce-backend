@@ -39,7 +39,7 @@ public class RoleServiceImpl extends ValidatePermission implements RoleService {
         this.permissionRepository.findAllById(createRoleRequest.getPermissionIds());
     Role role = new Role();
     role.setPermissions(new HashSet<>(permissions));
-    role.setName(createRoleRequest.getRoleName());
+    role.setName(createRoleRequest.getRoleName().trim());
     role.setUid(UUID.randomUUID().toString());
     role.setDescription(createRoleRequest.getDescription());
     roleRepository.save(role);
@@ -58,7 +58,7 @@ public class RoleServiceImpl extends ValidatePermission implements RoleService {
               validatePermission(updateRoleRequest.getPermissionIds());
               final var permissions =
                   this.permissionRepository.findAllById(updateRoleRequest.getPermissionIds());
-              role.setName(updateRoleRequest.getRoleName());
+              role.setName(updateRoleRequest.getRoleName().trim());
               role.setPermissions(new HashSet<>(permissions));
               role.setDescription(updateRoleRequest.getDescription());
               roleRepository.save(role);

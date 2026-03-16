@@ -37,6 +37,7 @@ public class BannerServiceImpl implements BannerService {
     log.info("Creating new banner request");
     try {
       Banner banner = modelMapper.map(bannerRequest, Banner.class);
+      banner.setTitle(bannerRequest.getTitle().trim()); // remove leading/trailing spaces
       if (bannerRequest.getImage() != null) {
         String imagePath =
             fileManagerService.saveFile(bannerRequest.getImage(), storageConfig.getBannerPath());

@@ -3,26 +3,26 @@ package ecommerce_app.service.impl;
 import static ecommerce_app.util.ExcelCellUtils.*;
 
 import ecommerce_app.constant.enums.WarrantyType;
+import ecommerce_app.core.io.service.FileManagerService;
+import ecommerce_app.core.io.service.StaticResourceService;
+import ecommerce_app.core.io.service.StorageConfig;
+import ecommerce_app.dto.request.ProductRequest;
+import ecommerce_app.dto.response.ImportProductFromExcelResponse;
+import ecommerce_app.dto.response.NearEmptyStockResponse;
+import ecommerce_app.dto.response.ProductResponse;
+import ecommerce_app.entity.Category;
+import ecommerce_app.entity.Product;
+import ecommerce_app.entity.ProductImage;
 import ecommerce_app.entity.ProductSpec;
 import ecommerce_app.exception.BadRequestException;
 import ecommerce_app.exception.DuplicateResourceException;
 import ecommerce_app.exception.ResourceNotFoundException;
-import ecommerce_app.core.io.service.FileManagerService;
-import ecommerce_app.core.io.service.StaticResourceService;
-import ecommerce_app.core.io.service.StorageConfig;
-import ecommerce_app.entity.Category;
 import ecommerce_app.repository.BrandRepository;
 import ecommerce_app.repository.CategoryRepository;
-import ecommerce_app.dto.response.ImportProductFromExcelResponse;
-import ecommerce_app.dto.response.NearEmptyStockResponse;
-import ecommerce_app.dto.request.ProductRequest;
-import ecommerce_app.dto.response.ProductResponse;
-import ecommerce_app.entity.Product;
-import ecommerce_app.entity.ProductImage;
 import ecommerce_app.repository.ProductRepository;
 import ecommerce_app.service.ProductService;
-import ecommerce_app.specification.ProductSpecification;
 import ecommerce_app.service.SettingService;
+import ecommerce_app.specification.ProductSpecification;
 import ecommerce_app.util.AuthenticationUtils;
 import ecommerce_app.util.FileUtils;
 import ecommerce_app.util.ProductMapper;
@@ -32,7 +32,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.Row;
@@ -70,10 +69,13 @@ public class ProductServiceImpl implements ProductService {
   public ProductResponse saveProduct(ProductRequest productRequest) {
     log.info("Saving product request: {}", productRequest);
     try {
-      if(productRepository.existsByName(productRequest.getName())) {
-        throw new DuplicateResourceException("Product", "name", productRequest.getName());
+      // check a duplicate product name
+      final var productName = productRequest.getName().trim(); // remove leading/trailing spaces
+      if (productRepository.existsByName(productName)) {
+        throw new DuplicateResourceException("Product", "name", productName);
       }
       Product product = modelMapper.map(productRequest, Product.class);
+      product.setName(productName);
       if (productRequest.getBrandId() != null) {
         product.setBrand(
             brandRepository
@@ -117,12 +119,14 @@ public class ProductServiceImpl implements ProductService {
     log.info("Updating product request: {}", productRequest);
     try {
       final var existingProduct = getById(id);
+      final var productName = productRequest.getName().trim(); // prevent leading/trailing spaces
 
-      // check duplicate product name
-      if(!existingProduct.getName().equals(productRequest.getName()) && productRepository.existsByName(productRequest.getName())) {
-        throw new DuplicateResourceException("Product", "name", productRequest.getName());
+      // check a duplicate product name
+      if (!existingProduct.getName().equals(productName)
+          && productRepository.existsByName(productName)) {
+        throw new DuplicateResourceException("Product", "name", productName);
       }
-
+      productRequest.setName(productName);
       updateProductFields(productRequest, existingProduct);
 
       if (productRequest.getBrandId() != null) {

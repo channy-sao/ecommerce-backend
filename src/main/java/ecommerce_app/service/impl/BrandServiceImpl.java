@@ -47,7 +47,8 @@ public class BrandServiceImpl implements BrandService {
   @Transactional(rollbackFor = Exception.class)
   public BrandResponse createBrand(BrandRequest request) {
     log.info("Creating new brand");
-    if (brandRepository.existsByNameIgnoreCase(request.getName())) {
+    final var brandName = request.getName().trim();
+    if (brandRepository.existsByNameIgnoreCase(brandName)) {
       throw new ConflictException("Brand name already exists");
     }
 
@@ -58,7 +59,7 @@ public class BrandServiceImpl implements BrandService {
 
     Brand brand =
         Brand.builder()
-            .name(request.getName())
+            .name(brandName)
             .description(request.getDescription())
             .logo(logoPath)
             .isActive(request.getIsActive())
@@ -76,10 +77,10 @@ public class BrandServiceImpl implements BrandService {
 
     // Check name conflict (exclude self)
     brandRepository
-        .findByNameIgnoreCase(request.getName())
+        .findByNameIgnoreCase(request.getName().trim())
         .filter(b -> !b.getId().equals(id))
         .ifPresent(
-            b -> {
+                _ -> {
               throw new ConflictException("Brand name already exists");
             });
 
@@ -91,7 +92,7 @@ public class BrandServiceImpl implements BrandService {
       brand.setLogo(fileManagerService.saveFile(request.getLogo(), storageConfig.getLogoPath()));
     }
 
-    brand.setName(request.getName());
+    brand.setName(request.getName().trim());
     brand.setDescription(request.getDescription());
     brand.setIsActive(request.getIsActive());
     brand.setDisplayOrder(request.getDisplayOrder());
