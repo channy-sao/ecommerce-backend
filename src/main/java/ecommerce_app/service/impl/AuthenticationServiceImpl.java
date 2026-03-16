@@ -7,9 +7,12 @@ import ecommerce_app.constant.enums.AuthProvider;
 import ecommerce_app.core.SimpleTry;
 import ecommerce_app.core.identify.custom.AuthUserLoader;
 import ecommerce_app.core.identify.custom.CustomUserDetails;
+import ecommerce_app.dto.request.CompletePhoneProfileRequest;
 import ecommerce_app.dto.request.LoginRequest;
+import ecommerce_app.dto.request.PhoneLoginRequest;
 import ecommerce_app.dto.request.SignupRequest;
 import ecommerce_app.dto.response.LoginResponse;
+import ecommerce_app.dto.response.PhoneLoginResponse;
 import ecommerce_app.dto.response.RefreshTokenResponse;
 import ecommerce_app.dto.response.UserResponse;
 import ecommerce_app.entity.User;
@@ -49,34 +52,43 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     return this.verifyAndGenerateToken(idToken, null, null);
   }
 
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Core Firebase token verifier — handles ALL sign_in_provider values
+  // ─────────────────────────────────────────────────────────────────────────────
+
   private LoginResponse verifyAndGenerateToken(String idToken, String firstName, String lastName) {
     try {
-      log.info("Login with firebase with idToken: {}", idToken);
-      FirebaseToken decodedToken =
-          SimpleTry.ofReThrowChecked(
-              () -> FirebaseAuth.getInstance().verifyIdToken(idToken),
-              throwable -> {
-                log.error("Verify Firebase with idToken: {}", idToken, throwable);
-                throw new BadRequestException("Firebase idToken verification failed");
-              });
-      final String email = decodedToken.getEmail();
-      final String uid = decodedToken.getUid();
-      final String name = decodedToken.getName();
+      log.info("Verifying Firebase idToken");
 
-      // extract name from Google login else use from user register or other Google
-      if (StringUtils.isNoneEmpty(name)) {
-        firstName = name.substring(0, name.indexOf(" "));
-        lastName = name.substring(name.indexOf(" ") + 1);
+      FirebaseToken decodedToken =
+              SimpleTry.ofReThrowChecked(
+                      () -> FirebaseAuth.getInstance().verifyIdToken(idToken),
+                      throwable -> {
+                        log.error("Firebase token verification failed", throwable);
+                        throw new BadRequestException("Firebase idToken verification failed");
+                      });
+
+      final String uid = decodedToken.getUid();
+      final Map<String, Object> claims  = decodedToken.getClaims();
+      final Map<String, Object> firebase = (Map<String, Object>) claims.get("firebase");
+      final String signInProvider = String.valueOf(firebase.get("sign_in_provider"));
+
+      // ── Route to phone handler ────────────────────────────────────────────
+      if ("phone".equals(signInProvider)) {
+        return verifyAndGeneratePhoneToken(decodedToken, uid, signInProvider);
       }
 
+      // ── Email / Google / Facebook handler (original logic) ────────────────
+      final String email   = decodedToken.getEmail();
+      final String name    = decodedToken.getName();
       final String picture = decodedToken.getPicture();
-      final Map<String, Object> claims = decodedToken.getClaims();
-      Map<String, Object> firebase = (Map<String, Object>) claims.get("firebase");
-      final var signInProvider = String.valueOf(firebase.get("sign_in_provider"));
 
-      // prepare user
-      User userBuilder =
-          User.builder()
+      if (StringUtils.isNoneEmpty(name)) {
+        firstName = name.substring(0, name.indexOf(" "));
+        lastName  = name.substring(name.indexOf(" ") + 1);
+      }
+
+      User userBuilder = User.builder()
               .email(email)
               .firebaseUid(uid)
               .avatar(picture)
@@ -92,31 +104,123 @@ public class AuthenticationServiceImpl implements AuthenticationService {
               .lastLoginAt(LocalDateTime.now())
               .build();
 
-      // create user if not exist
       User user = this.createOrDefault(userBuilder);
-      log.info("User created or default : {}", user);
-
-      var userResponse = userMapper.toUserResponse(user);
-      // generate access and refresh token
-      LoginResponse loginResponse = new LoginResponse();
-      CustomUserDetails userDetails = authUserLoader.loadByEmail(user.getEmail());
+      log.info("User created or default: {}", user);
 
       userRepository.updateLastLogin(user.getId(), LocalDateTime.now());
 
+      CustomUserDetails userDetails = authUserLoader.loadByEmail(user.getEmail());
+
+      LoginResponse loginResponse = new LoginResponse();
       loginResponse.setAccessToken(jwtService.generateAccessToken(userDetails));
       loginResponse.setRefreshToken(jwtService.generateRefreshToken(user.getEmail(), false));
       loginResponse.setTokenType(TokenTypeConstant.BEARER);
       loginResponse.setAccessTokenExpireInMs(jwtService.getAccessExpirationMs());
       loginResponse.setRefreshTokenExpireInMs(jwtService.getRefreshExpirationMs());
-      loginResponse.setTokenType("Bearer");
-      loginResponse.setUserInfo(userResponse);
+      loginResponse.setUserInfo(userMapper.toUserResponse(user));
 
-      log.info("Login response: {}", loginResponse);
+      log.info("Firebase login response ready for uid={}", uid);
       return loginResponse;
-    } catch (Exception e) {
+
+    }
+    catch (Exception e) {
       log.error(e.getMessage(), e);
       throw new UnauthorizedException("Unauthorized");
     }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Phone OTP handler (called from verifyAndGenerateToken)
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  private PhoneLoginResponse verifyAndGeneratePhoneToken(
+          FirebaseToken decodedToken, String uid, String signInProvider) {
+
+    final Map<String, Object> claims = decodedToken.getClaims();
+    final String phone = (String) claims.get("phone_number");
+
+    if (phone == null || phone.isBlank()) {
+      throw new BadRequestException("No phone number found in Firebase token");
+    }
+
+    log.info("Phone login for uid={}, phone={}", uid, phone);
+
+    boolean isNew = !userRepository.existsByPhone(phone);
+
+    User user = userRepository.findByPhone(phone).orElseGet(() ->
+            userRepository.save(User.builder()
+                    .phone(phone)
+                    .firebaseUid(uid)
+                    // Placeholder satisfies the UNIQUE NOT NULL email constraint.
+                    // Format is deterministic so it can never clash with a real email.
+                    .email("phone_" + uid + "@phone.placeholder")
+                    .firstName("")
+                    .lastName("")
+                    .password(null)
+                    .rememberMe(true)
+                    .isActive(true)
+                    .uuid(UUID.randomUUID())
+                    .authProvider(AuthProvider.fromProviderString(signInProvider)) // → PHONE
+                    .lastLoginAt(LocalDateTime.now())
+                    .build())
+    );
+
+    userRepository.updateLastLogin(user.getId(), LocalDateTime.now());
+
+    CustomUserDetails userDetails = authUserLoader.loadByFirebaseUid(uid);
+
+    PhoneLoginResponse response = new PhoneLoginResponse();
+    response.setAccessToken(jwtService.generateAccessToken(userDetails));
+    response.setRefreshToken(jwtService.generateRefreshToken(user.getEmail(), false));
+    response.setTokenType(TokenTypeConstant.BEARER);
+    response.setAccessTokenExpireInMs(jwtService.getAccessExpirationMs());
+    response.setRefreshTokenExpireInMs(jwtService.getRefreshExpirationMs());
+    response.setUserInfo(userMapper.toUserResponse(user));
+    response.setProfileIncomplete(isNew); // frontend shows "complete profile" form if true
+
+    log.info("Phone login success uid={}, isNew={}", uid, isNew);
+    return response;
+  }
+
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Phone — complete profile (new users only)
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  @Transactional(rollbackFor = Exception.class)
+  @Override
+  public void completePhoneProfile(CompletePhoneProfileRequest request) {
+    UserResponse currentUserResponse = getCurrentUser();
+
+    User user = userRepository.findByEmail(currentUserResponse.getEmail())
+            .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+    if (user.getAuthProvider() != AuthProvider.PHONE_NUMBER) {
+      throw new BadRequestException("Only phone-authenticated users can use this endpoint");
+    }
+
+    user.setFirstName(request.getFirstName());
+    user.setLastName(request.getLastName());
+
+    if (StringUtils.isNotBlank(request.getEmail())) {
+      if (userRepository.existsByEmailAndIdNot(request.getEmail(), user.getId())) {
+        throw new BadRequestException("Email is already in use");
+      }
+      user.setEmail(request.getEmail());
+    }
+
+    userRepository.save(user);
+    log.info("Profile completed for phone user id={}", user.getId());
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // loginWithPhone — thin delegate, detection happens inside verifyAndGenerateToken
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  @Transactional(rollbackFor = Exception.class)
+  @Override
+  public PhoneLoginResponse loginWithPhone(PhoneLoginRequest request) {
+    return (PhoneLoginResponse) this.verifyAndGenerateToken(request.getIdToken(), null, null);
   }
 
   @Transactional
@@ -125,6 +229,11 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     return this.verifyAndGenerateToken(
         signupRequest.getIdToken(), signupRequest.getFirstName(), signupRequest.getLastName());
   }
+
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Local email/password login
+  // ─────────────────────────────────────────────────────────────────────────────
 
   @Transactional(rollbackFor = Exception.class)
   @Override

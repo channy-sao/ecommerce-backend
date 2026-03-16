@@ -42,6 +42,28 @@ public class AuthUserLoader {
     return CustomUserDetails.builder().user(authUser).build();
   }
 
+  @Transactional(readOnly = true)
+  public CustomUserDetails loadByFirebaseUid(String firebaseUid) {
+
+    final User user =
+            userRepository
+                    .findByFirebaseUid(firebaseUid)
+                    .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+    Set<GrantedAuthority> authorities = buildAuthorities(user);
+
+    AuthUser authUser =
+            AuthUser.builder()
+                    .id(user.getId())
+                    .email(user.getEmail())
+                    .password(user.getPassword())
+                    .enabled(user.getIsActive())
+                    .authorities(authorities)
+                    .build();
+
+    return CustomUserDetails.builder().user(authUser).build();
+  }
+
   private Set<GrantedAuthority> buildAuthorities(User user) {
     Set<GrantedAuthority> authorities = new HashSet<>();
 

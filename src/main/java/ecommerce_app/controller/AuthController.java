@@ -1,6 +1,8 @@
 package ecommerce_app.controller;
 
 import ecommerce_app.constant.message.MessageKeyConstant;
+import ecommerce_app.dto.request.CompletePhoneProfileRequest;
+import ecommerce_app.dto.request.PhoneLoginRequest;
 import ecommerce_app.dto.request.ResetPasswordRequest;
 import ecommerce_app.dto.request.SendOtpRequest;
 import ecommerce_app.dto.request.VerifyOtpRequest;
@@ -9,12 +11,14 @@ import ecommerce_app.dto.request.LoginRequest;
 import ecommerce_app.dto.request.RefreshTokenRequest;
 import ecommerce_app.dto.request.SignupRequest;
 import ecommerce_app.dto.response.LoginResponse;
+import ecommerce_app.dto.response.PhoneLoginResponse;
 import ecommerce_app.dto.response.RefreshTokenResponse;
 import ecommerce_app.dto.response.VerifyOtpResponse;
 import ecommerce_app.service.AuthenticationService;
 import ecommerce_app.dto.response.UserResponse;
 import ecommerce_app.service.PasswordResetService;
 import ecommerce_app.util.MessageSourceService;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -37,10 +41,16 @@ public class AuthController {
 
   @PostMapping("/login/firebase")
   public ResponseEntity<BaseBodyResponse<LoginResponse>> loginWithFirebase(
-      @RequestHeader(value = "idToken") String idToken) {
+          @RequestHeader("Authorization") String authorizationHeader) {
+
+    String idToken =
+            authorizationHeader.startsWith("Bearer ")
+                    ? authorizationHeader.substring(7).trim()
+                    : authorizationHeader;
+
     return BaseBodyResponse.success(
-        authenticationService.loginWithFirebase(idToken),
-        messageSourceService.getMessage(MessageKeyConstant.AUTH_MESSAGE_LOGIN_SUCCESS));
+            authenticationService.loginWithFirebase(idToken),
+            messageSourceService.getMessage(MessageKeyConstant.AUTH_MESSAGE_LOGIN_SUCCESS));
   }
 
   @PostMapping("/signup")
@@ -49,6 +59,24 @@ public class AuthController {
     return BaseBodyResponse.success(
         authenticationService.signupWithFirebase(signupRequest),
         messageSourceService.getMessage(MessageKeyConstant.AUTH_MESSAGE_REGISTER_SUCCESS));
+  }
+
+  @Operation(summary = "Login or register with phone OTP (Firebase Phone Auth)")
+  @PostMapping("/phone")
+  public ResponseEntity<BaseBodyResponse<PhoneLoginResponse>> loginWithPhone(
+      @Valid @RequestBody PhoneLoginRequest request) {
+    return BaseBodyResponse.success(
+        authenticationService.loginWithPhone(request),
+        messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_SUCCESS));
+  }
+
+  @Operation(summary = "Complete profile for new phone users")
+  @PostMapping("/phone/complete-profile")
+  public ResponseEntity<BaseBodyResponse<Void>> completePhoneProfile(
+      @Valid @RequestBody CompletePhoneProfileRequest request) {
+    authenticationService.completePhoneProfile(request);
+    return BaseBodyResponse.success(
+        messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_SUCCESS));
   }
 
   @PostMapping("/login/local")
@@ -83,23 +111,24 @@ public class AuthController {
 
   // Step 1 — request OTP
   @PostMapping("/forgot-password")
-  public ResponseEntity<BaseBodyResponse<Void>> sendOtp(@Valid @RequestBody SendOtpRequest request) {
+  public ResponseEntity<BaseBodyResponse<Void>> sendOtp(
+      @Valid @RequestBody SendOtpRequest request) {
     passwordResetService.sendOtp(request.getEmail());
-    return BaseBodyResponse.success(
-            "If this email is registered, a reset code has been sent");
+    return BaseBodyResponse.success("If this email is registered, a reset code has been sent");
   }
 
   // Step 2 — verify OTP → get reset token
   @PostMapping("/verify-otp")
-  public ResponseEntity<BaseBodyResponse<VerifyOtpResponse>> verifyOtp(@Valid @RequestBody VerifyOtpRequest request) {
+  public ResponseEntity<BaseBodyResponse<VerifyOtpResponse>> verifyOtp(
+      @Valid @RequestBody VerifyOtpRequest request) {
     return BaseBodyResponse.success(
-            passwordResetService.verifyOtp(request),
-            "OTP verified successfully");
+        passwordResetService.verifyOtp(request), "OTP verified successfully");
   }
 
   // Step 3 — reset password using reset token
   @PostMapping("/reset-password")
-  public ResponseEntity<BaseBodyResponse<Void>> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+  public ResponseEntity<BaseBodyResponse<Void>> resetPassword(
+      @Valid @RequestBody ResetPasswordRequest request) {
     passwordResetService.resetPassword(request);
     return BaseBodyResponse.success("Password reset successfully");
   }
