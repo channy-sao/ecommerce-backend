@@ -169,48 +169,60 @@ public class ProductServiceImpl implements ProductService {
    * new 2. Empty list sent → delete old files from storage + clear DB rows (user removed all) 3. No
    * images field sent → keep existing (no change)
    */
-  // Updated handleImageUpdate in ProductServiceImpl
   private void handleImageUpdate(ProductRequest request, Product product) {
 
-    // Step 1: remove images the user deleted
+    // Step 1: remove deleted images
     if (request.getRemoveImageIds() != null && !request.getRemoveImageIds().isEmpty()) {
-      List<ProductImage> toRemove =
-          product.getImages().stream()
+      List<ProductImage> toRemove = product.getImages().stream()
               .filter(img -> request.getRemoveImageIds().contains(img.getId()))
               .toList();
-      toRemove.forEach(
-          img -> fileManagerService.deleteFile(storageConfig.getProductPath(), img.getImagePath()));
+      toRemove.forEach(img ->
+              fileManagerService.deleteFile(storageConfig.getProductPath(), img.getImagePath()));
       product.getImages().removeAll(toRemove);
     }
 
-    // Step 2: add new uploaded images (appended at the end for now)
+    // Step 2: upload new files, keep them in a list indexed by upload order
+    List<ProductImage> newlyAdded = new ArrayList<>();
     if (request.getImages() != null && !request.getImages().isEmpty()) {
-      int maxOrder =
-          product.getImages().stream().mapToInt(ProductImage::getSortOrder).max().orElse(-1);
       for (MultipartFile file : request.getImages()) {
         if (file == null || file.isEmpty()) continue;
         String path = fileManagerService.saveFile(file, storageConfig.getProductPath());
         if (path != null) {
           ProductImage img = new ProductImage();
           img.setImagePath(path);
-          img.setSortOrder(++maxOrder);
+          img.setSortOrder(-1);
           img.setProduct(product);
           product.getImages().add(img);
+          newlyAdded.add(img);
         }
       }
     }
 
-    // Step 3: apply final order from imageOrder list
+    // Step 3: apply unified order
+    // imageOrder uses existing IDs for saved images, -1 for each new image slot (in upload order)
+    // e.g. user dragged: [new-A, existing-1, existing-2, new-B]
+    //      imageOrder  = [-1, 1, 2, -1]
+    //      images      = [fileA, fileB]
     if (request.getImageOrder() != null && !request.getImageOrder().isEmpty()) {
-      Map<Long, ProductImage> imageMap =
-          product.getImages().stream().collect(Collectors.toMap(ProductImage::getId, img -> img));
-      for (int i = 0; i < request.getImageOrder().size(); i++) {
-        ProductImage img = imageMap.get(request.getImageOrder().get(i));
-        if (img != null) img.setSortOrder(i);
+      Map<Long, ProductImage> existingMap = product.getImages().stream()
+              .filter(img -> img.getId() != null)
+              .collect(Collectors.toMap(ProductImage::getId, img -> img));
+
+      int newIndex = 0;
+      for (int sortOrder = 0; sortOrder < request.getImageOrder().size(); sortOrder++) {
+        Long id = request.getImageOrder().get(sortOrder);
+        if (id == -1L) {
+          // slot for next new image
+          if (newIndex < newlyAdded.size()) {
+            newlyAdded.get(newIndex++).setSortOrder(sortOrder);
+          }
+        } else {
+          ProductImage img = existingMap.get(id);
+          if (img != null) img.setSortOrder(sortOrder);
+        }
       }
     }
   }
-
   // -------------------------------------------------------------------------
   // DELETE
   // -------------------------------------------------------------------------
