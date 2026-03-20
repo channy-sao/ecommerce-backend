@@ -1,5 +1,6 @@
 package ecommerce_app.service.impl;
 
+import ecommerce_app.config.DataInitializer;
 import ecommerce_app.exception.BadRequestException;
 import ecommerce_app.exception.ResourceNotFoundException;
 import ecommerce_app.dto.request.CreateRoleRequest;
@@ -39,7 +40,7 @@ public class RoleServiceImpl extends ValidatePermission implements RoleService {
   @Transactional(rollbackFor = Exception.class)
   @Override
   public void createRole(CreateRoleRequest createRoleRequest) {
-    log.info("Start create role.");
+    log.info("=================== Start create role. =====================");
     this.checkExist(createRoleRequest.getRoleName(), true, null);
     this.validatePermission(createRoleRequest.getPermissionIds());
     final var permissions =
@@ -50,17 +51,23 @@ public class RoleServiceImpl extends ValidatePermission implements RoleService {
     role.setUid(UUID.randomUUID().toString());
     role.setDescription(createRoleRequest.getDescription());
     roleRepository.save(role);
-    log.info("Role created.");
+    log.info("================= Role created. =================");
   }
 
   @Transactional(rollbackFor = Exception.class)
   @Override
   public void updateRole(UpdateRoleRequest updateRoleRequest, long roleId) {
-    log.info("Start update role.");
+    log.info("================== Start update role. ==================");
     roleRepository
         .findById(roleId)
         .ifPresentOrElse(
             role -> {
+              // check if a role is admin can't be updated'
+              if (role.getName().equals(DataInitializer.SUPER_ADMIN_ROLE)) {
+                log.error("Can't update admin role, please create new role");
+                throw new BadRequestException("Can't update admin role, please create new role");
+              }
+
               this.checkExist(role.getName(), false, updateRoleRequest.getRoleName());
               validatePermission(updateRoleRequest.getPermissionIds());
               final var permissions =
@@ -78,16 +85,25 @@ public class RoleServiceImpl extends ValidatePermission implements RoleService {
   @Transactional(rollbackFor = Exception.class)
   @Override
   public void toggleStatus(long roleId) {
-    log.info("Start soft delete role id={}", roleId);
+    log.info(
+        "===================== Start soft delete role id={} =========================", roleId);
 
     final Role role =
         roleRepository
             .findById(roleId)
             .orElseThrow(() -> new ResourceNotFoundException("Role", roleId));
+
+    // check if a role is admin can't be deleted
+    if (role.getName().equals(DataInitializer.SUPER_ADMIN_ROLE)) {
+      log.error("This is Super admin role can't be deleted");
+      throw new BadRequestException("This is Super admin role can't be deleted");
+    }
+
+    // toggle status
     role.setActive(!role.isActive());
     roleRepository.save(role);
 
-    log.info("Update status role id={}", roleId);
+    log.info("================== Updated status role id={} ===================", roleId);
   }
 
   @Transactional(readOnly = true)
@@ -144,7 +160,7 @@ public class RoleServiceImpl extends ValidatePermission implements RoleService {
       roleRepository
           .findByName(roleName)
           .ifPresent(
-              role -> {
+              _ -> {
                 throw new BadRequestException("Role already exists");
               });
     }
@@ -152,8 +168,8 @@ public class RoleServiceImpl extends ValidatePermission implements RoleService {
       roleRepository
           .findByName(newRoleName)
           .ifPresent(
-              role -> {
-                throw new BadRequestException("Role already exists");
+              _ -> {
+                throw new BadRequestException("Role %s already exists".formatted(newRoleName));
               });
     }
   }
