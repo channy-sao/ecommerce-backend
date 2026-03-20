@@ -10,7 +10,10 @@ import ecommerce_app.repository.PermissionRepository;
 import ecommerce_app.repository.RoleRepository;
 import ecommerce_app.service.RoleService;
 import ecommerce_app.service.ValidatePermission;
+
+import java.util.Comparator;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -18,6 +21,9 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -98,19 +104,20 @@ public class RoleServiceImpl extends ValidatePermission implements RoleService {
   @Override
   public Set<RoleResponse> getRoles() {
     log.info("Start get roles.");
-    return roleRepository.findAll().stream()
+    Sort sort = Sort.by(Sort.Direction.ASC, "name");
+    return roleRepository.findAll(sort).stream()
         .map(role -> modelMapper.map(role, RoleResponse.class))
         .collect(Collectors.toSet());
   }
 
   @Transactional(readOnly = true)
   @Override
-  public Set<RoleResponse> searchRole(String roleName) {
+  public Page<RoleResponse> searchRole(
+      String roleName, int page, int pageSize, String sortBy, Sort.Direction sortDirection) {
+    Sort sort = Sort.by(sortDirection, sortBy);
     return roleRepository
-        .findByName("%" + roleName + "%")
-        .map(RoleResponse::toRoleResponse)
-        .stream()
-        .collect(Collectors.toSet());
+        .findByNameContainingIgnoreCase(roleName, PageRequest.of(page - 1, pageSize, sort))
+        .map(role -> modelMapper.map(role, RoleResponse.class));
   }
 
   @Override

@@ -16,10 +16,12 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -134,10 +136,14 @@ public class RoleController {
 
   @PreAuthorize("hasAuthority('ROLE_READ') or hasAnyRole('ADMIN','SUPER_ADMIN')")
   @GetMapping("/search")
-  public ResponseEntity<BaseBodyResponse<Set<RoleResponse>>> searchRole(
-      @Parameter(name = "role") String roleName) {
-    return BaseBodyResponse.success(
-        roleService.searchRole(roleName),
+  public ResponseEntity<BaseBodyResponse<List<RoleResponse>>> searchRole(
+          @RequestParam(value = "page", defaultValue = "1") int page,
+          @RequestParam(value = "pageSize", defaultValue = "10") int pageSize,
+          @RequestParam(value = "sortBy", defaultValue = "createdAt") String sortBy,
+          @RequestParam(value = "sortDirection", defaultValue = "DESC") Sort.Direction sortDirection,
+          @RequestParam(value = "filter", required = false) String filter) {
+    return BaseBodyResponse.pageSuccess(
+        roleService.searchRole(filter, page, pageSize, sortBy, sortDirection),
         messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_SUCCESS));
   }
 }
