@@ -39,6 +39,7 @@ public class DataInitializer implements ApplicationRunner {
   private final PermissionRepository permissionRepository;
   private final SettingRepository settingRepository;
   public static final String SUPER_ADMIN_ROLE = "SUPER_ADMIN";
+  public static final String ADMIN_ROLE = "ADMIN";
   private final UserRepository userRepository;
   private final PasswordEncoder passwordEncoder;
   private final StorageConfig storageConfig;
@@ -75,6 +76,7 @@ public class DataInitializer implements ApplicationRunner {
 
   private void seedSuperAdminRole() {
     try {
+      // Create a super admin role
       roleRepository
           .findByName(SUPER_ADMIN_ROLE)
           .ifPresentOrElse(
@@ -83,6 +85,20 @@ public class DataInitializer implements ApplicationRunner {
                   roleRepository.save(
                       Role.builder()
                           .name(SUPER_ADMIN_ROLE)
+                          .permissions(new HashSet<>(permissionRepository.findAll()))
+                          .isActive(true)
+                          .uid(UUID.randomUUID().toString())
+                          .build()));
+
+      // Create an admin role
+      roleRepository
+          .findByName(ADMIN_ROLE)
+          .ifPresentOrElse(
+              _ -> log.info("Role admin has been created"),
+              () ->
+                  roleRepository.save(
+                      Role.builder()
+                          .name(ADMIN_ROLE)
                           .permissions(new HashSet<>(permissionRepository.findAll()))
                           .isActive(true)
                           .uid(UUID.randomUUID().toString())
@@ -98,9 +114,8 @@ public class DataInitializer implements ApplicationRunner {
     userRepository
         .findByEmail("admin@gmail.com")
         .ifPresentOrElse(
-            user -> {
+            _ -> {
               log.info("Admin already exists");
-              return;
             },
             () -> {
               Role role =
@@ -108,7 +123,7 @@ public class DataInitializer implements ApplicationRunner {
                       .findByName(DataInitializer.SUPER_ADMIN_ROLE)
                       .orElseThrow(
                           () -> new ResourceNotFoundException("Super admin role is not found"));
-              // Create super admin user
+              // Create a super admin user
               User admin =
                   User.builder()
                       .email("admin@gmail.com")
@@ -142,6 +157,50 @@ public class DataInitializer implements ApplicationRunner {
 
               log.info("Super Admin initialized successfully!");
             });
+
+    userRepository
+        .findByEmail("normaladmin@gmail.com")
+        .ifPresentOrElse(
+            _ -> log.info("Normal Admin already exists"),
+            () -> {
+              Role role =
+                  roleRepository
+                      .findByName(DataInitializer.ADMIN_ROLE)
+                      .orElseThrow(() -> new ResourceNotFoundException("Admin role is not found"));
+              // Create a normal admin user
+              User normalAdmin =
+                  User.builder()
+                      .email("normaladmin@gmail.com")
+                      .password(passwordEncoder.encode("admin@123"))
+                      .avatar("normal-admin-avatar.png")
+                      .firstName("Normal")
+                      .lastName("Admin")
+                      .phone("+855 12567892")
+                      .uuid(UUID.randomUUID())
+                      .isActive(true)
+                      .authProvider(AuthProvider.LOCAL)
+                      .rememberMe(true)
+                      .emailVerifiedAt(LocalDateTime.now())
+                      .isEmailVerified(false)
+                      .roles(Set.of(role))
+                      .build();
+
+              try {
+                String imagePath =
+                    ImageDownloadUtils.downloadAndSave(
+                        "https://picsum.photos/300/300", storageConfig.getAvatarPath());
+
+                normalAdmin.setAvatar(Path.of(imagePath).getFileName().toString());
+
+              } catch (Exception e) {
+                log.error("Failed to download image for user : {}", e.getMessage());
+                normalAdmin.setAvatar(null);
+              }
+
+              userRepository.save(normalAdmin);
+
+              log.info("Normal Admin initialized successfully!");
+            });
   }
 
   public void initSetting() {
@@ -149,7 +208,7 @@ public class DataInitializer implements ApplicationRunner {
 
     int inserted = 0;
     for (Setting setting : defaults) {
-      // Only insert if key does NOT already exist — never overwrite admin changes
+      // Only insert if the key does NOT already exist — never overwrite admin changes
       if (!settingRepository.existsById(setting.getKey())) {
         settingRepository.save(setting);
         inserted++;
@@ -169,7 +228,8 @@ public class DataInitializer implements ApplicationRunner {
         build("store.name", "My Shop", "Store Name"),
         build("store.email", "mystore@gmail.com.kh", "Contact Email"),
         build("store.phone", "+855 12334477", "Contact Phone"),
-        build("store.address", "Street 271, Stueng Meanchey, Phnom Penh, Cambodia", "Store Address"),
+        build(
+            "store.address", "Street 271, Stueng Meanchey, Phnom Penh, Cambodia", "Store Address"),
         build("store.currency", "USD", "Currency"),
         build("store.logo_url", "", "Logo URL"),
         build("store.facebook_url", "", "Facebook URL"),
