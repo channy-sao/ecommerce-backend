@@ -23,6 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -114,10 +115,21 @@ public class RoleServiceImpl extends ValidatePermission implements RoleService {
   @Override
   public Page<RoleResponse> searchRole(
       String roleName, int page, int pageSize, String sortBy, Sort.Direction sortDirection) {
-    Sort sort = Sort.by(sortDirection, sortBy);
-    return roleRepository
-        .findByNameContainingIgnoreCase(roleName, PageRequest.of(page - 1, pageSize, sort))
-        .map(role -> modelMapper.map(role, RoleResponse.class));
+
+    // Whitelist allowed sort fields — must match entity field names exactly
+    Set<String> allowedSortFields =
+        Set.of("name", "description", "isActive", "createdAt", "updatedAt");
+    String safeSortBy = allowedSortFields.contains(sortBy) ? sortBy : "createdAt";
+
+    Sort sort = Sort.by(sortDirection, safeSortBy);
+    Pageable pageable = PageRequest.of(page - 1, pageSize, sort);
+
+    Page<Role> result =
+        (roleName == null || roleName.isBlank())
+            ? roleRepository.findAll(pageable)
+            : roleRepository.findByNameContainingIgnoreCase(roleName, pageable);
+
+    return result.map(role -> modelMapper.map(role, RoleResponse.class));
   }
 
   @Override
