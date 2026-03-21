@@ -57,6 +57,18 @@ public enum PermissionEnum {
   PROMOTION_UPDATE("PROMOTION_UPDATE", "Update promotion information"),
   PROMOTION_DELETE("PROMOTION_DELETE", "Delete promotion information"),
 
+  // ===== COUPON =====
+  COUPON_READ("COUPON_READ", "Read coupon information"),
+  COUPON_CREATE("COUPON_CREATE", "Create new coupon information"),
+  COUPON_UPDATE("COUPON_UPDATE", "Update coupon information"),
+  COUPON_DELETE("COUPON_DELETE", "Delete coupon information"),
+
+  // ===== BANNER ======
+  BANNER_READ("BANNER_READ", "Read banner information"),
+  BANNER_CREATE("BANNER_CREATE", "Create new banner information"),
+  BANNER_UPDATE("BANNER_UPDATE", "Update banner information"),
+  BANNER_DELETE("BANNER_DELETE", "Delete banner information"),
+
   // ===== STOCK =====
   STOCK_READ("STOCK_READ", "Read stock information"),
   STOCK_CREATE("STOCK_CREATE", "Create new stock information"),

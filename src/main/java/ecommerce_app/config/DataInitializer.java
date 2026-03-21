@@ -114,9 +114,7 @@ public class DataInitializer implements ApplicationRunner {
     userRepository
         .findByEmail("admin@gmail.com")
         .ifPresentOrElse(
-            _ -> {
-              log.info("Admin already exists");
-            },
+            _ -> log.info("Admin already exists"),
             () -> {
               Role role =
                   roleRepository
@@ -131,7 +129,7 @@ public class DataInitializer implements ApplicationRunner {
                       .avatar("admin-avatar.png")
                       .firstName("Admin")
                       .lastName("Admin")
-                      .phone("+855 356789")
+                      .phone("+855 12356789")
                       .uuid(UUID.randomUUID())
                       .isActive(true)
                       .authProvider(AuthProvider.LOCAL)
