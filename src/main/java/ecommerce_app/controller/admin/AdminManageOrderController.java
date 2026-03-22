@@ -18,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -30,52 +31,55 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 @Tag(name = "Admin Manage Order Controller", description = "Admin Management Order process")
 public class AdminManageOrderController {
-  private final AdminManageOrderService adminManageOrderService;
-  private final MessageSourceService messageSourceService;
+    private final AdminManageOrderService adminManageOrderService;
+    private final MessageSourceService messageSourceService;
 
-  @PatchMapping("/{orderId}/update-status")
-  public ResponseEntity<BaseBodyResponse<Void>> updateOrderStatus(
-      @PathVariable(name = "orderId", value = "orderId") Long orderId,
-      @Parameter(name = "status") @RequestParam(name = "status") OrderStatus newStatus) {
-    this.adminManageOrderService.updateOrderStatus(orderId, newStatus);
-    return BaseBodyResponse.success(
-        messageSourceService.getMessage(MessageKeyConstant.ORDER_MESSAGE_STATUS_UPDATED));
-  }
+    @PreAuthorize("hasAnyAuthority('ORDER_UPDATE', 'ORDER_DELETE', 'ORDER_CANCEL')")
+    @PatchMapping("/{orderId}/update-status")
+    public ResponseEntity<BaseBodyResponse<Void>> updateOrderStatus(
+            @PathVariable(name = "orderId", value = "orderId") Long orderId,
+            @Parameter(name = "status") @RequestParam(name = "status") OrderStatus newStatus) {
+        this.adminManageOrderService.updateOrderStatus(orderId, newStatus);
+        return BaseBodyResponse.success(
+                messageSourceService.getMessage(MessageKeyConstant.ORDER_MESSAGE_STATUS_UPDATED));
+    }
 
-  @GetMapping
-  public ResponseEntity<BaseBodyResponse<List<OrderResponse>>> getOrders(
-      @RequestParam(value = "orderStatus", required = false) OrderStatus orderStatus,
-      @RequestParam(value = "paymentStatus", required = false) PaymentStatus paymentStatus,
-      @RequestParam(value = "fromDate", required = false)
-          @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-          LocalDate fromDate,
-      @RequestParam(value = "toDate", required = false)
-          @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-          LocalDate toDate,
-      @RequestParam(value = "isPaged", defaultValue = "true") boolean isPaged,
-      @RequestParam(value = "page", defaultValue = "1") int page,
-      @RequestParam(value = "pageSize", defaultValue = "20") int pageSize,
-      @RequestParam(value = "sortBy", defaultValue = "createdAt") String sortBy,
-      @RequestParam(value = "sortDirection", defaultValue = "DESC") Sort.Direction sortDirection) {
-    return BaseBodyResponse.pageSuccess(
-        this.adminManageOrderService.adminGetOrders(
-            orderStatus,
-            paymentStatus,
-            fromDate,
-            toDate,
-            isPaged,
-            page,
-            pageSize,
-            sortBy,
-            sortDirection),
-            messageSourceService.getMessage(MessageKeyConstant.ORDER_TITLE_LIST));
-  }
+    @PreAuthorize("hasAnyAuthority('ORDER_READ', 'ORDER_UPDATE', 'ORDER_CANCEL', 'ORDER_DELETE')")
+    @GetMapping
+    public ResponseEntity<BaseBodyResponse<List<OrderResponse>>> getOrders(
+            @RequestParam(value = "orderStatus", required = false) OrderStatus orderStatus,
+            @RequestParam(value = "paymentStatus", required = false) PaymentStatus paymentStatus,
+            @RequestParam(value = "fromDate", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate fromDate,
+            @RequestParam(value = "toDate", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate toDate,
+            @RequestParam(value = "isPaged", defaultValue = "true") boolean isPaged,
+            @RequestParam(value = "page", defaultValue = "1") int page,
+            @RequestParam(value = "pageSize", defaultValue = "20") int pageSize,
+            @RequestParam(value = "sortBy", defaultValue = "createdAt") String sortBy,
+            @RequestParam(value = "sortDirection", defaultValue = "DESC") Sort.Direction sortDirection) {
+        return BaseBodyResponse.pageSuccess(
+                this.adminManageOrderService.adminGetOrders(
+                        orderStatus,
+                        paymentStatus,
+                        fromDate,
+                        toDate,
+                        isPaged,
+                        page,
+                        pageSize,
+                        sortBy,
+                        sortDirection),
+                messageSourceService.getMessage(MessageKeyConstant.ORDER_TITLE_LIST));
+    }
 
-  @GetMapping("/{orderId}")
-  public ResponseEntity<BaseBodyResponse<OrderDetailResponse>> getOrderDetail(
-      @PathVariable(value = "orderId", name = "orderId") Long orderId) {
-    return BaseBodyResponse.success(
-        this.adminManageOrderService.getOrderDetailForAdmin(orderId),
-            messageSourceService.getMessage(MessageKeyConstant.ORDER_TITLE_DETAIL));
-  }
+    @PreAuthorize("hasAnyAuthority('ORDER_READ', 'ORDER_UPDATE', 'ORDER_CANCEL', 'ORDER_DELETE')")
+    @GetMapping("/{orderId}")
+    public ResponseEntity<BaseBodyResponse<OrderDetailResponse>> getOrderDetail(
+            @PathVariable(value = "orderId", name = "orderId") Long orderId) {
+        return BaseBodyResponse.success(
+                this.adminManageOrderService.getOrderDetailForAdmin(orderId),
+                messageSourceService.getMessage(MessageKeyConstant.ORDER_TITLE_DETAIL));
+    }
 }

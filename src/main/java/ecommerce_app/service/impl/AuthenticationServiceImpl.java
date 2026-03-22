@@ -238,28 +238,34 @@ public class AuthenticationServiceImpl implements AuthenticationService {
   @Transactional(rollbackFor = Exception.class)
   @Override
   public LoginResponse loginLocal(LoginRequest loginRequest) {
-    log.info("Login local with email: {}", loginRequest.getEmail());
-    String email = loginRequest.getEmail().trim(); // remove leading/trailing spaces
-    String password = loginRequest.getPassword().trim(); // remove leading/trailing spaces
-    final Authentication authentication =
-        authenticationManager.authenticate(
-            new UsernamePasswordAuthenticationToken(email, password));
-    if (authentication.isAuthenticated()) {
-      log.info("Authentication is authenticated");
-      CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-      SecurityContextHolder.getContext().setAuthentication(authentication);
+    try {
+      log.info("Login local with email: {}", loginRequest.getEmail());
+      String email = loginRequest.getEmail().trim(); // remove leading/trailing spaces
+      String password = loginRequest.getPassword().trim(); // remove leading/trailing spaces
+      final Authentication authentication =
+              authenticationManager.authenticate(
+                      new UsernamePasswordAuthenticationToken(email, password));
+      if (authentication.isAuthenticated()) {
+        log.info("Authentication is authenticated");
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        SecurityContextHolder.getContext().setAuthentication(authentication);
 
-      // Update last login here
-      userRepository.updateLastLogin(userDetails.getId(), LocalDateTime.now());
+        // Update last login here
+        userRepository.updateLastLogin(userDetails.getId(), LocalDateTime.now());
 
-      String refreshToken =
-          jwtService.generateRefreshToken(userDetails.getUsername(), loginRequest.isRememberMe());
+        String refreshToken =
+                jwtService.generateRefreshToken(userDetails.getUsername(), loginRequest.isRememberMe());
 
-      String accessToken = jwtService.generateAccessToken(userDetails);
-      var loggedInUser = this.getCurrentUser();
-      return getLoginResponse(loggedInUser, accessToken, refreshToken);
+        String accessToken = jwtService.generateAccessToken(userDetails);
+        var loggedInUser = this.getCurrentUser();
+        return getLoginResponse(loggedInUser, accessToken, refreshToken);
+      }
+      log.error("Username or password is incorrect");
+      throw new UnauthorizedException("Username or Password incorrect");
+    } catch (Exception ex){
+      log.error(ex.getMessage(), ex);
+      throw new UnauthorizedException(ex.getMessage());
     }
-    throw new UnauthorizedException("Username or Password incorrect");
   }
 
   @Override
