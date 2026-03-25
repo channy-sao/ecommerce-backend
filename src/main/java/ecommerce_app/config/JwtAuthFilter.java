@@ -53,4 +53,10 @@ public class JwtAuthFilter extends OncePerRequestFilter {
       log.error(e.getMessage());
     }
   }
+
+  @Override
+  protected boolean shouldNotFilter(HttpServletRequest request) {
+    String path = request.getRequestURI();
+    return path.startsWith("/actuator");
+  }
 }
