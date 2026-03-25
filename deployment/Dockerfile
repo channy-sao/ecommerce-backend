@@ -5,9 +5,9 @@ FROM eclipse-temurin:25-jdk-alpine AS builder
 WORKDIR /app
 
 # Copy Maven configuration files
-COPY pom.xml .
-COPY .mvn .mvn
-COPY mvnw .
+COPY ../pom.xml .
+COPY ../.mvn .mvn
+COPY ../mvnw .
 COPY mvnw.cmd .
 
 # Make mvnw executable
@@ -17,7 +17,7 @@ RUN chmod +x mvnw  # <-- IMPORTANT!
 RUN ./mvnw dependency:go-offline -B
 
 # Copy source code
-COPY src ./src
+COPY ../src ./src
 
 # Build the application
 RUN ./mvnw clean package -DskipTests
