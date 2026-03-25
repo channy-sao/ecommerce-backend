@@ -342,3 +342,13 @@ stripe:
   secret-key: sk_test_XXXXXXXXXXXXXXXXXXXX         # Replace with your key
   webhook-secret: whsec_XXXXXXXXXXXXXXXXXXXX       # From Stripe Dashboard → Webhooks
   currency: usd
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+  endpoint:
+    health:
+      show-details: never
