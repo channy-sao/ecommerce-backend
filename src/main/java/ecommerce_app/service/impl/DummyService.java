@@ -306,7 +306,7 @@ public class DummyService {
 
         // CHANGED: build ProductImage list instead of setImage()
         product.setImages(buildDummyImages(product));
-
+        product.setCode(UUID.randomUUID().toString()); // was "TEMP"
         productRepository.save(product);
       } catch (DataIntegrityViolationException ex) {
         log.error(ex.getMessage(), ex);
