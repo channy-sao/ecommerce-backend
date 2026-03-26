@@ -14,14 +14,17 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
+@Builder
 @Table(
     name = "products",
     indexes = {
@@ -33,6 +36,8 @@ import org.hibernate.annotations.SQLRestriction;
 @Entity
 @SQLDelete(sql = "UPDATE products SET deleted = true WHERE id = ?")
 @SQLRestriction("deleted = false")
+@NoArgsConstructor
+@AllArgsConstructor
 public class Product extends SoftDeletableEntity {
 
   @Id
@@ -112,9 +117,9 @@ public class Product extends SoftDeletableEntity {
   @OneToMany(mappedBy = "product", fetch = FetchType.LAZY)
   private List<Review> reviews;
 
-  // NEW: replaces single image field
+  // NEW: replaces the single image field
   // CascadeType.ALL + orphanRemoval = true means:
-  //   - when product is saved, images are saved
+  //   - when the product is saved, images are saved
   //   - when an image is removed from this list, it is deleted from DB automatically
   @OneToMany(
       cascade = CascadeType.ALL,
@@ -192,7 +197,7 @@ public class Product extends SoftDeletableEntity {
         .toList();
   }
 
-  // --- Unchanged transient methods below ---
+  // --- The unchanged transient methods below ---
 
   @Transient
   public int getStockQuantity() {

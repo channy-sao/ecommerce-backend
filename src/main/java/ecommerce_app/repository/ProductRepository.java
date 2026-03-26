@@ -21,6 +21,8 @@ public interface ProductRepository
 
   Optional<Product> findByUuid(UUID uuid);
 
+  Optional<Product> findByCode(String code);
+
   /** Find featured products */
   Page<Product> findByIsFeatureTrue(Pageable pageable);
 

@@ -77,7 +77,7 @@ public class ProductController {
 
   @PreAuthorize("hasAnyAuthority('PRODUCT_DELETE') or hasAnyRole('ADMIN', 'SUPER_ADMIN')")
   @DeleteMapping("/{id}")
-  public ResponseEntity<BaseBodyResponse<Void>> deleteProduct(@PathVariable(value = "id") Long id) {
+  public ResponseEntity<BaseBodyResponse<Void>> deleteProduct(@PathVariable Long id) {
     this.productService.deleteProduct(id);
     return BaseBodyResponse.success(
         messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_DELETE_SUCCESS));
@@ -85,10 +85,18 @@ public class ProductController {
 
   @GetMapping("/{id}")
   public ResponseEntity<BaseBodyResponse<ProductResponse>> getById(
-      @PathVariable(value = "id") Long id) {
+          @PathVariable Long id) {
     return BaseBodyResponse.success(
         productService.getProductById(id),
         messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_SUCCESS));
+  }
+
+  @GetMapping("/code/{code}")
+  public ResponseEntity<BaseBodyResponse<ProductResponse>> getByCode(
+          @PathVariable String code) {
+    return BaseBodyResponse.success(
+            productService.getProductByCode(code),
+            messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_SUCCESS));
   }
 
   @PreAuthorize(
@@ -103,7 +111,7 @@ public class ProductController {
                       mediaType = MediaType.MULTIPART_FORM_DATA_VALUE,
                       schema = @Schema(implementation = ProductRequest.class))))
   public ResponseEntity<BaseBodyResponse<ProductResponse>> updateProduct(
-          @ModelAttribute @Valid ProductRequest productRequest, @PathVariable(value = "id") Long id) {
+          @ModelAttribute @Valid ProductRequest productRequest, @PathVariable Long id) {
     return BaseBodyResponse.success(
         productService.updateProduct(productRequest, id),
         messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_UPDATE_SUCCESS));

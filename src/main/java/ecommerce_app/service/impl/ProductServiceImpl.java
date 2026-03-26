@@ -181,11 +181,12 @@ public class ProductServiceImpl implements ProductService {
 
     // Step 1: remove deleted images
     if (request.getRemoveImageIds() != null && !request.getRemoveImageIds().isEmpty()) {
-      List<ProductImage> toRemove = product.getImages().stream()
+      List<ProductImage> toRemove =
+          product.getImages().stream()
               .filter(img -> request.getRemoveImageIds().contains(img.getId()))
               .toList();
-      toRemove.forEach(img ->
-              fileManagerService.deleteFile(storageConfig.getProductPath(), img.getImagePath()));
+      toRemove.forEach(
+          img -> fileManagerService.deleteFile(storageConfig.getProductPath(), img.getImagePath()));
       product.getImages().removeAll(toRemove);
     }
 
@@ -212,7 +213,8 @@ public class ProductServiceImpl implements ProductService {
     //      imageOrder  = [-1, 1, 2, -1]
     //      images      = [fileA, fileB]
     if (request.getImageOrder() != null && !request.getImageOrder().isEmpty()) {
-      Map<Long, ProductImage> existingMap = product.getImages().stream()
+      Map<Long, ProductImage> existingMap =
+          product.getImages().stream()
               .filter(img -> img.getId() != null)
               .collect(Collectors.toMap(ProductImage::getId, img -> img));
 
@@ -231,6 +233,7 @@ public class ProductServiceImpl implements ProductService {
       }
     }
   }
+
   // -------------------------------------------------------------------------
   // DELETE
   // -------------------------------------------------------------------------
@@ -253,6 +256,17 @@ public class ProductServiceImpl implements ProductService {
   @Override
   public ProductResponse getProductById(Long id) {
     return ProductMapper.toProductResponse(getById(id));
+  }
+
+  @Transactional(readOnly = true)
+  @Override
+  public ProductResponse getProductByCode(String code) {
+    log.info("Getting product by code: {}", code);
+    Product product =
+        productRepository
+            .findByCode(code)
+            .orElseThrow(() -> new ResourceNotFoundException("Product", code));
+    return ProductMapper.toProductResponse(product);
   }
 
   @Transactional(readOnly = true)
@@ -285,7 +299,8 @@ public class ProductServiceImpl implements ProductService {
           specification.and(
               ProductSpecification.withName(filter)
                   .or(ProductSpecification.withDescription(filter))
-                  .or(ProductSpecification.withCategoryName(filter)));
+                  .or(ProductSpecification.withCategoryName(filter))
+                  .or(ProductSpecification.withCode(filter)));
     }
 
     Sort sort = Sort.by(direction, sortBy);

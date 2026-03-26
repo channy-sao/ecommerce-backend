@@ -46,6 +46,16 @@ public class ProductSpecification {
     };
   }
 
+  public static Specification<Product> withCode(String code) {
+    return (root, query, criteriaBuilder) -> {
+      if (code == null) {
+        return criteriaBuilder.conjunction(); // listing all products
+      }
+      return criteriaBuilder.like(
+          criteriaBuilder.lower(root.get("code")), "%" + code.toLowerCase() + "%");
+    };
+  }
+
   public static Specification<Product> withDescription(String description) {
     return (root, query, criteriaBuilder) -> {
       if (description == null) {

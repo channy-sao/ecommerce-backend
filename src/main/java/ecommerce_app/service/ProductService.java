@@ -18,6 +18,8 @@ public interface ProductService {
 
   ProductResponse getProductById(Long id);
 
+  ProductResponse getProductByCode(String code);
+
   List<ProductResponse> getProducts();
 
   Page<ProductResponse> filter(
