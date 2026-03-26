@@ -91,7 +91,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
   public ResponseEntity<BaseBodyResponse<Void>> handleResourceNotFoundException(
       ResourceNotFoundException ex) {
     log.error(ex.getMessage(), ex);
-    String message = messageSourceService.getMessage(MessageKeyConstant.ERROR_MESSAGE_404);
+    String message = messageSourceService.getMessage(MessageKeyConstant.COMMON_MESSAGE_NOT_FOUND);
     return BaseBodyResponse.failed(HttpStatus.NOT_FOUND, message);
   }
 
