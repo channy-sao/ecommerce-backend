@@ -1,5 +1,7 @@
 package ecommerce_app.dto.response;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -12,24 +14,32 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Schema(description = "Mobile home screen response containing all sections for the home page")
 public class MobileHomeScreenResponse {
 
-  // Add carousel/banners
-  private List<BannerResponse> heroBanners; // HOME_CAROUSEL — top slider
-  private List<BannerResponse> middleBanners; // MIDDLE_SECTION — middle cards
-  // Top carousel banners (3-5 items max)
+  @Schema(description = "Hero carousel banners displayed at the top of the home screen")
+  private List<BannerResponse> heroBanners;
+
+  @Schema(description = "Middle section banners displayed between content blocks")
+  private List<BannerResponse> middleBanners;
+
+  @Schema(description = "Featured promotions displayed as a top carousel (3–5 items)")
   private List<MobilePromotionListResponse> featuredPromotions;
-  // Highlighted products (6-10 items)
+
+  @Schema(description = "Highlighted featured products (6–10 items)")
   private List<MobileProductListResponse> featuredProducts;
 
-  // Listing of brands all with logo and name for quick access
+  @Schema(description = "List of all brands with logo and name for quick access")
   private List<BrandResponse> brands;
 
-  // Recent additions (6-10 items)
+  @Schema(description = "Recently added products (6–10 items)")
   private List<MobileProductListResponse> newArrivals;
-  // Trending items (6-10 items)
-  private List<MobileProductListResponse>
-      popularProducts; // no login required, based on overall popularity
-  // Simple category list for browsing
+
+  @Schema(
+      description =
+          "Trending or popular products based on overall popularity, no login required (6–10 items)")
+  private List<MobileProductListResponse> popularProducts;
+
+  @Schema(description = "Simple category list for browsing")
   private List<SimpleCategoryResponse> categories;
 }
