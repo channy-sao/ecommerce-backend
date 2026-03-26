@@ -64,7 +64,7 @@ public class ProductMapper {
             .toList();
     response.setImages(imageDtos);
 
-    // First image in sorted order is the primary
+    // The first image in sorted order is the primary
     String primaryImageUrl = imageDtos.isEmpty() ? null : imageDtos.getFirst().getImagePath();
 
     final var auditUserMap =
@@ -85,6 +85,7 @@ public class ProductMapper {
     response.setDiscountedPrice(discountPrice);
     response.setPromotionBadge(promotionBadge);
     response.setSpecs(product.getSpecTexts());
+    response.setCode(product.getCode());
 
     // warranty
     WarrantyResponse warrantyResponse = new WarrantyResponse();
@@ -137,6 +138,7 @@ public class ProductMapper {
     response.setPrimaryImage(primaryImageUrl);
     response.setCategoryName(product.getCategory().getName());
     response.setStockStatus(product.getStockStatus());
+    response.setCode(product.getCode());
 
     SimpleBrandResponse brandResponse = null;
     if (product.getBrand() != null) {

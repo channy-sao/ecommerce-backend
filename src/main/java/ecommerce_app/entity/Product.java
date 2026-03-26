@@ -64,6 +64,9 @@ public class Product extends SoftDeletableEntity {
   @JsonIgnore
   private Category category;
 
+  @Column(name = "code", nullable = false, unique = true, length = 50, updatable = false)
+  private String code;
+
   @OneToMany(
       cascade = {CascadeType.MERGE, CascadeType.PERSIST},
       fetch = FetchType.LAZY,

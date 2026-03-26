@@ -42,6 +42,9 @@ public class ProductResponse {
   @Schema(description = "Price of the product", example = "1299.99")
   private BigDecimal price;
 
+  @Schema(description = "Business code for product", example = "PRD-0001")
+  private String code;
+
   // CHANGED: split into primaryImage (convenience) + images (full list of URLs)
   @Schema(description = "Primary image URL (first by sort order)")
   private String primaryImage;

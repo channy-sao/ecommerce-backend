@@ -55,7 +55,7 @@ public class PromotionMapper {
         .id(promotion.getId())
         .code(promotion.getCode())
         .name(promotion.getName())
-        .discountType(promotion.getDiscountType().name())
+        .discountType(promotion.getDiscountType())
         .discountValue(promotion.getDiscountValue())
         .buyQuantity(promotion.getBuyQuantity())
         .getQuantity(promotion.getGetQuantity())
@@ -78,6 +78,7 @@ public class PromotionMapper {
         .name(product.getName())
         .image(product.getPrimaryImagePath())
         .price(product.getPrice())
+        .code(product.getCode())
         .discountedPrice(
             PromotionCalculator.calculateDiscountedPrice(
                 product.getPrice(), product.getPromotions()))

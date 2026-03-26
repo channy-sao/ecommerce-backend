@@ -5,6 +5,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -29,6 +30,10 @@ public interface ProductRepository
   /** Search products by name or description (case-insensitive) */
   Page<Product> findByNameContainingIgnoreCaseOrDescriptionContainingIgnoreCase(
       String name, String description, Pageable pageable);
+
+  @Modifying
+  @Query("UPDATE Product p SET p.code = :code WHERE p.id = :id")
+  void updateCode(Long id, String code);
 
   /**
    * Find products with active promotions Uses custom query to join promotions and filter by active

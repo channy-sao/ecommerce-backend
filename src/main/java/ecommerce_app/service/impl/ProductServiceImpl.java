@@ -100,8 +100,16 @@ public class ProductServiceImpl implements ProductService {
       product.setWarrantyDuration(productRequest.getWarrantyDuration());
       product.setWarrantyUnit(productRequest.getWarrantyUnit());
       product.setWarrantyDescription(productRequest.getWarrantyDescription());
+      Product saved = productRepository.save(product);
+      // Generate clean business code
+      String code = "PRD-" + String.format("%04d", saved.getId());
 
-      return ProductMapper.toProductResponse(productRepository.save(product));
+      // Update-only code (no full save again)
+      productRepository.updateCode(saved.getId(), code);
+
+      // Set back for response
+      saved.setCode(code);
+      return ProductMapper.toProductResponse(saved);
 
     } catch (DataIntegrityViolationException e) {
       log.error("Data integrity violation: {}", e.getMessage());

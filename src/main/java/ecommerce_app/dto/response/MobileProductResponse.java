@@ -41,6 +41,9 @@ public class MobileProductResponse {
   @Schema(description = "Original price of the product")
   private BigDecimal price;
 
+  @Schema(description = "Business code for product", example = "PRD-0001")
+  private String code;
+
   @Schema(description = "Discounted price of the product if any")
   private BigDecimal discountedPrice;
 
