@@ -76,6 +76,7 @@ public class ProductServiceImpl implements ProductService {
       }
       Product product = modelMapper.map(productRequest, Product.class);
       product.setName(productName);
+      product.setCode("TEMP");
       if (productRequest.getBrandId() != null) {
         product.setBrand(
             brandRepository
