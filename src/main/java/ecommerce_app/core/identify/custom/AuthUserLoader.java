@@ -28,38 +28,41 @@ public class AuthUserLoader {
             .findByEmail(email)
             .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
-    Set<GrantedAuthority> authorities = buildAuthorities(user);
-
-    AuthUser authUser =
-        AuthUser.builder()
-            .id(user.getId())
-            .email(user.getEmail())
-            .password(user.getPassword())
-            .enabled(user.getIsActive())
-            .authorities(authorities)
-            .build();
-
-    return CustomUserDetails.builder().user(authUser).build();
+    return buildCustomUserDetails(user);
   }
 
   @Transactional(readOnly = true)
   public CustomUserDetails loadByFirebaseUid(String firebaseUid) {
 
     final User user =
-            userRepository
-                    .findByFirebaseUid(firebaseUid)
-                    .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        userRepository
+            .findByFirebaseUid(firebaseUid)
+            .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
+    return buildCustomUserDetails(user);
+  }
+
+  @Transactional(readOnly = true)
+  public CustomUserDetails loadById(Long id) {
+    final User user =
+        userRepository
+            .findById(id)
+            .orElseThrow(() -> new UsernameNotFoundException("User not found: " + id));
+    return buildCustomUserDetails(user);
+  }
+
+  private CustomUserDetails buildCustomUserDetails(User user) {
     Set<GrantedAuthority> authorities = buildAuthorities(user);
 
     AuthUser authUser =
-            AuthUser.builder()
-                    .id(user.getId())
-                    .email(user.getEmail())
-                    .password(user.getPassword())
-                    .enabled(user.getIsActive())
-                    .authorities(authorities)
-                    .build();
+        AuthUser.builder()
+            .id(user.getId())
+            .email(user.getEmail())
+            .fullName(user.getFullName())
+            .password(user.getPassword())
+            .enabled(user.getIsActive())
+            .authorities(authorities)
+            .build();
 
     return CustomUserDetails.builder().user(authUser).build();
   }

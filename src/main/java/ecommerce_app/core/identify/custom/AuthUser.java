@@ -15,4 +15,5 @@ public class AuthUser {
   private String password;
   private Set<GrantedAuthority> authorities;
   private boolean enabled;
+  private String fullName;
 }

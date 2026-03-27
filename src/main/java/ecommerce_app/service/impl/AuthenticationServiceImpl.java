@@ -61,15 +61,15 @@ public class AuthenticationServiceImpl implements AuthenticationService {
       log.info("Verifying Firebase idToken");
 
       FirebaseToken decodedToken =
-              SimpleTry.ofReThrowChecked(
-                      () -> FirebaseAuth.getInstance().verifyIdToken(idToken),
-                      throwable -> {
-                        log.error("Firebase token verification failed", throwable);
-                        throw new BadRequestException("Firebase idToken verification failed");
-                      });
+          SimpleTry.ofReThrowChecked(
+              () -> FirebaseAuth.getInstance().verifyIdToken(idToken),
+              throwable -> {
+                log.error("Firebase token verification failed", throwable);
+                throw new BadRequestException("Firebase idToken verification failed");
+              });
 
       final String uid = decodedToken.getUid();
-      final Map<String, Object> claims  = decodedToken.getClaims();
+      final Map<String, Object> claims = decodedToken.getClaims();
       final Map<String, Object> firebase = (Map<String, Object>) claims.get("firebase");
       final String signInProvider = String.valueOf(firebase.get("sign_in_provider"));
 
@@ -79,16 +79,17 @@ public class AuthenticationServiceImpl implements AuthenticationService {
       }
 
       // ── Email / Google / Facebook handler (original logic) ────────────────
-      final String email   = decodedToken.getEmail();
-      final String name    = decodedToken.getName();
+      final String email = decodedToken.getEmail();
+      final String name = decodedToken.getName();
       final String picture = decodedToken.getPicture();
 
       if (StringUtils.isNoneEmpty(name)) {
         firstName = name.substring(0, name.indexOf(" "));
-        lastName  = name.substring(name.indexOf(" ") + 1);
+        lastName = name.substring(name.indexOf(" ") + 1);
       }
 
-      User userBuilder = User.builder()
+      User userBuilder =
+          User.builder()
               .email(email)
               .firebaseUid(uid)
               .avatar(picture)
@@ -113,7 +114,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
       LoginResponse loginResponse = new LoginResponse();
       loginResponse.setAccessToken(jwtService.generateAccessToken(userDetails));
-      loginResponse.setRefreshToken(jwtService.generateRefreshToken(user.getEmail(), false));
+      loginResponse.setRefreshToken(
+          jwtService.generateRefreshToken(String.valueOf(user.getId()), false));
       loginResponse.setTokenType(TokenTypeConstant.BEARER);
       loginResponse.setAccessTokenExpireInMs(jwtService.getAccessExpirationMs());
       loginResponse.setRefreshTokenExpireInMs(jwtService.getRefreshExpirationMs());
@@ -122,8 +124,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
       log.info("Firebase login response ready for uid={}", uid);
       return loginResponse;
 
-    }
-    catch (Exception e) {
+    } catch (Exception e) {
       log.error(e.getMessage(), e);
       throw new UnauthorizedException("Unauthorized");
     }
@@ -134,7 +135,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
   // ─────────────────────────────────────────────────────────────────────────────
 
   private PhoneLoginResponse verifyAndGeneratePhoneToken(
-          FirebaseToken decodedToken, String uid, String signInProvider) {
+      FirebaseToken decodedToken, String uid, String signInProvider) {
 
     final Map<String, Object> claims = decodedToken.getClaims();
     final String phone = (String) claims.get("phone_number");
@@ -147,23 +148,28 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     boolean isNew = !userRepository.existsByPhone(phone);
 
-    User user = userRepository.findByPhone(phone).orElseGet(() ->
-            userRepository.save(User.builder()
-                    .phone(phone)
-                    .firebaseUid(uid)
-                    // Placeholder satisfies the UNIQUE NOT NULL email constraint.
-                    // Format is deterministic so it can never clash with a real email.
-                    .email("phone_" + uid + "@phone.placeholder")
-                    .firstName("")
-                    .lastName("")
-                    .password(null)
-                    .rememberMe(true)
-                    .isActive(true)
-                    .uuid(UUID.randomUUID())
-                    .authProvider(AuthProvider.fromProviderString(signInProvider)) // → PHONE
-                    .lastLoginAt(LocalDateTime.now())
-                    .build())
-    );
+    User user =
+        userRepository
+            .findByPhone(phone)
+            .orElseGet(
+                () ->
+                    userRepository.save(
+                        User.builder()
+                            .phone(phone)
+                            .firebaseUid(uid)
+                            // Placeholder satisfies the UNIQUE NOT NULL email constraint.
+                            // Format is deterministic so it can never clash with a real email.
+                            .email("phone_" + uid + "@phone.placeholder")
+                            .firstName("")
+                            .lastName("")
+                            .password(null)
+                            .rememberMe(true)
+                            .isActive(true)
+                            .uuid(UUID.randomUUID())
+                            .authProvider(
+                                AuthProvider.fromProviderString(signInProvider)) // → PHONE
+                            .lastLoginAt(LocalDateTime.now())
+                            .build()));
 
     userRepository.updateLastLogin(user.getId(), LocalDateTime.now());
 
@@ -171,17 +177,16 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     PhoneLoginResponse response = new PhoneLoginResponse();
     response.setAccessToken(jwtService.generateAccessToken(userDetails));
-    response.setRefreshToken(jwtService.generateRefreshToken(user.getEmail(), false));
+    response.setRefreshToken(jwtService.generateRefreshToken(String.valueOf(user.getId()), false));
     response.setTokenType(TokenTypeConstant.BEARER);
     response.setAccessTokenExpireInMs(jwtService.getAccessExpirationMs());
     response.setRefreshTokenExpireInMs(jwtService.getRefreshExpirationMs());
     response.setUserInfo(userMapper.toUserResponse(user));
-    response.setProfileIncomplete(isNew); // frontend shows "complete profile" form if true
+    response.setProfileIncomplete(isNew); // the frontend shows the "complete profile" form if true
 
     log.info("Phone login success uid={}, isNew={}", uid, isNew);
     return response;
   }
-
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Phone — complete profile (new users only)
@@ -192,7 +197,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
   public void completePhoneProfile(CompletePhoneProfileRequest request) {
     UserResponse currentUserResponse = getCurrentUser();
 
-    User user = userRepository.findByEmail(currentUserResponse.getEmail())
+    User user =
+        userRepository
+            .findByEmail(currentUserResponse.getEmail())
             .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
     if (user.getAuthProvider() != AuthProvider.PHONE_NUMBER) {
@@ -230,7 +237,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         signupRequest.getIdToken(), signupRequest.getFirstName(), signupRequest.getLastName());
   }
 
-
   // ─────────────────────────────────────────────────────────────────────────────
   // Local email/password login
   // ─────────────────────────────────────────────────────────────────────────────
@@ -243,8 +249,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
       String email = loginRequest.getEmail().trim(); // remove leading/trailing spaces
       String password = loginRequest.getPassword().trim(); // remove leading/trailing spaces
       final Authentication authentication =
-              authenticationManager.authenticate(
-                      new UsernamePasswordAuthenticationToken(email, password));
+          authenticationManager.authenticate(
+              new UsernamePasswordAuthenticationToken(email, password));
       if (authentication.isAuthenticated()) {
         log.info("Authentication is authenticated");
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
@@ -254,7 +260,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         userRepository.updateLastLogin(userDetails.getId(), LocalDateTime.now());
 
         String refreshToken =
-                jwtService.generateRefreshToken(userDetails.getUsername(), loginRequest.isRememberMe());
+            jwtService.generateRefreshToken(
+                String.valueOf(userDetails.getId()), loginRequest.isRememberMe());
 
         String accessToken = jwtService.generateAccessToken(userDetails);
         var loggedInUser = this.getCurrentUser();
@@ -262,7 +269,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
       }
       log.error("Username or password is incorrect");
       throw new UnauthorizedException("Username or Password incorrect");
-    } catch (Exception ex){
+    } catch (Exception ex) {
       log.error(ex.getMessage(), ex);
       throw new UnauthorizedException(ex.getMessage());
     }
@@ -272,10 +279,12 @@ public class AuthenticationServiceImpl implements AuthenticationService {
   public RefreshTokenResponse refreshToken(String refreshToken) {
     log.info("Refresh Token Calling");
     String subject = jwtService.getSubject(refreshToken);
-    CustomUserDetails userDetails = authUserLoader.loadByEmail(subject);
+    Long userId = Long.parseLong(subject);
+    CustomUserDetails userDetails = authUserLoader.loadById(userId);
 
     final String accessToken = jwtService.generateAccessToken(userDetails);
-    final String generatedRefreshToken = jwtService.generateRefreshToken(subject, false);
+    final String generatedRefreshToken =
+        jwtService.generateRefreshToken(String.valueOf(userId), false);
     log.info("Refresh token: {}", generatedRefreshToken);
     return RefreshTokenResponse.builder()
         .accessToken(accessToken)
@@ -302,7 +311,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
     User currentUser =
         userRepository
-            .findByEmail(userDetails.getUsername())
+            .findById(userDetails.getId())
             .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
     return userMapper.toUserResponse(currentUser);

@@ -38,16 +38,28 @@ public class UserDetailServiceImpl implements UserDetailsService {
       log.warn("User {} provider is not LOCAL", user.getEmail());
     }
 
+    return buildUserDetails(user);
+  }
+
+  @Transactional(readOnly = true)
+  public UserDetails loadUserById(Long id) {
+    User user = userRepository
+            .findByIdAndIsActive(id, true)
+            .orElseThrow(() -> new UsernameNotFoundException("User not found: " + id));
+    return buildUserDetails(user);
+  }
+
+  private UserDetails buildUserDetails(User user) {
     Set<GrantedAuthority> authorities = buildAuthorities(user);
 
-    AuthUser authUser =
-        AuthUser.builder()
+    AuthUser authUser = AuthUser.builder()
             .id(user.getId())
             .email(user.getEmail())
             .password(user.getPassword())
             .enabled(user.getIsActive())
             .authorities(authorities)
             .build();
+
     return new CustomUserDetails(authUser);
   }
 

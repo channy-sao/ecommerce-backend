@@ -5,6 +5,8 @@ import ecommerce_app.entity.User;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
+
+import org.apache.poi.sl.draw.geom.GuideIf;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
@@ -19,6 +21,8 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
   boolean existsByEmail(String email);
 
   boolean existsByPhone(String phone);
+
+  Optional<User> findByIdAndIsActive(Long id, boolean status);
 
   Optional<User> findByEmailAndIsActive(String email, boolean status);
 

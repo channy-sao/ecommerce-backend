@@ -1,5 +1,6 @@
 package ecommerce_app.config;
 
+import ecommerce_app.service.impl.UserDetailServiceImpl;
 import ecommerce_app.util.JwtService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -23,7 +24,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class JwtAuthFilter extends OncePerRequestFilter {
 
   private final JwtService jwtService;
-  private final UserDetailsService userDetailsService;
+  private final UserDetailServiceImpl userDetailsService;
 
   @Override
   protected void doFilterInternal(
@@ -35,10 +36,11 @@ public class JwtAuthFilter extends OncePerRequestFilter {
       if (authHeader != null
           && (authHeader.startsWith("bearer ") || authHeader.startsWith("Bearer "))) {
         String token = authHeader.substring(7);
-        String email = jwtService.getSubject(token);
+        String subject = jwtService.getSubject(token);
 
-        if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-          UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+        if (subject != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+          Long userId = Long.parseLong(subject);
+          UserDetails userDetails = userDetailsService.loadUserById(userId);
           if (jwtService.isValidToken(token)) {
             Authentication authentication =
                 new UsernamePasswordAuthenticationToken(

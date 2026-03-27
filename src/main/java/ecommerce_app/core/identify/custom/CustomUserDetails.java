@@ -28,8 +28,12 @@ public record CustomUserDetails(AuthUser user) implements UserDetails {
     return user.getEmail();
   }
 
-    @Override
+  @Override
   public boolean isEnabled() {
     return user.isEnabled();
+  }
+
+  public String getFullName() { // 👈 add this
+    return user.getFullName();
   }
 }

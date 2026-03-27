@@ -23,6 +23,11 @@ public class JwtService {
 
   private final String issuer;
   private final AppProperty appProperty;
+  public static final String FULL_NAME_CLAIM = "fullName";
+  public static final String AUTHORITIES_CLAIM = "authorities";
+  public static final String EMAIL_CLAIM = "email";
+  public static final String SUBJECT_CLAIM = "subject";
+  public static final String USER_ID_CLAIM = "userId";
 
   public JwtService(AppProperty appProperty) {
     this.appProperty = appProperty;
@@ -36,8 +41,10 @@ public class JwtService {
 
     return Jwts.builder()
         .issuer(appProperty.getAppName())
-        .subject(userDetails.getUsername())
-        .claim("authorities", authorities)
+        .subject(String.valueOf(userDetails.getId())) // Use user ID as a subject
+        .claim(EMAIL_CLAIM, userDetails.getUsername()) // Use email as a claim
+        .claim(FULL_NAME_CLAIM, userDetails.getFullName()) // Use the full name as a claim
+        .claim(AUTHORITIES_CLAIM, authorities)
         .issuedAt(new Date())
         .expiration(
             Date.from(
@@ -53,7 +60,7 @@ public class JwtService {
             ? Date.from(Instant.now().plus(30, ChronoUnit.DAYS))
             : Date.from(
                 Instant.now()
-                    .plus(appProperty.getJwt().getRefreshExpiredInMinute(), ChronoUnit.DAYS));
+                    .plus(appProperty.getJwt().getRefreshExpiredInMinute(), ChronoUnit.MINUTES));
     return Jwts.builder()
         .issuer(issuer)
         .subject(subject)
