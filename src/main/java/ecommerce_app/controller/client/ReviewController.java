@@ -62,12 +62,4 @@ public class ReviewController {
     return BaseBodyResponse.success(
         reviewService.getReviewCount(productId), "Get review count successfully");
   }
-
-  @PutMapping("/{reviewId}/approve")
-  public ResponseEntity<BaseBodyResponse<Void>> approveReview(@PathVariable Long reviewId) {
-
-    reviewService.approveReview(reviewId);
-
-    return BaseBodyResponse.success("Review approved successfully");
-  }
 }

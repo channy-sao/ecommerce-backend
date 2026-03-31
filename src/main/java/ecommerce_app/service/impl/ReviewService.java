@@ -1,5 +1,6 @@
 package ecommerce_app.service.impl;
 
+import ecommerce_app.exception.BadRequestException;
 import ecommerce_app.exception.ResourceNotFoundException;
 import ecommerce_app.entity.Product;
 import ecommerce_app.repository.ProductRepository;
@@ -41,14 +42,21 @@ public class ReviewService {
             .findById(productId)
             .orElseThrow(() -> new ResourceNotFoundException("Product", productId));
 
+    // one review per user per product
+    if (reviewRepository.existsByProductIdAndUserId(productId, userId)) {
+      throw new BadRequestException("You have already reviewed this product");
+    }
+
     Review review = new Review();
     review.setProduct(product);
     review.setUserId(userId);
     review.setRating(request.getRating());
     review.setComment(request.getComment());
-    review.setApproved(false);
 
     reviewRepository.save(review);
+
+    // update summary immediately on save (no need to wait for approval)
+    updateSummary(product, review.getRating());
   }
 
   // ================= GET PAGINATED REVIEWS =================
@@ -56,7 +64,7 @@ public class ReviewService {
   public Page<ReviewResponse> getReviews(Long productId, int page, int size) {
 
     return reviewRepository
-        .findByProductIdAndApprovedTrue(productId, PageRequest.of(page, size))
+        .findByProductId(productId, PageRequest.of(page, size))
         .map(
             r ->
                 ReviewResponse.builder()
@@ -71,7 +79,7 @@ public class ReviewService {
   @Transactional(readOnly = true)
   public ReviewCountResponse getReviewCount(Long productId) {
 
-    Long total = reviewRepository.countApprovedReviews(productId);
+    Long total = reviewRepository.countReviews(productId);
     Double avg = reviewRepository.getAverageRating(productId);
     List<Object[]> breakdown = reviewRepository.countByRating(productId);
 
@@ -98,40 +106,6 @@ public class ReviewService {
         .build();
   }
 
-  // ================= APPROVE REVIEW =================
-  @Transactional
-  public void approveReview(Long reviewId) {
-
-    Review review =
-        reviewRepository
-            .findById(reviewId)
-            .orElseThrow(() -> new ResourceNotFoundException("Review", reviewId));
-
-    if (Boolean.TRUE.equals(review.getApproved())) return;
-
-    review.setApproved(true);
-
-    ProductReviewSummary summary =
-        summaryRepository
-            .findById(review.getProduct().getId())
-            .orElseGet(() -> createEmptySummary(review.getProduct()));
-
-    long oldCount = summary.getReviewCount();
-    long newCount = oldCount + 1;
-
-    BigDecimal newAvg =
-        summary
-            .getAverageRating()
-            .multiply(BigDecimal.valueOf(oldCount))
-            .add(BigDecimal.valueOf(review.getRating()))
-            .divide(BigDecimal.valueOf(newCount), 2, RoundingMode.HALF_UP);
-
-    summary.setReviewCount(newCount);
-    summary.setAverageRating(newAvg);
-
-    summaryRepository.save(summary);
-  }
-
   // ================= GET SUMMARY =================
   @Transactional(readOnly = true)
   public ProductReviewSummaryResponse getSummary(Long productId) {
@@ -144,6 +118,31 @@ public class ReviewService {
 
     return new ProductReviewSummaryResponse(
         summary.getReviewCount(), summary.getAverageRating().doubleValue());
+  }
+
+  // ================= PRIVATE HELPERS =================
+  private void updateSummary(Product product, int newRating) {
+    ProductReviewSummary summary =
+        summaryRepository.findById(product.getId()).orElseGet(() -> createEmptySummary(product));
+
+    long oldCount = summary.getReviewCount();
+    long newCount = oldCount + 1;
+
+    if (newCount <= 0) {
+      summary.setReviewCount(0L);
+      summary.setAverageRating(BigDecimal.ZERO);
+    } else {
+      BigDecimal newAvg =
+          summary
+              .getAverageRating()
+              .multiply(BigDecimal.valueOf(oldCount))
+              .add(BigDecimal.valueOf(newRating))
+              .divide(BigDecimal.valueOf(newCount), 2, RoundingMode.HALF_UP);
+      summary.setReviewCount(newCount);
+      summary.setAverageRating(newAvg);
+    }
+
+    summaryRepository.save(summary);
   }
 
   // ================= HELPERS =================
