@@ -2,6 +2,7 @@ package ecommerce_app.service.impl;
 
 import ecommerce_app.config.DataInitializer;
 import ecommerce_app.constant.enums.AuthProvider;
+import ecommerce_app.constant.message.MessageKeyConstant;
 import ecommerce_app.core.io.service.FileManagerService;
 import ecommerce_app.core.io.service.StorageConfig;
 import ecommerce_app.dto.request.CreateUserRequest;
@@ -18,6 +19,7 @@ import ecommerce_app.repository.RoleRepository;
 import ecommerce_app.repository.UserRepository;
 import ecommerce_app.service.UserService;
 import ecommerce_app.specification.UserSpecification;
+import ecommerce_app.util.MessageSourceService;
 import jakarta.persistence.EntityManager;
 import java.util.HashSet;
 import java.util.List;
@@ -48,7 +50,7 @@ public class UserServiceImpl implements UserService {
   private final StorageConfig storageConfig;
   private final FileManagerService fileManagerService;
   private final UserMapper userMapper;
-  private final EntityManager entityManager;
+  private final MessageSourceService messageSourceService;
 
   @Transactional(readOnly = true)
   @Override
@@ -65,7 +67,10 @@ public class UserServiceImpl implements UserService {
         userRepository
             .findByEmail(email)
             .orElseThrow(
-                () -> new ResourceNotFoundException("User with email " + email + " not found"));
+                () ->
+                    new ResourceNotFoundException(
+                        messageSourceService.getMessage(
+                            MessageKeyConstant.ERROR_USER_EMAIL_NOT_FOUND, email)));
     return userMapper.toUserResponse(user);
   }
 
@@ -106,14 +111,14 @@ public class UserServiceImpl implements UserService {
         user.setPassword(passwordEncoder.encode(request.getPassword()));
       }
 
-      // if include new  file in request
+      // if include a new file in the request
       if (request.getProfile() != null && !request.getProfile().isEmpty()) {
         // remove old file if exist
         if (user.getAvatar() != null && !user.getAvatar().isBlank()) {
           deleteAvatarFile(user.getAvatar());
         }
 
-        // save new file
+        // save a new file
         String saveFile =
             fileManagerService.saveFile(request.getProfile(), storageConfig.getAvatarPath());
         user.setAvatar(saveFile);
@@ -168,7 +173,7 @@ public class UserServiceImpl implements UserService {
 
     final User user = findUserById(userId);
 
-    // prevent if user is super admin
+    // prevent if the user is super admin
     if (user.getRoles().stream()
         .anyMatch(role -> role.getName().equals(DataInitializer.SUPER_ADMIN_ROLE))) {
       throw new ForbiddenException(
@@ -182,7 +187,7 @@ public class UserServiceImpl implements UserService {
 
     log.info("Deleted user with id {} from database", userId);
 
-    // Delete from storage (after transaction commits)
+    // Delete it from storage (after transaction commits)
     if (avatar != null && !avatar.isBlank()) {
       deleteAvatarFile(avatar);
     }
@@ -339,7 +344,7 @@ public class UserServiceImpl implements UserService {
     }
   }
 
-  /** Delete avatar file outside of transaction to avoid rollback */
+  /** Delete an avatar file outside of transaction to avoid rollback */
   @Async
   public void deleteAvatarFile(String avatarPath) {
     try {

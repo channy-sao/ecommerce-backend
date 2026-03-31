@@ -849,4 +849,5 @@ public final class MessageKeyConstant {
   public static final String ERROR_TITLE_404 = "error.title.404";
   public static final String ERROR_TITLE_500 = "error.title.500";
   public static final String ERROR_TITLE_MAINTENANCE = "error.title.maintenance";
+  public static final String ERROR_USER_EMAIL_NOT_FOUND = "error.user.not.found.email";
 }
