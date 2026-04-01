@@ -18,37 +18,17 @@ public class MessageSourceService {
     this.messageSource = messageSource;
   }
 
-  /** Get a message using the current locale from context */
+  /** No args — current locale */
   public String getMessage(String code) {
-    return getMessage(code, null, LocaleContextHolder.getLocale());
+    return resolveMessage(code, null, LocaleContextHolder.getLocale());
   }
 
-  /** Varargs — handles any number of arguments */
+  /** Varargs — current locale */
   public String getMessage(String code, Object... args) {
-    return getMessage(code, args, LocaleContextHolder.getLocale());
+    return resolveMessage(code, args, LocaleContextHolder.getLocale());
   }
 
-  /** Get a message with an explicit locale */
-  public String getMessage(String code, Object[] args, Locale locale) {
-    try {
-      return messageSource.getMessage(code, args, locale);
-    } catch (NoSuchMessageException e) {
-      log.warn("Message not found: {} for locale: {}", code, locale);
-      return code; // Return code as fallback
-    }
-  }
-
-  /** Get a message with an explicit locale and no args */
-  public String getMessage(String code, Locale locale) {
-    return getMessage(code, null, locale);
-  }
-
-  /** Get a message with the default value if not found */
-  public String getMessageOrDefault(String code, String defaultMessage) {
-    return messageSource.getMessage(code, null, defaultMessage, LocaleContextHolder.getLocale());
-  }
-
-  /** Get a message with args and default value if not found */
+  /** Default fallback — current locale */
   public String getMessageOrDefault(String code, String defaultMessage, Object... args) {
     try {
       return messageSource.getMessage(code, args, LocaleContextHolder.getLocale());
@@ -58,6 +38,11 @@ public class MessageSourceService {
     }
   }
 
+  /** Default fallback — no args */
+  public String getMessageOrDefault(String code, String defaultMessage) {
+    return messageSource.getMessage(code, null, defaultMessage, LocaleContextHolder.getLocale());
+  }
+
   /** Check if a message exists */
   public boolean hasMessage(String code) {
     try {
@@ -65,6 +50,16 @@ public class MessageSourceService {
       return true;
     } catch (NoSuchMessageException e) {
       return false;
+    }
+  }
+
+  // ── Private base method ───────────────────────────────────────────────────
+  private String resolveMessage(String code, Object[] args, Locale locale) {
+    try {
+      return messageSource.getMessage(code, args, locale);
+    } catch (NoSuchMessageException e) {
+      log.warn("Message not found: {} for locale: {}", code, locale);
+      return code; // fallback to key
     }
   }
 }

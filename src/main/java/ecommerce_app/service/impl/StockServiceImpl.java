@@ -12,6 +12,7 @@ import ecommerce_app.service.StockService;
 import java.util.List;
 
 import ecommerce_app.specification.StockSpecification;
+import ecommerce_app.util.MessageSourceService;
 import ecommerce_app.util.ProductMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +24,9 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import static ecommerce_app.constant.message.MessageKeyConstant.RESOURCE_NOT_FOUND_ID;
+import static ecommerce_app.constant.message.MessageKeyConstant.STOCK_INSUFFICIENT;
+
 @Service
 @Transactional
 @Slf4j
@@ -31,11 +35,12 @@ public class StockServiceImpl implements StockService {
   private final StockRepository stockRepository;
   private final ProductRepository productRepository;
   private final StockMapper stockMapper;
+  private final MessageSourceService messageSourceService;
 
   @Transactional(readOnly = true)
   @Override
   public StockResponse getByProductId(Long productId) {
-    log.info("Get Stock By ProductId: {}", productId);
+    log.info("=========== Get Stock By ProductId: {}", productId);
     return stockMapper.toStockResponse(stockRepository.getByProductId(productId));
   }
 
@@ -44,7 +49,11 @@ public class StockServiceImpl implements StockService {
     Product product =
         productRepository
             .findById(productId)
-            .orElseThrow(() -> new ResourceNotFoundException("Product", productId));
+            .orElseThrow(
+                () ->
+                    new ResourceNotFoundException(
+                        messageSourceService.getMessage(
+                            RESOURCE_NOT_FOUND_ID, "Product", productId)));
 
     Stock stock =
         stockRepository
@@ -64,7 +73,10 @@ public class StockServiceImpl implements StockService {
         stockRepository
             .findByProductId(productId)
             .orElseThrow(
-                () -> new IllegalStateException("Stock not found for product: " + productId));
+                () ->
+                    new IllegalStateException(
+                        messageSourceService.getMessage(
+                            RESOURCE_NOT_FOUND_ID, "Stock", productId)));
 
     // Calculate new quantity
     int newQuantity = stock.getQuantity() + quantity;
@@ -72,10 +84,7 @@ public class StockServiceImpl implements StockService {
     // Prevent negative stock
     if (newQuantity < 0) {
       throw new IllegalStateException(
-          "Stock cannot be negative. Current stock: "
-              + stock.getQuantity()
-              + ", adjustment: "
-              + quantity);
+          messageSourceService.getMessage(STOCK_INSUFFICIENT, stock.getQuantity(), quantity));
     }
 
     // Update stock
@@ -95,19 +104,20 @@ public class StockServiceImpl implements StockService {
   @Transactional(readOnly = true)
   @Override
   public Page<StockResponse> getStocks(
-          boolean isPaged,
-          int page,
-          int pageSize,
-          String sortBy,
-          Sort.Direction sortDirection,
-          String filter, StockStatus status) {
+      boolean isPaged,
+      int page,
+      int pageSize,
+      String sortBy,
+      Sort.Direction sortDirection,
+      String filter,
+      StockStatus status) {
     log.info("Get Stock List");
     Specification<Stock> specification = Specification.allOf();
 
     if (filter != null && !filter.trim().isEmpty()) {
       specification = specification.and(StockSpecification.filter(filter));
     }
-    if(status != null) {
+    if (status != null) {
       specification = specification.and(StockSpecification.hasStockStatus(status));
     }
     Sort sort = Sort.by(sortDirection, sortBy);

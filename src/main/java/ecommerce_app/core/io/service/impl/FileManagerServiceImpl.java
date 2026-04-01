@@ -8,6 +8,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+
+import ecommerce_app.util.MessageSourceService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -22,6 +24,7 @@ import org.springframework.web.multipart.MultipartFile;
 @RequiredArgsConstructor
 public class FileManagerServiceImpl implements FileManagerService {
   private final AppProperty appProperty;
+  private final MessageSourceService messageSourceService;
 
   /**
    * Saves the provided multipart file to the specified upload directory.
@@ -30,12 +33,12 @@ public class FileManagerServiceImpl implements FileManagerService {
    * @param uploadDir the target directory where the file should be stored
    * @return the unique filename under which the file was saved
    * @throws IllegalArgumentException if the file is empty or has no valid filename
-   * @throws BadRequestException if the file cannot be saved due to I/O error
+   * @throws BadRequestException if the file cannot be saved due to an I / O error
    */
   @Override
   public String saveFile(MultipartFile file, String uploadDir) {
     if (file.isEmpty()) {
-      throw new IllegalArgumentException("Cannot save empty file.");
+      throw new IllegalArgumentException(messageSourceService.getMessage("error.file.empty"));
     }
     try {
       // Ensure the upload directory exists
@@ -44,10 +47,11 @@ public class FileManagerServiceImpl implements FileManagerService {
         Files.createDirectories(uploadPath);
       }
 
-      // Generate unique file name
+      // Generate a unique file name
       String originalFilename = file.getOriginalFilename();
       if (originalFilename == null || originalFilename.isBlank()) {
-        throw new IllegalArgumentException("Original filename is missing.");
+        throw new IllegalArgumentException(
+            messageSourceService.getMessage("error.file.name.missing"));
       }
       String uniqueFileName = System.currentTimeMillis() + "_" + originalFilename;
 
@@ -59,7 +63,7 @@ public class FileManagerServiceImpl implements FileManagerService {
 
     } catch (IOException e) {
       log.error("Error saving file", e);
-      throw new BadRequestException("Failed to save file");
+      throw new BadRequestException(messageSourceService.getMessage("error.file.save.failed"));
     }
   }
 
@@ -94,7 +98,7 @@ public class FileManagerServiceImpl implements FileManagerService {
       }
     } catch (IOException e) {
       log.error("Error deleting file", e);
-      throw new BadRequestException("Failed to delete file");
+      throw new BadRequestException(messageSourceService.getMessage("error.file.delete.failed"));
     }
   }
 

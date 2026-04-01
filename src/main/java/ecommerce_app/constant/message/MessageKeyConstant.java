@@ -849,5 +849,46 @@ public final class MessageKeyConstant {
   public static final String ERROR_TITLE_404 = "error.title.404";
   public static final String ERROR_TITLE_500 = "error.title.500";
   public static final String ERROR_TITLE_MAINTENANCE = "error.title.maintenance";
-  public static final String ERROR_USER_EMAIL_NOT_FOUND = "error.user.not.found.email";
+
+  // ── User ─────────────────────────────────────────────────────────────────
+  public static final String USER_NOT_FOUND_ID = "error.user.not.found.id";
+  public static final String USER_NOT_FOUND_EMAIL = "error.user.not.found.email";
+  public static final String USER_NOT_FOUND_PHONE = "error.user.not.found.phone";
+  public static final String USER_EMAIL_ALREADY_USE = "error.user.email.already.in.use";
+  public static final String USER_DELETE_SUPER_ADMIN = "error.user.delete.super.admin";
+  public static final String USER_DISABLE_SUPER_ADMIN = "error.user.disable.super.admin";
+  public static final String USER_PHONE_ALREADY_USE = "error.user.phone.already.in.use";
+
+  // ── Resource ──────────────────────────────────────────────────────────────
+  public static final String RESOURCE_NOT_FOUND_ID = "error.resource.not.found.id";
+  public static final String RESOURCE_NOT_FOUND_UUID = "error.resource.not.found.uuid";
+  public static final String RESOURCE_NOT_FOUND_IDS = "error.resource.not.found.ids";
+
+  // ── Auth ──────────────────────────────────────────────────────────────────
+  public static final String AUTH_UNAUTHORIZED = "error.auth.unauthorized";
+  public static final String AUTH_FORBIDDEN = "error.auth.forbidden";
+
+
+  // Password
+  public static final String USER_PASSWORD_CURRENT_INCORRECT  = "error.user.password.current.incorrect";
+  public static final String USER_PASSWORD_SAME_AS_CURRENT    = "error.user.password.same.as.current";
+  public static final String USER_PASSWORD_CONFIRM_NOT_MATCH  = "error.user.password.confirm.not.match";
+
+
+  // Role
+  public static final String ROLE_NOT_FOUND_IDS       = "error.role.not.found.ids";
+  public static final String ROLE_ADMIN_MUST_HAVE_ONE  = "error.role.admin.must.have.one";
+  public static final String ROLE_ASSIGNMENT_DUPLICATE = "error.role.assignment.duplicate";
+  public static final String ROLE_ASSIGNMENT_FAILED    = "error.role.assignment.failed";
+
+
+  // File
+  public static final String FILE_EMPTY        = "error.file.empty";
+  public static final String FILE_NAME_MISSING = "error.file.name.missing";
+  public static final String FILE_SAVE_FAILED  = "error.file.save.failed";
+  public static final String FILE_DELETE_FAILED = "error.file.delete.failed";
+
+  // Stock
+  public static final String STOCK_INSUFFICIENT = "error.stock.insufficient";
+  public static final String STOCK_NOT_FOUND     = "error.stock.not.found";
 }

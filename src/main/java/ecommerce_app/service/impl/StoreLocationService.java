@@ -19,7 +19,7 @@ public class StoreLocationService {
   private final SettingRepository settingRepository;
 
   public StoreLocation getStoreLocation() {
-    log.info("Fetching store location");
+    log.info("============= Fetching store location");
     List<Setting> settings =
         settingRepository.findByKeys(
             List.of(

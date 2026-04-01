@@ -70,7 +70,7 @@ public class UserServiceImpl implements UserService {
                 () ->
                     new ResourceNotFoundException(
                         messageSourceService.getMessage(
-                            MessageKeyConstant.ERROR_USER_EMAIL_NOT_FOUND, email)));
+                            MessageKeyConstant.USER_NOT_FOUND_EMAIL, email)));
     return userMapper.toUserResponse(user);
   }
 
@@ -82,7 +82,10 @@ public class UserServiceImpl implements UserService {
         userRepository
             .findByPhone(phone)
             .orElseThrow(
-                () -> new ResourceNotFoundException("User with phone " + phone + " not found"));
+                () ->
+                    new ResourceNotFoundException(
+                        messageSourceService.getMessage(
+                            MessageKeyConstant.USER_NOT_FOUND_PHONE, phone)));
     return userMapper.toUserResponse(user);
   }
 
@@ -94,7 +97,9 @@ public class UserServiceImpl implements UserService {
       final User user = findUserById(userId);
       if (userRepository.existsByEmailAndIdNot(user.getEmail(), user.getId())) {
         log.error("User email is already in use");
-        throw new BadRequestException("User email is already in use");
+        throw new BadRequestException(
+            messageSourceService.getMessage(
+                MessageKeyConstant.USER_EMAIL_ALREADY_USE, user.getEmail()));
       }
 
       validateUniqueFields(request, userId);
@@ -135,10 +140,12 @@ public class UserServiceImpl implements UserService {
   @Override
   public UserResponse create(CreateUserRequest createUserRequest) {
     try {
-      log.info("Creating user: {}", createUserRequest);
+      log.info("============ Creating user: {}", createUserRequest);
       if (userRepository.existsByEmail(createUserRequest.getEmail())) {
-        log.error("User email is already in use");
-        throw new BadRequestException("User email is already in use");
+        log.error("User email {} is already in use", createUserRequest.getEmail());
+        throw new BadRequestException(
+            messageSourceService.getMessage(
+                MessageKeyConstant.USER_EMAIL_ALREADY_USE, createUserRequest.getEmail()));
       }
       User user = modelMapper.map(createUserRequest, User.class);
       user.setAuthProvider(AuthProvider.LOCAL);
@@ -169,7 +176,7 @@ public class UserServiceImpl implements UserService {
   @Transactional(rollbackFor = Exception.class)
   @Override
   public void deleteUser(Long userId) {
-    log.info("Deleting user: {}", userId);
+    log.info("============= Deleting user: {}", userId);
 
     final User user = findUserById(userId);
 
@@ -177,7 +184,8 @@ public class UserServiceImpl implements UserService {
     if (user.getRoles().stream()
         .anyMatch(role -> role.getName().equals(DataInitializer.SUPER_ADMIN_ROLE))) {
       throw new ForbiddenException(
-          String.format("Could not delete user %s", DataInitializer.SUPER_ADMIN_ROLE));
+          messageSourceService.getMessage(
+              MessageKeyConstant.USER_DELETE_SUPER_ADMIN, DataInitializer.SUPER_ADMIN_ROLE));
     }
 
     final String avatar = user.getAvatar();
@@ -194,7 +202,7 @@ public class UserServiceImpl implements UserService {
   }
 
   public UserResponse getUserById(Long userId) {
-    log.info("Get user by id: {}", userId);
+    log.info("============= Get user by id: {}", userId);
     return userMapper.toUserResponse(findUserById(userId));
   }
 
@@ -207,19 +215,21 @@ public class UserServiceImpl implements UserService {
   @Transactional(rollbackFor = Exception.class)
   @Override
   public void updateStatus(Long userId, Boolean status) {
-    log.info("Updating status of user {}", userId);
+    log.info("============= Updating status of user {}", userId);
 
     boolean isSuperAdminRole = userRepository.hasRole(userId, DataInitializer.SUPER_ADMIN_ROLE);
 
     if (Boolean.FALSE.equals(status) && isSuperAdminRole) {
-      throw new BadRequestException("Could not disable super administrator");
+      throw new BadRequestException(
+          messageSourceService.getMessage(MessageKeyConstant.USER_DISABLE_SUPER_ADMIN));
     }
 
     // Use direct update query (avoids entity state issues)
     int updatedCount = userRepository.updateUserStatus(userId, status);
 
     if (updatedCount == 0) {
-      throw new ResourceNotFoundException("User", userId);
+      throw new ResourceNotFoundException(
+          messageSourceService.getMessage(MessageKeyConstant.USER_NOT_FOUND_ID, userId));
     }
 
     log.info("Updated status of user {} to {}", userId, status);
@@ -254,28 +264,35 @@ public class UserServiceImpl implements UserService {
   @Transactional(rollbackFor = Exception.class)
   @Override
   public void changePassword(UpdatePasswordRequest changePasswordRequest) {
-    log.info("Changing password for user: {}", changePasswordRequest.getEmail());
+    log.info("============= Changing password for user: {}", changePasswordRequest.getEmail());
     final var user =
         userRepository
             .findByEmail(changePasswordRequest.getEmail())
             .orElseThrow(
-                () -> new ResourceNotFoundException("User", changePasswordRequest.getEmail()));
+                () ->
+                    new ResourceNotFoundException(
+                        messageSourceService.getMessage(
+                            MessageKeyConstant.USER_NOT_FOUND_EMAIL,
+                            changePasswordRequest.getEmail())));
 
     if (!passwordEncoder.matches(changePasswordRequest.getOldPassword(), user.getPassword())) {
       log.error("Current password is not correct");
-      throw new BadRequestException("Current password is not correct");
+      throw new BadRequestException(
+          messageSourceService.getMessage("error.user.password.current.incorrect"));
     }
 
     if (changePasswordRequest.getNewPassword().equals(changePasswordRequest.getOldPassword())) {
       log.error("New Password must be different from current password");
-      throw new BadRequestException("New Password must be different from current password");
+      throw new BadRequestException(
+          messageSourceService.getMessage("error.user.password.same.as.current"));
     }
 
     if (!changePasswordRequest
         .getNewPassword()
         .equals(changePasswordRequest.getConfirmNewPassword())) {
       log.error("Confirm Password is not match");
-      throw new BadRequestException("Confirm Password is not match");
+      throw new BadRequestException(
+          messageSourceService.getMessage("error.user.password.confirm.not.match"));
     }
 
     user.setPassword(passwordEncoder.encode(changePasswordRequest.getNewPassword()));
@@ -287,13 +304,17 @@ public class UserServiceImpl implements UserService {
   @Override
   public void assignRoles(Long userId, Set<Long> roleIds) {
     try {
-      log.info("=== START assignRoles for user: {}, roleIds: {}", userId, roleIds);
+      log.info("============= START assignRoles for user: {}, roleIds: {}", userId, roleIds);
 
       // Fetch user with roles to avoid lazy loading
       User user =
           userRepository
               .findByIdWithRoles(userId) // Add this method
-              .orElseThrow(() -> new ResourceNotFoundException("User", userId));
+              .orElseThrow(
+                  () ->
+                      new ResourceNotFoundException(
+                          messageSourceService.getMessage(
+                              MessageKeyConstant.USER_NOT_FOUND_ID, userId)));
 
       // Fetch new roles
       Set<Role> newRoles = new HashSet<>(roleRepository.findAllById(roleIds));
@@ -303,14 +324,16 @@ public class UserServiceImpl implements UserService {
         Set<Long> missingIds =
             roleIds.stream().filter(id -> !foundIds.contains(id)).collect(Collectors.toSet());
         log.error("Roles not found: {}", missingIds);
-        throw new ResourceNotFoundException("Roles not found: " + missingIds);
+        throw new ResourceNotFoundException(
+            messageSourceService.getMessage("error.role.not.found.ids", missingIds));
       }
 
-      // Check if user is admin and trying to remove all roles
+      // Check if the user is admin and trying to remove all roles
       boolean isAdmin = user.getRoles().stream().anyMatch(role -> role.getName().equals("ADMIN"));
 
       if (isAdmin && newRoles.isEmpty()) {
-        throw new BadRequestException("Admin user must have at least one role");
+        throw new BadRequestException(
+            messageSourceService.getMessage("error.role.admin.must.have.one"));
       }
 
       // Update roles
@@ -322,12 +345,14 @@ public class UserServiceImpl implements UserService {
 
     } catch (DataIntegrityViolationException e) {
       log.error("=== Database constraint violation", e);
-      throw new BadRequestException("Role assignment failed: Duplicate assignment detected");
+      throw new BadRequestException(
+          messageSourceService.getMessage("error.role.assignment.duplicate"));
     } catch (BadRequestException | ResourceNotFoundException e) {
       throw e;
     } catch (Exception e) {
-      log.error("=== Unexpected error", e);
-      throw new BadRequestException("Could not assign roles for user " + userId);
+      log.error("Unexpected error during assignRoles for user: {}", userId, e);
+      throw new BadRequestException(
+          messageSourceService.getMessage("error.role.assignment.failed", userId));
     }
   }
 
@@ -335,12 +360,15 @@ public class UserServiceImpl implements UserService {
 
     if (request.getEmail() != null
         && userRepository.existsByEmailAndIdNot(request.getEmail(), userId)) {
-      throw new BadRequestException("Email already exists");
+      throw new BadRequestException(
+          messageSourceService.getMessage(
+              MessageKeyConstant.USER_EMAIL_ALREADY_USE, request.getEmail()));
     }
 
     if (request.getPhone() != null
         && userRepository.existsByPhoneAndIdNot(request.getPhone(), userId)) {
-      throw new BadRequestException("Phone already exists");
+      throw new BadRequestException(
+          messageSourceService.getMessage("error.user.phone.already.in.use", request.getPhone()));
     }
   }
 
