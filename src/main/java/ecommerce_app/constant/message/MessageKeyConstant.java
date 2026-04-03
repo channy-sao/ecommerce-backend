@@ -891,4 +891,14 @@ public final class MessageKeyConstant {
   // Stock
   public static final String STOCK_INSUFFICIENT = "error.stock.insufficient";
   public static final String STOCK_NOT_FOUND     = "error.stock.not.found";
+
+  // Setting
+  public static final String SETTING_NOT_FOUND = "error.setting.not.found";
+
+  public static final String ROLE_UPDATE_SUPER_ADMIN  = "error.role.update.super.admin";
+  public static final String ROLE_TOGGLE_SUPER_ADMIN  = "error.role.toggle.super.admin";
+  public static final String ROLE_ALREADY_EXISTS      = "error.role.already.exists";
+  public static final String ROLE_PERMISSION_EMPTY    = "error.role.permission.empty";
+
+  public static final String REVIEW_ALREADY_REVIEWED = "review.message.alreadyReviewed";
 }

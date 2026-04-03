@@ -19,11 +19,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import ecommerce_app.util.MessageSourceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import static ecommerce_app.constant.message.MessageKeyConstant.RESOURCE_NOT_FOUND_ID;
+import static ecommerce_app.constant.message.MessageKeyConstant.REVIEW_ALREADY_REVIEWED;
 
 @Service
 @RequiredArgsConstructor
@@ -31,6 +35,7 @@ public class ReviewService {
 
   private final ReviewRepository reviewRepository;
   private final ProductRepository productRepository;
+  private final MessageSourceService messageSourceService;
   private final ProductReviewSummaryRepository summaryRepository;
 
   // ================= CREATE REVIEW =================
@@ -40,11 +45,15 @@ public class ReviewService {
     Product product =
         productRepository
             .findById(productId)
-            .orElseThrow(() -> new ResourceNotFoundException("Product", productId));
+            .orElseThrow(
+                () ->
+                    new ResourceNotFoundException(
+                        messageSourceService.getMessage(
+                            RESOURCE_NOT_FOUND_ID, "Product", productId)));
 
     // one review per user per product
     if (reviewRepository.existsByProductIdAndUserId(productId, userId)) {
-      throw new BadRequestException("You have already reviewed this product");
+      throw new BadRequestException(messageSourceService.getMessage(REVIEW_ALREADY_REVIEWED));
     }
 
     Review review = new Review();

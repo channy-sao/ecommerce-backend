@@ -11,6 +11,7 @@ import ecommerce_app.repository.PromotionRepository;
 import ecommerce_app.repository.PromotionUsageRepository;
 import ecommerce_app.service.PromotionService;
 import ecommerce_app.specification.PromotionSpecification;
+import ecommerce_app.util.MessageSourceService;
 import ecommerce_app.util.ProductMapper;
 import ecommerce_app.util.PromotionValidator;
 import jakarta.persistence.EntityNotFoundException;
@@ -34,6 +35,7 @@ public class PromotionServiceImpl implements PromotionService {
 
   private final PromotionRepository promotionRepository;
   private final ProductRepository productRepository;
+  private final MessageSourceService messageSourceService;
   private final PromotionUsageRepository promotionUsageRepository;
   private final PromotionNotificationService promotionNotificationService;
   private final PromotionValidator promotionValidator;
@@ -44,7 +46,7 @@ public class PromotionServiceImpl implements PromotionService {
     promotionValidator.validate(request);
 
     if (request.getCode() != null && promotionRepository.existsByCode(request.getCode())) {
-      throw new IllegalArgumentException("Promotion code already exists");
+      throw new IllegalArgumentException(messageSourceService.getMessage("promotion.message.codeExists"));
     }
 
     Promotion promotion = new Promotion();

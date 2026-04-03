@@ -19,6 +19,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+
+import ecommerce_app.util.MessageSourceService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
@@ -29,11 +31,14 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import static ecommerce_app.constant.message.MessageKeyConstant.RESOURCE_NOT_FOUND_ID;
+
 @Slf4j
 @RequiredArgsConstructor
 @Service
 public class RoleServiceImpl extends ValidatePermission implements RoleService {
   private final RoleRepository roleRepository;
+  private final MessageSourceService messageSourceService;
   private final PermissionRepository permissionRepository;
   private final ModelMapper modelMapper;
 
@@ -65,7 +70,8 @@ public class RoleServiceImpl extends ValidatePermission implements RoleService {
               // check if a role is admin can't be updated'
               if (role.getName().equals(DataInitializer.SUPER_ADMIN_ROLE)) {
                 log.error("Can't update admin role, please create new role");
-                throw new BadRequestException("Can't update admin role, please create new role");
+                throw new BadRequestException(
+                    messageSourceService.getMessage("error.role.update.super.admin"));
               }
 
               this.checkExist(role.getName(), false, updateRoleRequest.getRoleName());
@@ -78,7 +84,8 @@ public class RoleServiceImpl extends ValidatePermission implements RoleService {
               roleRepository.save(role);
             },
             () -> {
-              throw new ResourceNotFoundException("Role", roleId);
+              throw new ResourceNotFoundException(
+                  messageSourceService.getMessage(RESOURCE_NOT_FOUND_ID, "Role", roleId));
             });
   }
 
@@ -91,12 +98,16 @@ public class RoleServiceImpl extends ValidatePermission implements RoleService {
     final Role role =
         roleRepository
             .findById(roleId)
-            .orElseThrow(() -> new ResourceNotFoundException("Role", roleId));
+            .orElseThrow(
+                () ->
+                    new ResourceNotFoundException(
+                        messageSourceService.getMessage(RESOURCE_NOT_FOUND_ID, "Role", roleId)));
 
     // check if a role is admin can't be deleted
     if (role.getName().equals(DataInitializer.SUPER_ADMIN_ROLE)) {
       log.error("This is Super admin role can't be deleted");
-      throw new BadRequestException("This is Super admin role can't be deleted");
+      throw new BadRequestException(
+          messageSourceService.getMessage("error.role.toggle.super.admin"));
     }
 
     // toggle status
@@ -113,7 +124,10 @@ public class RoleServiceImpl extends ValidatePermission implements RoleService {
     final var role =
         roleRepository
             .findById(roleId)
-            .orElseThrow(() -> new ResourceNotFoundException("Role", roleId));
+            .orElseThrow(
+                () ->
+                    new ResourceNotFoundException(
+                        messageSourceService.getMessage(RESOURCE_NOT_FOUND_ID, "Role", roleId)));
     return modelMapper.map(role, RoleResponse.class);
   }
 
@@ -151,7 +165,8 @@ public class RoleServiceImpl extends ValidatePermission implements RoleService {
   @Override
   protected void validatePermission(Set<Long> permissionIds) {
     if (permissionIds.isEmpty()) {
-      throw new IllegalArgumentException("permission is empty");
+      throw new IllegalArgumentException(
+          messageSourceService.getMessage("error.role.permission.empty"));
     }
   }
 
@@ -161,7 +176,8 @@ public class RoleServiceImpl extends ValidatePermission implements RoleService {
           .findByName(roleName)
           .ifPresent(
               _ -> {
-                throw new BadRequestException("Role already exists");
+                throw new BadRequestException(
+                    messageSourceService.getMessage("error.role.already.exists", roleName));
               });
     }
     if (!Objects.equals(roleName, newRoleName)) {
@@ -169,7 +185,8 @@ public class RoleServiceImpl extends ValidatePermission implements RoleService {
           .findByName(newRoleName)
           .ifPresent(
               _ -> {
-                throw new BadRequestException("Role %s already exists".formatted(newRoleName));
+                throw new BadRequestException(
+                    messageSourceService.getMessage("error.role.already.exists", newRoleName));
               });
     }
   }

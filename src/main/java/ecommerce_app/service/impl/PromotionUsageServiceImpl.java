@@ -33,17 +33,13 @@ public class PromotionUsageServiceImpl implements PromotionUsageService {
       return true;
     }
 
-    Long currentUsage = promotionUsageRepository.countByPromotionId(promotion.getId());
-    if (currentUsage >= promotion.getMaxUsage()) {
-      return false;
-    }
+    long currentUsage = promotionUsageRepository.countByPromotionId(promotion.getId());
+      return currentUsage < promotion.getMaxUsage();
 
     // Check per-user limit if needed
     // Long userUsage = promotionUsageRepository.countByPromotionIdAndUserId(promotion.getId(),
     // user.getId());
     // return userUsage < promotion.getMaxUsagePerUser();
-
-    return true;
   }
 
   @Override

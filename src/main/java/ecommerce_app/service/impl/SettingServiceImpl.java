@@ -8,6 +8,8 @@ import ecommerce_app.repository.SettingRepository;
 import ecommerce_app.service.SettingService;
 import java.math.BigDecimal;
 import java.util.List;
+
+import ecommerce_app.util.MessageSourceService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -19,7 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class SettingServiceImpl implements SettingService {
-
+  private final MessageSourceService messageSourceService;
   private final SettingRepository settingRepository;
 
   @Override
@@ -34,12 +36,12 @@ public class SettingServiceImpl implements SettingService {
       String value = getString(key);
       if (value == null) {
         log.warn("Setting value is null for key: {}", key);
-        return 0; // or throw an exception, or return a default value
+        return 0; // or throw an exception or return a default value
       }
       return Integer.parseInt(value);
     } catch (NumberFormatException e) {
       log.error("Failed to parse setting value to int for key: {}", key, e);
-      return 0; // or throw an exception, or return a default value
+      return 0; // or throw an exception or return a default value
     }
   }
 
@@ -49,12 +51,12 @@ public class SettingServiceImpl implements SettingService {
       String value = getString(key);
       if (value == null) {
         log.warn("Setting value is null for key: {}", key);
-        return BigDecimal.ZERO; // or throw an exception, or return a default value
+        return BigDecimal.ZERO; // or throw an exception or return a default value
       }
       return new BigDecimal(value);
     } catch (NumberFormatException e) {
       log.error("Failed to parse setting value to BigDecimal for key: {}", key, e);
-      return BigDecimal.ZERO; // or throw an exception, or return a default value
+      return BigDecimal.ZERO; // or throw an exception or return a default value
     }
   }
 
@@ -82,7 +84,7 @@ public class SettingServiceImpl implements SettingService {
   private Setting find(String key) {
     return settingRepository
         .findById(key)
-        .orElseThrow(() -> new ResourceNotFoundException("Setting", key));
+        .orElseThrow(() -> new ResourceNotFoundException(messageSourceService.getMessage("error.setting.not.found", key)));
   }
 
   private SettingResponse toResponse(Setting s) {
