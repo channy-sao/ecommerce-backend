@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -36,6 +37,16 @@ public class OrderController {
       @AuthenticationPrincipal CustomUserDetails userDetails) {
     return BaseBodyResponse.success(
         orderService.checkout(checkoutRequest, userDetails.getId()),
+        messageSourceService.getMessage(MessageKeyConstant.ORDER_MESSAGE_PLACE_SUCCESS));
+  }
+
+  @PatchMapping("/{orderId}/cancel")
+  public ResponseEntity<BaseBodyResponse<Void>> cancelOrder(
+      @PathVariable Long orderId,
+      @RequestParam(required = false) String reason,
+      @AuthenticationPrincipal CustomUserDetails userDetails) {
+    this.orderService.cancelOrder(orderId, userDetails.getId(), reason);
+    return BaseBodyResponse.success(
         messageSourceService.getMessage(MessageKeyConstant.ORDER_MESSAGE_PLACE_SUCCESS));
   }
 

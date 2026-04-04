@@ -1,11 +1,13 @@
 package ecommerce_app.service.impl;
 
 import ecommerce_app.constant.enums.CartStatus;
+import ecommerce_app.constant.enums.NotificationType;
 import ecommerce_app.constant.enums.OrderStatus;
 import ecommerce_app.constant.enums.PaymentStatus;
 import ecommerce_app.constant.enums.PromotionType;
 import ecommerce_app.core.SimpleTry;
 import ecommerce_app.dto.request.ApplyCouponRequest;
+import ecommerce_app.dto.request.NotificationRequest;
 import ecommerce_app.dto.response.ApplyCouponResponse;
 import ecommerce_app.exception.BadRequestException;
 import ecommerce_app.exception.ResourceNotFoundException;
@@ -74,7 +76,7 @@ public class OrderServiceImpl implements OrderService {
   private final OrderNumberGenerator orderNumberGenerator;
   private final StockRepository stockRepository;
   private final CouponService couponService;
-  private final CouponUsageRepository couponUsageRepository;
+  private final NotificationService notificationService;
 
   @Transactional(rollbackFor = Exception.class)
   @Override
@@ -174,7 +176,93 @@ public class OrderServiceImpl implements OrderService {
     // Update cart status
     updateCartStatus(cart);
 
+    // send notification
+    sendOrderConfirmationNotification(savedOrder, currentUser);
+
     return orderMapper.toCheckoutResponse(savedOrder);
+  }
+
+  @Transactional(rollbackFor = Exception.class)
+  @Override
+  public void cancelOrder(Long orderId, Long userId, String reason) {
+    log.info("Cancel request for order ID: {} by user ID: {}", orderId, userId);
+
+    // Get order
+    Order order =
+        orderRepository
+            .findByIdAndUserId(orderId, userId)
+            .orElseThrow(() -> new ResourceNotFoundException("Order", orderId));
+
+    // Validate cancellable status
+    validateCancellable(order);
+
+    // 1. Update order status
+    order.setOrderStatus(OrderStatus.CANCELLED);
+    orderRepository.save(order);
+
+    // 2. Save status history with reason
+    saveOrderStatusHistory(order, OrderStatus.CANCELLED);
+
+    // 3. Restore stock
+    restoreStock(order);
+    log.info("Stock restored for order: {}", order.getOrderNumber());
+
+    // 4. Send notification
+    sendOrderCancelledNotification(order, order.getUser());
+
+    log.info("Order {} cancelled successfully", order.getOrderNumber());
+  }
+
+  private void validateCancellable(Order order) {
+    if (order.getOrderStatus() == OrderStatus.SHIPPED
+        || order.getOrderStatus() == OrderStatus.DELIVERED
+        || order.getOrderStatus() == OrderStatus.CANCELLED) {
+      throw new BadRequestException(
+          "Order #"
+              + order.getOrderNumber()
+              + " cannot be cancelled. Status: "
+              + order.getOrderStatus());
+    }
+  }
+
+  private void restoreStock(Order order) {
+    for (OrderItem item : order.getOrderItems()) {
+      Stock stock =
+          stockRepository
+              .findByProductId(item.getProduct().getId())
+              .orElseThrow(
+                  () ->
+                      new ResourceNotFoundException(
+                          "Stock not found for product: " + item.getProduct().getName()));
+
+      stock.setQuantity(stock.getQuantity() + item.getQuantity());
+      stockRepository.save(stock);
+
+      log.info(
+          "Restored {} units to product '{}'", item.getQuantity(), item.getProduct().getName());
+    }
+  }
+
+  private void sendOrderCancelledNotification(Order order, User user) {
+    try {
+      NotificationRequest request =
+          NotificationRequest.builder()
+              .userId(user.getId())
+              .title("Order Cancelled")
+              .message("Your order #" + order.getOrderNumber() + " has been cancelled.")
+              .type(NotificationType.ORDER_CANCELLED)
+              .referenceId(String.valueOf(order.getId()))
+              .referenceType("ORDER")
+              .actionUrl("/orders/" + order.getId())
+              .sendPush(true)
+              .saveToDatabase(true)
+              .expiresInDays(30)
+              .build();
+
+      notificationService.createAndSendNotification(request);
+    } catch (Exception e) {
+      log.warn("Failed to send cancel notification: {}", e.getMessage());
+    }
   }
 
   @Transactional(readOnly = true)
@@ -622,5 +710,34 @@ public class OrderServiceImpl implements OrderService {
         "Recorded coupon usage for coupon ID: {}, order: {}",
         summary.getAppliedCouponId(),
         order.getOrderNumber());
+  }
+
+  private void sendOrderConfirmationNotification(Order order, User user) {
+    try {
+      NotificationRequest request =
+          NotificationRequest.builder()
+              .userId(user.getId())
+              .title("Order Placed! 🛒")
+              .message(
+                  "Your order #"
+                      + order.getOrderNumber()
+                      + " has been placed successfully. Total: $"
+                      + order.getTotalAmount())
+              .type(NotificationType.ORDER_CREATED) // use your enum
+              .referenceId(String.valueOf(order.getId()))
+              .referenceType("ORDER")
+              .actionUrl("/orders/" + order.getId())
+              .sendPush(true)
+              .saveToDatabase(true)
+              .expiresInDays(30)
+              .build();
+
+      notificationService.createAndSendNotification(request);
+      log.info("Order confirmation notification sent for order: {}", order.getOrderNumber());
+
+    } catch (Exception e) {
+      // Don't fail the checkout if notification fails
+      log.warn("Failed to send order confirmation notification: {}", e.getMessage());
+    }
   }
 }

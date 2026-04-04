@@ -7,6 +7,7 @@ import org.springframework.data.domain.Page;
 
 public interface OrderService {
   OrderResponse checkout(CheckoutRequest checkoutRequest, Long userId);
+  void cancelOrder(Long orderId, Long userId, String reason);
 
   Page<OrderResponse> getOrders(Long userId, int page, int pageSize);
 
