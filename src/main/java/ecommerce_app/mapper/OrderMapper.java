@@ -1,5 +1,7 @@
 package ecommerce_app.mapper;
 
+import ecommerce_app.constant.enums.PaymentGateway;
+import ecommerce_app.constant.enums.PaymentMethod;
 import ecommerce_app.core.SimpleTry;
 import ecommerce_app.dto.response.OrderDetailResponse;
 import ecommerce_app.dto.response.OrderResponse;
@@ -16,23 +18,22 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class OrderMapper {
+
   private final UserOrderMapper userMapper;
 
-  // For order details
+  // ─── Detail response ─────────────────────────────────────────────────────
+
   public static OrderDetailResponse toDetailResponse(Order order) {
-    // Parse address from snapshot
     AddressResponse addressInfo = null;
     if (order.getShippingAddressSnapshot() != null) {
       addressInfo = parseAddressSnapshot(order.getShippingAddressSnapshot());
     }
 
-    // Map items
     List<OrderDetailResponse.OrderItemDetail> items = null;
     if (order.getOrderItems() != null) {
       items = order.getOrderItems().stream().map(OrderMapper::toItemDetail).toList();
     }
 
-    // Build financial breakdown
     OrderDetailResponse.FinancialBreakdown financialBreakdown =
         OrderDetailResponse.FinancialBreakdown.builder()
             .subtotal(order.getSubtotalAmount())
@@ -48,6 +49,7 @@ public class OrderMapper {
         .orderStatus(order.getOrderStatus())
         .paymentStatus(order.getPaymentStatus())
         .paymentMethod(order.getPaymentMethod())
+        .paymentGateway(resolveGateway(order.getPaymentMethod()))
         .shippingMethod(order.getShippingMethod())
         .shippingCost(order.getShippingCost())
         .financialBreakdown(financialBreakdown)
@@ -55,6 +57,61 @@ public class OrderMapper {
         .shippingAddress(addressInfo)
         .build();
   }
+
+  // ─── Simple list response ─────────────────────────────────────────────────
+
+  public OrderResponse toSimpleResponse(Order order) {
+    List<OrderResponse.OrderItemSimple> items = null;
+    if (order.getOrderItems() != null) {
+      items = order.getOrderItems().stream().map(OrderMapper::toItemSimple).toList();
+    }
+
+    return OrderResponse.builder()
+        .id(order.getId())
+        .orderNumber(generateOrderNumber(order))
+        .user(userMapper.toUserOrder(order.getUser()))
+        .orderDate(order.getOrderDate())
+        .orderStatus(order.getOrderStatus())
+        .paymentStatus(order.getPaymentStatus())
+        .paymentMethod(order.getPaymentMethod())
+        .paymentGateway(resolveGateway(order.getPaymentMethod())) // ← derives gateway
+        .shippingMethod(order.getShippingMethod())
+        .subtotalAmount(order.getSubtotalAmount()) // ← was missing
+        .discountAmount(order.getDiscountAmount()) // ← was missing
+        .shippingCost(order.getShippingCost()) // ← was missing
+        .shippingDiscount(order.getShippingDiscount()) // ← was missing
+        .totalAmount(order.getTotalAmount())
+        .promotionCode(order.getPromotionCode())
+        .itemCount(order.getOrderItems() != null ? order.getOrderItems().size() : 0)
+        .items(items)
+        .build();
+  }
+
+  // ─── Checkout response ────────────────────────────────────────────────────
+
+  public OrderResponse toCheckoutResponse(Order order) {
+    return OrderResponse.builder()
+        .id(order.getId())
+        .orderNumber(generateOrderNumber(order))
+        .user(userMapper.toUserOrder(order.getUser()))
+        .orderDate(order.getOrderDate())
+        .orderStatus(order.getOrderStatus())
+        .paymentStatus(order.getPaymentStatus())
+        .paymentMethod(order.getPaymentMethod())
+        .paymentGateway(resolveGateway(order.getPaymentMethod()))
+        .shippingMethod(order.getShippingMethod())
+        .subtotalAmount(order.getSubtotalAmount())
+        .discountAmount(order.getDiscountAmount())
+        .shippingCost(order.getShippingCost())
+        .shippingDiscount(order.getShippingDiscount())
+        .totalAmount(order.getTotalAmount())
+        .promotionCode(order.getPromotionCode())
+        .itemCount(order.getOrderItems() != null ? order.getOrderItems().size() : 0)
+        .message("Order placed successfully! Order #" + generateOrderNumber(order))
+        .build();
+  }
+
+  // ─── Private helpers ──────────────────────────────────────────────────────
 
   private static OrderResponse.OrderItemSimple toItemSimple(OrderItem orderItem) {
     return OrderResponse.OrderItemSimple.builder()
@@ -78,55 +135,25 @@ public class OrderMapper {
   }
 
   private static AddressResponse parseAddressSnapshot(String snapshot) {
-    // Simple parsing - you might need to adjust based on your address structure
     return SimpleTry.ofReThrowChecked(
         () -> JsonUtils.fromJson(snapshot, AddressResponse.class), SimpleTryException::new);
   }
 
   private static String generateOrderNumber(Order order) {
-    // Simple order number: ORD-{id}
     return String.format("ORD-%06d", order.getId());
   }
 
-  // For order list
-  public OrderResponse toSimpleResponse(Order order) {
-    List<OrderResponse.OrderItemSimple> items = null;
-    if (order.getOrderItems() != null) {
-      items = order.getOrderItems().stream().map(OrderMapper::toItemSimple).toList();
-    }
-
-    return OrderResponse.builder()
-        .id(order.getId())
-        .orderNumber(generateOrderNumber(order))
-        .user(userMapper.toUserOrder(order.getUser()))
-        .orderDate(order.getOrderDate())
-        .orderStatus(order.getOrderStatus())
-        .paymentStatus(order.getPaymentStatus())
-        .totalAmount(order.getTotalAmount())
-        .itemCount(order.getOrderItems() != null ? order.getOrderItems().size() : 0)
-        .items(items)
-        .build();
-  }
-
-  // After checkout - return confirmation
-  public OrderResponse toCheckoutResponse(Order order) {
-    return OrderResponse.builder()
-        .id(order.getId())
-        .orderNumber(generateOrderNumber(order))
-        .user(userMapper.toUserOrder(order.getUser()))
-        .orderDate(order.getOrderDate())
-        .orderStatus(order.getOrderStatus())
-        .paymentStatus(order.getPaymentStatus())
-        .paymentMethod(order.getPaymentMethod())
-        .shippingMethod(order.getShippingMethod())
-        .subtotalAmount(order.getSubtotalAmount())
-        .discountAmount(order.getDiscountAmount())
-        .shippingCost(order.getShippingCost())
-        .shippingDiscount(order.getShippingDiscount())
-        .totalAmount(order.getTotalAmount())
-        .promotionCode(order.getPromotionCode())
-        .itemCount(order.getOrderItems() != null ? order.getOrderItems().size() : 0)
-        .message("Order placed successfully! Order #" + generateOrderNumber(order))
-        .build();
+  /**
+   * Safely resolves PaymentGateway from PaymentMethod. Returns null for methods that don't map to a
+   * gateway (CASH, CREDIT_CARD, DEBIT).
+   */
+  private static PaymentGateway resolveGateway(PaymentMethod method) {
+    if (method == null) return null;
+    return switch (method) {
+      case COD -> PaymentGateway.COD;
+      case CASH_IN_SHOP -> PaymentGateway.CASH_IN_SHOP;
+      case QR_CODE -> PaymentGateway.BAKONG;
+      default -> null;
+    };
   }
 }

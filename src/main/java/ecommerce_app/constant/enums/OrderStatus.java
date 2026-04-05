@@ -5,6 +5,7 @@ import lombok.NoArgsConstructor;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public enum OrderStatus {
+CONFIRMED,
   COMPLETED,
   CANCELLED,
   PENDING,

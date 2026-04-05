@@ -9,5 +9,6 @@ public enum PaymentMethod {
     CREDIT_CARD,
     DEBIT,
     QR_CODE,
-    // other here
+    COD,          // Cash on Delivery
+    CASH_IN_SHOP  // Customer pays at physical store
 }

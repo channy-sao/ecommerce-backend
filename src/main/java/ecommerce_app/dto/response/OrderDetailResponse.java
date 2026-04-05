@@ -3,11 +3,11 @@ package ecommerce_app.dto.response;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import ecommerce_app.constant.enums.OrderStatus;
+import ecommerce_app.constant.enums.PaymentGateway;
 import ecommerce_app.constant.enums.PaymentMethod;
 import ecommerce_app.constant.enums.PaymentStatus;
 import ecommerce_app.constant.enums.ShippingMethod;
 import io.swagger.v3.oas.annotations.media.Schema;
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -40,8 +40,11 @@ public class OrderDetailResponse {
   @Schema(description = "Payment status of the order", example = "PAID")
   private PaymentStatus paymentStatus;
 
-  @Schema(description = "Payment method used", example = "CREDIT_CARD")
+  @Schema(description = "Payment method used", example = "COD")
   private PaymentMethod paymentMethod;
+
+  @Schema(description = "Payment gateway resolved from payment method", example = "COD")
+  private PaymentGateway paymentGateway; // ← added
 
   @Schema(description = "Shipping method selected", example = "STANDARD")
   private ShippingMethod shippingMethod;
@@ -86,9 +89,7 @@ public class OrderDetailResponse {
     }
 
     public BigDecimal getSavingsPercentage() {
-      if (subtotal == null || subtotal.compareTo(BigDecimal.ZERO) == 0) {
-        return BigDecimal.ZERO;
-      }
+      if (subtotal == null || subtotal.compareTo(BigDecimal.ZERO) == 0) return BigDecimal.ZERO;
       return getSavings()
           .multiply(BigDecimal.valueOf(100))
           .divide(subtotal, 2, java.math.RoundingMode.HALF_UP);
@@ -124,12 +125,8 @@ public class OrderDetailResponse {
     private BigDecimal total;
 
     public BigDecimal getDiscountPercentage() {
-      if (subtotal == null || subtotal.compareTo(BigDecimal.ZERO) == 0) {
-        return BigDecimal.ZERO;
-      }
-      if (discount == null || discount.compareTo(BigDecimal.ZERO) == 0) {
-        return BigDecimal.ZERO;
-      }
+      if (subtotal == null || subtotal.compareTo(BigDecimal.ZERO) == 0) return BigDecimal.ZERO;
+      if (discount == null || discount.compareTo(BigDecimal.ZERO) == 0) return BigDecimal.ZERO;
       return discount
           .multiply(BigDecimal.valueOf(100))
           .divide(subtotal, 2, java.math.RoundingMode.HALF_UP);

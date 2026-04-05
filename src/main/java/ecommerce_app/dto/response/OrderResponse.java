@@ -2,6 +2,7 @@ package ecommerce_app.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import ecommerce_app.constant.enums.OrderStatus;
+import ecommerce_app.constant.enums.PaymentGateway;
 import ecommerce_app.constant.enums.PaymentMethod;
 import ecommerce_app.constant.enums.PaymentStatus;
 import ecommerce_app.constant.enums.ShippingMethod;
@@ -46,6 +47,9 @@ public class OrderResponse {
 
   @Schema(description = "Shipping method selected", example = "STANDARD")
   private ShippingMethod shippingMethod;
+
+  @Schema(description = "Payment Gateway")
+  private PaymentGateway paymentGateway;
 
   // Financial summary
   @Schema(description = "Subtotal before discounts and shipping", example = "99.99")

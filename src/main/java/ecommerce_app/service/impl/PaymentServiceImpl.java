@@ -52,7 +52,7 @@ public class PaymentServiceImpl implements PaymentService {
 
   @Override
   public InitiatePaymentResponse initiate(InitiatePaymentRequest request, Long userId) {
-    log.info("Initiating payment for order #{} via {}", request.getOrderId(), request.getGateway());
+    log.info("Initiating payment for order #{}", request.getOrderId());
 
     Order order =
         orderRepository
@@ -71,8 +71,16 @@ public class PaymentServiceImpl implements PaymentService {
           "Order #" + order.getOrderNumber() + " is cancelled and cannot be paid.");
     }
 
-    // Resolve strategy (throws UnsupportedOperationException for BAKONG)
-    PaymentGatewayStrategy strategy = resolveStrategy(request.getGateway());
+    // Auto-resolve gateway from order's paymentMethod if not explicitly provided in request
+    PaymentGateway gateway =
+        request.getGateway() != null
+            ? request.getGateway()
+            : PaymentGateway.fromPaymentMethod(order.getPaymentMethod());
+
+    log.info("Resolved gateway: {} for order #{}", gateway, order.getOrderNumber());
+
+    // Resolve strategy — throws UnsupportedOperationException for BAKONG
+    PaymentGatewayStrategy strategy = resolveStrategy(gateway);
 
     // Delegate to strategy — builds Payment entity (not yet persisted)
     Payment payment = strategy.initiate(order, request);
@@ -82,12 +90,11 @@ public class PaymentServiceImpl implements PaymentService {
     Payment savedPayment = paymentRepository.save(payment);
     log.info("Payment #{} created for order #{}", savedPayment.getId(), order.getOrderNumber());
 
-    // For COD and CASH_IN_SHOP: confirm the order immediately since no waiting for gateway
-    if (request.getGateway() == PaymentGateway.COD
-        || request.getGateway() == PaymentGateway.CASH_IN_SHOP) {
-      order.setOrderStatus(OrderStatus.COMPLETED);
+    // For COD and CASH_IN_SHOP: confirm order immediately (no waiting for gateway callback)
+    if (gateway == PaymentGateway.COD || gateway == PaymentGateway.CASH_IN_SHOP) {
+      order.setOrderStatus(OrderStatus.CONFIRMED);
       orderRepository.save(order);
-      log.info("Order #{} confirmed ({})", order.getOrderNumber(), request.getGateway());
+      log.info("Order #{} confirmed ({})", order.getOrderNumber(), gateway);
 
       sendNotification(
           order.getUser().getId(),
@@ -95,14 +102,14 @@ public class PaymentServiceImpl implements PaymentService {
           "Your order #"
               + order.getOrderNumber()
               + " is confirmed. "
-              + (request.getGateway() == PaymentGateway.COD
+              + (gateway == PaymentGateway.COD
                   ? "Pay when your package arrives."
-                  : "Please visit our store to pay and collect your item."),
+                  : "Please visit our store within 24 hours to pay and collect."),
           NotificationType.ORDER_CONFIRMED,
           order.getId());
     }
 
-    return buildInitiateResponse(savedPayment);
+    return buildInitiateResponse(savedPayment, gateway);
   }
 
   // ─── 2. Poll payment status ───────────────────────────────────────────────
@@ -115,12 +122,10 @@ public class PaymentServiceImpl implements PaymentService {
             .findById(paymentId)
             .orElseThrow(() -> new ResourceNotFoundException("Payment not found: " + paymentId));
 
-    // Security: payment must belong to this user
     if (!payment.getOrder().getUser().getId().equals(userId)) {
       throw new SecurityException("Access denied to payment " + paymentId);
     }
 
-    // Only sync if still pending
     if (payment.getStatus() == PaymentStatus.PENDING) {
       PaymentGatewayStrategy strategy = resolveStrategy(payment.getGateway());
       strategy.syncStatus(payment);
@@ -186,7 +191,6 @@ public class PaymentServiceImpl implements PaymentService {
 
     Payment payment = getLatestPendingPayment(orderId, PaymentGateway.CASH_IN_SHOP);
 
-    // Check if reservation expired
     if (payment.getExpiredAt() != null && LocalDateTime.now().isAfter(payment.getExpiredAt())) {
       throw new BadRequestException(
           "Order #" + payment.getOrder().getOrderNumber() + " reservation has expired.");
@@ -221,18 +225,12 @@ public class PaymentServiceImpl implements PaymentService {
     return strategy;
   }
 
-  /**
-   * Propagates payment result → Order status.
-   *
-   * <p>PAID → paymentStatus=PAID, orderStatus=CONFIRMED FAILED → paymentStatus=FAILED, orderStatus
-   * stays (user can retry)
-   */
   private void updateOrderFromPayment(Payment payment) {
     Order order = payment.getOrder();
 
     if (payment.getStatus() == PaymentStatus.PAID) {
       order.setPaymentStatus(PaymentStatus.PAID);
-      order.setOrderStatus(OrderStatus.COMPLETED);
+      order.setOrderStatus(OrderStatus.CONFIRMED);
       log.info("Order #{} confirmed after payment", order.getOrderNumber());
 
       sendNotification(
@@ -272,7 +270,7 @@ public class PaymentServiceImpl implements PaymentService {
   private void sendNotification(
       Long userId, String title, String message, NotificationType type, Long orderId) {
     try {
-      NotificationRequest request =
+      NotificationRequest notifRequest =
           NotificationRequest.builder()
               .userId(userId)
               .title(title)
@@ -284,23 +282,23 @@ public class PaymentServiceImpl implements PaymentService {
               .saveToDatabase(true)
               .expiresInDays(30)
               .build();
-      notificationService.createAndSendNotification(request);
+      notificationService.createAndSendNotification(notifRequest);
     } catch (Exception e) {
       log.warn("Failed to send payment notification: {}", e.getMessage());
     }
   }
 
-  private InitiatePaymentResponse buildInitiateResponse(Payment payment) {
+  private InitiatePaymentResponse buildInitiateResponse(Payment payment, PaymentGateway gateway) {
     var builder =
         InitiatePaymentResponse.builder()
             .paymentId(payment.getId())
-            .gateway(payment.getGateway())
+            .gateway(gateway)
             .status(payment.getStatus())
             .amount(payment.getAmount())
             .currency(payment.getCurrency())
             .expiredAt(payment.getExpiredAt());
 
-    switch (payment.getGateway()) {
+    switch (gateway) {
       case BAKONG ->
           builder
               .bakongDeeplink(payment.getPaymentUrl())

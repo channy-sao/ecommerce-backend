@@ -3,54 +3,57 @@ package ecommerce_app.service.impl;
 import ecommerce_app.constant.enums.CartStatus;
 import ecommerce_app.constant.enums.NotificationType;
 import ecommerce_app.constant.enums.OrderStatus;
+import ecommerce_app.constant.enums.PaymentGateway;
+import ecommerce_app.constant.enums.PaymentMethod;
 import ecommerce_app.constant.enums.PaymentStatus;
 import ecommerce_app.constant.enums.PromotionType;
 import ecommerce_app.core.SimpleTry;
+import ecommerce_app.dto.CheckoutSummary;
 import ecommerce_app.dto.request.ApplyCouponRequest;
+import ecommerce_app.dto.request.CheckoutRequest;
+import ecommerce_app.dto.request.InitiatePaymentRequest;
 import ecommerce_app.dto.request.NotificationRequest;
 import ecommerce_app.dto.response.ApplyCouponResponse;
-import ecommerce_app.exception.BadRequestException;
-import ecommerce_app.exception.ResourceNotFoundException;
-import ecommerce_app.mapper.OrderMapper;
-import ecommerce_app.entity.Address;
-import ecommerce_app.repository.AddressRepository;
-import ecommerce_app.entity.Cart;
-import ecommerce_app.entity.CartItem;
-import ecommerce_app.repository.CartRepository;
-import ecommerce_app.dto.request.CheckoutRequest;
-import ecommerce_app.dto.CheckoutSummary;
 import ecommerce_app.dto.response.OrderDetailResponse;
 import ecommerce_app.dto.response.OrderResponse;
+import ecommerce_app.entity.Address;
+import ecommerce_app.entity.Cart;
+import ecommerce_app.entity.CartItem;
 import ecommerce_app.entity.Order;
 import ecommerce_app.entity.OrderItem;
 import ecommerce_app.entity.OrderStatusHistory;
-import ecommerce_app.repository.CouponUsageRepository;
+import ecommerce_app.entity.Product;
+import ecommerce_app.entity.Promotion;
+import ecommerce_app.entity.PromotionUsage;
+import ecommerce_app.entity.Stock;
+import ecommerce_app.entity.User;
+import ecommerce_app.exception.BadRequestException;
+import ecommerce_app.exception.ResourceNotFoundException;
+import ecommerce_app.mapper.OrderMapper;
+import ecommerce_app.repository.AddressRepository;
+import ecommerce_app.repository.CartRepository;
 import ecommerce_app.repository.OrderItemRepository;
 import ecommerce_app.repository.OrderRepository;
 import ecommerce_app.repository.OrderStatusHistoryRepository;
+import ecommerce_app.repository.PromotionUsageRepository;
+import ecommerce_app.repository.StockRepository;
+import ecommerce_app.repository.UserRepository;
 import ecommerce_app.service.CouponService;
 import ecommerce_app.service.OrderService;
-import ecommerce_app.entity.Product;
+import ecommerce_app.service.PaymentService;
 import ecommerce_app.service.facade.PromotionFacade;
-import ecommerce_app.entity.Promotion;
-import ecommerce_app.entity.PromotionUsage;
-import ecommerce_app.repository.PromotionUsageRepository;
-import ecommerce_app.entity.Stock;
-import ecommerce_app.repository.StockRepository;
-import ecommerce_app.entity.User;
-import ecommerce_app.repository.UserRepository;
 import ecommerce_app.util.JsonUtils;
+import ecommerce_app.util.SimpleShippingCalculator;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import ecommerce_app.util.SimpleShippingCalculator;
-import lombok.RequiredArgsConstructor;
+import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -59,10 +62,14 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 @Transactional
 public class OrderServiceImpl implements OrderService {
+
+  // Payment methods that should auto-initiate after checkout
+  private static final Set<PaymentMethod> AUTO_INITIATE_METHODS =
+      Set.of(PaymentMethod.COD, PaymentMethod.CASH_IN_SHOP);
+
   private final OrderItemRepository orderItemRepository;
   private final PromotionUsageRepository promotionUsageRepository;
   private final OrderRepository orderRepository;
@@ -77,53 +84,75 @@ public class OrderServiceImpl implements OrderService {
   private final StockRepository stockRepository;
   private final CouponService couponService;
   private final NotificationService notificationService;
+  private final PaymentService paymentService;
+
+  // Use @Lazy on PaymentService to avoid circular dependency
+  // OrderService → PaymentService → OrderRepository → fine
+  // but PaymentService also uses OrderService indirectly via strategies
+  public OrderServiceImpl(
+      OrderItemRepository orderItemRepository,
+      PromotionUsageRepository promotionUsageRepository,
+      OrderRepository orderRepository,
+      CartRepository cartRepository,
+      AddressRepository addressRepository,
+      PromotionFacade promotionFacade,
+      SimpleShippingCalculator shippingCalculator,
+      UserRepository userRepository,
+      OrderStatusHistoryRepository orderStatusHistoryRepository,
+      OrderMapper orderMapper,
+      OrderNumberGenerator orderNumberGenerator,
+      StockRepository stockRepository,
+      CouponService couponService,
+      NotificationService notificationService,
+      @Lazy PaymentService paymentService) {
+    this.orderItemRepository = orderItemRepository;
+    this.promotionUsageRepository = promotionUsageRepository;
+    this.orderRepository = orderRepository;
+    this.cartRepository = cartRepository;
+    this.addressRepository = addressRepository;
+    this.promotionFacade = promotionFacade;
+    this.shippingCalculator = shippingCalculator;
+    this.userRepository = userRepository;
+    this.orderStatusHistoryRepository = orderStatusHistoryRepository;
+    this.orderMapper = orderMapper;
+    this.orderNumberGenerator = orderNumberGenerator;
+    this.stockRepository = stockRepository;
+    this.couponService = couponService;
+    this.notificationService = notificationService;
+    this.paymentService = paymentService;
+  }
 
   @Transactional(rollbackFor = Exception.class)
   @Override
   public OrderResponse checkout(CheckoutRequest checkoutRequest, Long userId) {
     log.info("Checkout request received: {}", checkoutRequest);
 
-    // Get user
     User currentUser = getUserById(userId);
-
-    // Get shipping address
     Address shippingAddress = getShippingAddress(checkoutRequest, currentUser);
-
-    // Retrieve active cart
     Cart cart = retrieveCart(currentUser.getId());
-
-    // Validate cart
     validateCart(cart);
 
-    // Calculate shipping cost
     BigDecimal shippingCost = calculateShippingCost(checkoutRequest, cart, shippingAddress);
-
-    // Calculate checkout summary
     CheckoutSummary checkoutSummary =
         calculateCheckoutSummary(cart, checkoutRequest.getPromotionCode());
-
-    // Add this — apply coupon on top of promotion discount
     applyCouponToSummary(checkoutSummary, checkoutRequest.getCouponCode(), userId);
 
-    // Apply free shipping if applicable
     if (isFreeShippingPromotion(checkoutSummary)) {
       shippingCost = BigDecimal.ZERO;
       checkoutSummary.setShippingDiscount(checkoutSummary.getShippingCost());
       checkoutSummary.setFreeShipping(true);
     }
 
-    // Calculate totals
     final BigDecimal subtotalAmount = checkoutSummary.getSubtotal();
     final BigDecimal discountAmount = checkoutSummary.getTotalDiscount();
     final BigDecimal couponDiscount = checkoutSummary.getCouponDiscount();
     final BigDecimal shippingAmount = shippingCost;
-
     final BigDecimal totalAmount =
         checkoutSummary
             .getFinalTotal()
-            .subtract(couponDiscount) // deduct coupon
+            .subtract(couponDiscount)
             .add(shippingAmount)
-            .max(BigDecimal.ZERO); // never go negative
+            .max(BigDecimal.ZERO);
 
     log.info(
         "Checkout totals - Subtotal: {}, Discount: {}, Shipping: {}, Total: {}",
@@ -132,7 +161,6 @@ public class OrderServiceImpl implements OrderService {
         shippingAmount,
         totalAmount);
 
-    // Create order
     Order order =
         createOrder(
             currentUser,
@@ -143,73 +171,97 @@ public class OrderServiceImpl implements OrderService {
             discountAmount,
             shippingAmount,
             totalAmount,
-            couponDiscount, // ← add
+            couponDiscount,
             checkoutRequest.getCouponCode());
 
     String orderNumber = orderNumberGenerator.generateOrderNumber();
     order.setOrderNumber(orderNumber);
-
     log.debug("Generated order number: {}", orderNumber);
 
-    // save order
     Order savedOrder = orderRepository.save(order);
-
-    // save order history
     saveOrderStatusHistory(savedOrder, savedOrder.getOrderStatus());
-
     log.info("Order created with ID: {}", savedOrder.getId());
 
-    // Create order items
     List<OrderItem> orderItems = createOrderItems(cart, savedOrder, checkoutSummary);
     orderItemRepository.saveAll(orderItems);
     log.info("Created {} order items", orderItems.size());
 
-    // deduct stock after order items saved
     deductStock(cart);
     log.info("Stock deducted for order: {}", savedOrder.getOrderNumber());
 
-    // Record promotion usage if applicable
     recordPromotionUsageIfApplicable(checkoutSummary, savedOrder, currentUser);
-
     recordCouponUsageIfApplicable(checkoutSummary, savedOrder, currentUser);
-
-    // Update cart status
     updateCartStatus(cart);
 
-    // send notification
-    sendOrderConfirmationNotification(savedOrder, currentUser);
+    // Send order placed notification
+    sendOrderPlacedNotification(savedOrder, currentUser);
 
-    return orderMapper.toCheckoutResponse(savedOrder);
+    // Auto-initiate payment for COD and CASH_IN_SHOP
+    // This sets order → CONFIRMED immediately without any manual step
+    autoInitiatePaymentIfApplicable(savedOrder, userId);
+
+    // Re-fetch order to get latest status after auto-initiate
+    Order finalOrder = orderRepository.findById(savedOrder.getId()).orElse(savedOrder);
+
+    return orderMapper.toCheckoutResponse(finalOrder);
   }
+
+  // ─── Auto-initiate payment ────────────────────────────────────────────────
+
+  /**
+   * Automatically initiates payment for COD and CASH_IN_SHOP orders right after checkout. This
+   * moves the order from PENDING → CONFIRMED immediately. BAKONG/QR_CODE orders are NOT
+   * auto-initiated — customer must pay via QR first.
+   */
+  private void autoInitiatePaymentIfApplicable(Order order, Long userId) {
+    PaymentMethod method = order.getPaymentMethod();
+
+    if (method == null || !AUTO_INITIATE_METHODS.contains(method)) {
+      log.info(
+          "Order #{} — skipping auto-initiate for payment method: {}",
+          order.getOrderNumber(),
+          method);
+      return;
+    }
+
+    try {
+      InitiatePaymentRequest paymentRequest = new InitiatePaymentRequest();
+      paymentRequest.setOrderId(order.getId());
+      // Gateway auto-resolved from paymentMethod inside PaymentServiceImpl
+      paymentRequest.setGateway(PaymentGateway.fromPaymentMethod(method));
+
+      paymentService.initiate(paymentRequest, userId);
+      log.info("Auto-initiated {} payment for order #{}", method, order.getOrderNumber());
+
+    } catch (Exception e) {
+      // Never fail checkout because of payment initiation failure
+      log.error(
+          "Auto-initiate payment failed for order #{}: {}", order.getOrderNumber(), e.getMessage());
+    }
+  }
+
+  // ─── Cancel order ─────────────────────────────────────────────────────────
 
   @Transactional(rollbackFor = Exception.class)
   @Override
   public void cancelOrder(Long orderId, Long userId, String reason) {
     log.info("Cancel request for order ID: {} by user ID: {}", orderId, userId);
 
-    // Get order
     Order order =
         orderRepository
             .findByIdAndUserId(orderId, userId)
             .orElseThrow(() -> new ResourceNotFoundException("Order", orderId));
 
-    // Validate cancellable status
     validateCancellable(order);
 
-    // 1. Update order status
     order.setOrderStatus(OrderStatus.CANCELLED);
     orderRepository.save(order);
 
-    // 2. Save status history with reason
     saveOrderStatusHistory(order, OrderStatus.CANCELLED);
-
-    // 3. Restore stock
     restoreStock(order);
     log.info("Stock restored for order: {}", order.getOrderNumber());
 
-    // 4. Send notification
     sendOrderCancelledNotification(order, order.getUser());
-
     log.info("Order {} cancelled successfully", order.getOrderNumber());
   }
 
@@ -234,36 +286,14 @@ public class OrderServiceImpl implements OrderService {
                   () ->
                       new ResourceNotFoundException(
                           "Stock not found for product: " + item.getProduct().getName()));
-
       stock.setQuantity(stock.getQuantity() + item.getQuantity());
       stockRepository.save(stock);
-
       log.info(
           "Restored {} units to product '{}'", item.getQuantity(), item.getProduct().getName());
     }
   }
 
-  private void sendOrderCancelledNotification(Order order, User user) {
-    try {
-      NotificationRequest request =
-          NotificationRequest.builder()
-              .userId(user.getId())
-              .title("Order Cancelled")
-              .message("Your order #" + order.getOrderNumber() + " has been cancelled.")
-              .type(NotificationType.ORDER_CANCELLED)
-              .referenceId(String.valueOf(order.getId()))
-              .referenceType("ORDER")
-              .actionUrl("/orders/" + order.getId())
-              .sendPush(true)
-              .saveToDatabase(true)
-              .expiresInDays(30)
-              .build();
-
-      notificationService.createAndSendNotification(request);
-    } catch (Exception e) {
-      log.warn("Failed to send cancel notification: {}", e.getMessage());
-    }
-  }
+  // ─── Queries ──────────────────────────────────────────────────────────────
 
   @Transactional(readOnly = true)
   @Override
@@ -278,17 +308,15 @@ public class OrderServiceImpl implements OrderService {
   @Override
   public OrderDetailResponse getOrderDetails(Long orderId, Long userId) {
     log.info("Fetching order details for order ID: {}, user ID: {}", orderId, userId);
-
     Order order =
         orderRepository
             .findByIdAndUserId(orderId, userId)
             .orElseThrow(
                 () -> new ResourceNotFoundException("Order not found with ID: " + orderId));
-
     return OrderMapper.toDetailResponse(order);
   }
 
-  // ============ PRIVATE HELPER METHODS ============
+  // ─── Private helpers ──────────────────────────────────────────────────────
 
   private User getUserById(Long userId) {
     return userRepository
@@ -317,28 +345,20 @@ public class OrderServiceImpl implements OrderService {
 
   private CheckoutSummary calculateCheckoutSummary(Cart cart, String promotionCode) {
     CheckoutSummary summary = new CheckoutSummary();
-
-    // Calculate subtotal
     BigDecimal subtotal = calculateSubtotal(cart);
     summary.setSubtotal(subtotal);
-
-    // Initialize defaults
     summary.setTotalDiscount(BigDecimal.ZERO);
     summary.setShippingDiscount(BigDecimal.ZERO);
     summary.setFreeShipping(false);
 
-    // Try to apply promotion
     if (StringUtils.isNotBlank(promotionCode)) {
       applyPromotionToSummary(summary, cart, promotionCode);
     } else {
-      // Optionally, you can check for auto-apply promotions here
       applyAutoPromotionsToSummary(summary, cart);
     }
 
-    // Calculate final total
     BigDecimal finalTotal = calculateFinalTotal(summary);
     summary.setFinalTotal(finalTotal);
-
     return summary;
   }
 
@@ -351,70 +371,46 @@ public class OrderServiceImpl implements OrderService {
   private void applyPromotionToSummary(CheckoutSummary summary, Cart cart, String promotionCode) {
     try {
       Promotion promotion = promotionFacade.getPromotionByCode(promotionCode);
-
-      // ✅ 1. Check promotion exists
       if (promotion == null) {
         summary.setPromotionError("Promotion code not found");
-        log.warn("Promotion code not found: {}", promotionCode);
         return;
       }
-
-      // ✅ 2. Check promotion is active
       if (!promotionFacade.isPromotionActive(promotion)) {
         summary.setPromotionError("Promotion is not active or expired");
-        log.warn("Promotion is not active: {}", promotionCode);
         return;
       }
-
-      // ✅ 3. Check max usage limit
-      if (promotion.getMaxUsage() != null && promotion.getUsages() != null) {
-        int currentUsage = promotion.getUsages().size();
-        if (currentUsage >= promotion.getMaxUsage()) {
-          summary.setPromotionError("Promotion usage limit reached");
-          log.warn("Promotion usage limit reached for: {}", promotionCode);
-          return;
-        }
+      if (promotion.getMaxUsage() != null
+          && promotion.getUsages() != null
+          && promotion.getUsages().size() >= promotion.getMaxUsage()) {
+        summary.setPromotionError("Promotion usage limit reached");
+        return;
       }
-
-      // ✅ 4. Check min purchase amount
       if (promotion.getMinPurchaseAmount() != null
           && summary.getSubtotal().compareTo(promotion.getMinPurchaseAmount()) < 0) {
         summary.setPromotionError(
             "Minimum purchase of $" + promotion.getMinPurchaseAmount() + " required");
         return;
       }
-
-      // ✅ 5. FREE_SHIPPING — skip item loop, handled separately
       if (promotion.getDiscountType() == PromotionType.FREE_SHIPPING) {
         summary.setAppliedPromotion(promotion);
         summary.setTotalDiscount(BigDecimal.ZERO);
-        log.info("Applied FREE_SHIPPING promotion: {}", promotionCode);
-        return; // shipping discount handled in isFreeShippingPromotion()
+        return;
       }
 
-      // ✅ 6. Apply promotion to items
       summary.setAppliedPromotion(promotion);
       BigDecimal totalDiscount = BigDecimal.ZERO;
       Map<Long, BigDecimal> itemDiscounts = new HashMap<>();
-
       for (CartItem cartItem : cart.getCartItems()) {
         Product product = cartItem.getProduct();
-
         if (promotionFacade.isProductEligibleForPromotion(product, promotion)) {
           try {
             BigDecimal itemDiscount =
                 promotionFacade.calculateDiscount(promotion, product, cartItem.getQuantity());
-
             if (itemDiscount != null && itemDiscount.compareTo(BigDecimal.ZERO) > 0) {
-              BigDecimal maxItemDiscount =
-                  product.getPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity()));
-
-              // Cap at item price
-              itemDiscount = itemDiscount.min(maxItemDiscount);
-
-              // Cap at subtotal
+              itemDiscount =
+                  itemDiscount.min(
+                      product.getPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity())));
               itemDiscount = itemDiscount.min(summary.getSubtotal());
-
               itemDiscounts.put(product.getId(), itemDiscount);
               totalDiscount = totalDiscount.add(itemDiscount);
             }
@@ -424,19 +420,10 @@ public class OrderServiceImpl implements OrderService {
           }
         }
       }
-
-      // ✅ 7. Cap total discount at subtotal
-      if (totalDiscount.compareTo(summary.getSubtotal()) > 0) {
-        totalDiscount = summary.getSubtotal();
-        log.warn("Adjusted total discount to match subtotal");
-      }
-
+      if (totalDiscount.compareTo(summary.getSubtotal()) > 0) totalDiscount = summary.getSubtotal();
       summary.setItemDiscounts(itemDiscounts);
       summary.setTotalDiscount(totalDiscount);
       summary.setPromotionError(null);
-
-      log.info("Applied promotion {} with total discount: {}", promotionCode, totalDiscount);
-
     } catch (Exception e) {
       log.error("Error applying promotion {}: {}", promotionCode, e.getMessage(), e);
       summary.setPromotionError("Error applying promotion: " + e.getMessage());
@@ -444,7 +431,6 @@ public class OrderServiceImpl implements OrderService {
   }
 
   private void applyAutoPromotionsToSummary(CheckoutSummary summary, Cart cart) {
-    // Calculate discounts
     try {
       BigDecimal totalDiscount = BigDecimal.ZERO;
       Map<Long, BigDecimal> itemDiscounts = new HashMap<>();
@@ -453,41 +439,26 @@ public class OrderServiceImpl implements OrderService {
         var promotion =
             promotionFacade.getAvailablePromotion(product).stream().findFirst().orElse(null);
         if (promotion != null) {
-          // have promotion and apply to summary
           summary.setAppliedPromotion(promotion);
-
           BigDecimal itemDiscount =
               promotionFacade.calculateDiscount(promotion, product, cartItem.getQuantity());
-
           if (itemDiscount != null && itemDiscount.compareTo(BigDecimal.ZERO) > 0) {
-            BigDecimal maxItemDiscount =
-                product.getPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity()));
-
-            // Ensure discount doesn't exceed item price
-            itemDiscount = itemDiscount.min(maxItemDiscount);
-
-            // Ensure discount doesn't exceed subtotal
+            itemDiscount =
+                itemDiscount.min(
+                    product.getPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity())));
             itemDiscount = itemDiscount.min(summary.getSubtotal());
-
             itemDiscounts.put(product.getId(), itemDiscount);
             totalDiscount = totalDiscount.add(itemDiscount);
           }
-
-          // Ensure total discount doesn't exceed subtotal
-          if (totalDiscount.compareTo(summary.getSubtotal()) > 0) {
+          if (totalDiscount.compareTo(summary.getSubtotal()) > 0)
             totalDiscount = summary.getSubtotal();
-            log.warn("Adjusted total discount to match subtotal");
-          }
-
           summary.setItemDiscounts(itemDiscounts);
           summary.setTotalDiscount(totalDiscount);
           summary.setPromotionError(null);
-          log.info(
-              "Applied promotion {} with total discount: {}", promotion.getName(), totalDiscount);
         }
       }
     } catch (Exception e) {
-      log.error("Error applying : {}", e.getMessage(), e);
+      log.error("Error applying auto promotions: {}", e.getMessage(), e);
       summary.setPromotionError("Error applying promotion: " + e.getMessage());
     }
   }
@@ -496,11 +467,7 @@ public class OrderServiceImpl implements OrderService {
     BigDecimal subtotal = summary.getSubtotal() != null ? summary.getSubtotal() : BigDecimal.ZERO;
     BigDecimal discount =
         summary.getTotalDiscount() != null ? summary.getTotalDiscount() : BigDecimal.ZERO;
-
-    // Ensure discount doesn't exceed subtotal
-    discount = discount.min(subtotal);
-
-    return subtotal.subtract(discount);
+    return subtotal.subtract(discount.min(subtotal));
   }
 
   private boolean isFreeShippingPromotion(CheckoutSummary checkoutSummary) {
@@ -509,13 +476,8 @@ public class OrderServiceImpl implements OrderService {
   }
 
   private void saveOrderStatusHistory(Order order, OrderStatus status) {
-    OrderStatusHistory history =
-        OrderStatusHistory.builder()
-            .order(order)
-            .status(status) // 🚨 THIS IS REQUIRED
-            .build();
-
-    orderStatusHistoryRepository.save(history);
+    orderStatusHistoryRepository.save(
+        OrderStatusHistory.builder().order(order).status(status).build());
   }
 
   private Order createOrder(
@@ -554,24 +516,14 @@ public class OrderServiceImpl implements OrderService {
 
   private List<OrderItem> createOrderItems(Cart cart, Order order, CheckoutSummary summary) {
     List<OrderItem> orderItems = new ArrayList<>();
-
     for (CartItem cartItem : cart.getCartItems()) {
       Product product = cartItem.getProduct();
       int quantity = cartItem.getQuantity();
       BigDecimal unitPrice = product.getPrice();
-
-      // Get discount for this item
       BigDecimal discountAmount = getItemDiscount(summary, product.getId(), quantity, unitPrice);
-
-      // Calculate totals
       BigDecimal subtotal = unitPrice.multiply(BigDecimal.valueOf(quantity));
-      BigDecimal totalPrice = subtotal.subtract(discountAmount);
-
-      // Ensure total price is not negative
-      totalPrice = totalPrice.max(BigDecimal.ZERO);
-
-      // Build order item
-      OrderItem orderItem =
+      BigDecimal totalPrice = subtotal.subtract(discountAmount).max(BigDecimal.ZERO);
+      orderItems.add(
           OrderItem.builder()
               .product(product)
               .quantity(quantity)
@@ -585,30 +537,23 @@ public class OrderServiceImpl implements OrderService {
                       : null)
               .cart(cart)
               .order(order)
-              .build();
-
-      orderItems.add(orderItem);
+              .build());
     }
-
     return orderItems;
   }
 
   private BigDecimal getItemDiscount(
       CheckoutSummary summary, Long productId, int quantity, BigDecimal unitPrice) {
     BigDecimal discountAmount = BigDecimal.ZERO;
-
     if (summary.getItemDiscounts() != null) {
       discountAmount = summary.getItemDiscounts().getOrDefault(productId, BigDecimal.ZERO);
     }
-
-    // Validate discount doesn't exceed item price
-    BigDecimal maxPossibleDiscount = unitPrice.multiply(BigDecimal.valueOf(quantity));
-    return discountAmount.min(maxPossibleDiscount);
+    return discountAmount.min(unitPrice.multiply(BigDecimal.valueOf(quantity)));
   }
 
   private void recordPromotionUsageIfApplicable(CheckoutSummary summary, Order order, User user) {
     if (summary.getAppliedPromotion() != null) {
-      PromotionUsage usage =
+      promotionUsageRepository.save(
           PromotionUsage.builder()
               .promotion(summary.getAppliedPromotion())
               .order(order)
@@ -616,8 +561,7 @@ public class OrderServiceImpl implements OrderService {
               .usedAt(LocalDateTime.now())
               .discountAmount(
                   summary.getTotalDiscount() != null ? summary.getTotalDiscount() : BigDecimal.ZERO)
-              .build();
-      promotionUsageRepository.save(usage);
+              .build());
     }
   }
 
@@ -631,7 +575,6 @@ public class OrderServiceImpl implements OrderService {
     for (CartItem cartItem : cart.getCartItems()) {
       Product product = cartItem.getProduct();
       int orderedQuantity = cartItem.getQuantity();
-
       Stock stock =
           stockRepository
               .findByProductId(product.getId())
@@ -639,21 +582,17 @@ public class OrderServiceImpl implements OrderService {
                   () ->
                       new ResourceNotFoundException(
                           "Stock not found for product: " + product.getName()));
-
       int newQuantity = stock.getQuantity() - orderedQuantity;
-
       if (newQuantity < 0) {
         throw new IllegalStateException(
             String.format(
                 "Insufficient stock for '%s'. Available: %d, Requested: %d",
                 product.getName(), stock.getQuantity(), orderedQuantity));
       }
-
       stock.setQuantity(newQuantity);
       stockRepository.save(stock);
-
       log.info(
-          "Deducted {} units from product '{}'. Remaining stock: {}",
+          "Deducted {} units from '{}'. Remaining: {}",
           orderedQuantity,
           product.getName(),
           newQuantity);
@@ -661,14 +600,11 @@ public class OrderServiceImpl implements OrderService {
   }
 
   private Address getShippingAddress(CheckoutRequest request, User user) {
-    // User selected specific address
     if (request.getShippingAddress() != null) {
       return addressRepository
           .findByIdAndUserId(request.getShippingAddress(), user.getId())
           .orElseThrow(() -> new ResourceNotFoundException("Address not found"));
     }
-
-    // Fallback to default address
     return addressRepository
         .findByUserIdAndIsDefaultTrue(user.getId())
         .orElseThrow(
@@ -679,21 +615,16 @@ public class OrderServiceImpl implements OrderService {
 
   private void applyCouponToSummary(CheckoutSummary summary, String couponCode, Long userId) {
     if (StringUtils.isBlank(couponCode)) return;
-
     try {
       ApplyCouponRequest req = new ApplyCouponRequest();
       req.setCode(couponCode);
-      req.setOrderTotal(summary.getFinalTotal()); // apply on top of promotion discount
-
+      req.setOrderTotal(summary.getFinalTotal());
       ApplyCouponResponse result = couponService.applyCoupon(req, userId);
-
       summary.setCouponCode(result.getCode());
       summary.setCouponDiscount(result.getDiscountAmount());
       summary.setAppliedCouponId(result.getCouponId());
-
       log.info("Applied coupon {} with discount: {}", couponCode, result.getDiscountAmount());
     } catch (BadRequestException e) {
-      // Coupon invalid — don't block checkout, just skip it
       log.warn("Coupon not applied: {}", e.getMessage());
       summary.setCouponCode(null);
       summary.setCouponDiscount(BigDecimal.ZERO);
@@ -702,42 +633,56 @@ public class OrderServiceImpl implements OrderService {
 
   private void recordCouponUsageIfApplicable(CheckoutSummary summary, Order order, User user) {
     if (summary.getAppliedCouponId() == null) return;
-
     couponService.redeemCoupon(
         summary.getAppliedCouponId(), user.getId(), order.getId(), summary.getCouponDiscount());
-
     log.info(
         "Recorded coupon usage for coupon ID: {}, order: {}",
         summary.getAppliedCouponId(),
         order.getOrderNumber());
   }
 
-  private void sendOrderConfirmationNotification(Order order, User user) {
+  private void sendOrderPlacedNotification(Order order, User user) {
     try {
-      NotificationRequest request =
+      notificationService.createAndSendNotification(
           NotificationRequest.builder()
               .userId(user.getId())
-              .title("Order Placed! 🛒")
+              .title("Order Placed!")
               .message(
                   "Your order #"
                       + order.getOrderNumber()
-                      + " has been placed successfully. Total: $"
+                      + " has been received. Total: $"
                       + order.getTotalAmount())
-              .type(NotificationType.ORDER_CREATED) // use your enum
+              .type(NotificationType.ORDER_CREATED)
               .referenceId(String.valueOf(order.getId()))
               .referenceType("ORDER")
               .actionUrl("/orders/" + order.getId())
               .sendPush(true)
               .saveToDatabase(true)
               .expiresInDays(30)
-              .build();
-
-      notificationService.createAndSendNotification(request);
-      log.info("Order confirmation notification sent for order: {}", order.getOrderNumber());
-
+              .build());
+      log.info("Order placed notification sent for order: {}", order.getOrderNumber());
     } catch (Exception e) {
-      // Don't fail the checkout if notification fails
-      log.warn("Failed to send order confirmation notification: {}", e.getMessage());
+      log.warn("Failed to send order placed notification: {}", e.getMessage());
+    }
+  }
+
+  private void sendOrderCancelledNotification(Order order, User user) {
+    try {
+      notificationService.createAndSendNotification(
+          NotificationRequest.builder()
+              .userId(user.getId())
+              .title("Order Cancelled")
+              .message("Your order #" + order.getOrderNumber() + " has been cancelled.")
+              .type(NotificationType.ORDER_CANCELLED)
+              .referenceId(String.valueOf(order.getId()))
+              .referenceType("ORDER")
+              .actionUrl("/orders/" + order.getId())
+              .sendPush(true)
+              .saveToDatabase(true)
+              .expiresInDays(30)
+              .build());
+    } catch (Exception e) {
+      log.warn("Failed to send cancel notification: {}", e.getMessage());
     }
   }
 }
