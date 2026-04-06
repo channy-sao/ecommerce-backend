@@ -1,9 +1,12 @@
 package ecommerce_app.service;
 
 import ecommerce_app.dto.request.InitiatePaymentRequest;
+import ecommerce_app.dto.response.DailyCashSummary;
 import ecommerce_app.dto.response.InitiatePaymentResponse;
 import ecommerce_app.dto.response.PaymentStatusResponse;
 import ecommerce_app.entity.Payment;
+
+import java.time.LocalDate;
 
 public interface PaymentService {
 
@@ -29,4 +32,8 @@ public interface PaymentService {
 
   /** Staff marks Cash-in-Shop payment as collected (customer paid at store). */
   void markCashInShopPaid(Long orderId, Long staffUserId);
+
+  DailyCashSummary getDailyCashSummary(LocalDate date);
+
+  DailyCashSummary getDailyCashSummaryByCashier(LocalDate date, Long cashierId);
 }

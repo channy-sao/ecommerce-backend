@@ -22,6 +22,7 @@ import ecommerce_app.entity.CartItem;
 import ecommerce_app.entity.Order;
 import ecommerce_app.entity.OrderItem;
 import ecommerce_app.entity.OrderStatusHistory;
+import ecommerce_app.entity.Payment;
 import ecommerce_app.entity.Product;
 import ecommerce_app.entity.Promotion;
 import ecommerce_app.entity.PromotionUsage;
@@ -35,6 +36,7 @@ import ecommerce_app.repository.CartRepository;
 import ecommerce_app.repository.OrderItemRepository;
 import ecommerce_app.repository.OrderRepository;
 import ecommerce_app.repository.OrderStatusHistoryRepository;
+import ecommerce_app.repository.PaymentRepository;
 import ecommerce_app.repository.PromotionUsageRepository;
 import ecommerce_app.repository.StockRepository;
 import ecommerce_app.repository.UserRepository;
@@ -61,6 +63,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
+import static ecommerce_app.constant.enums.PaymentGateway.BAKONG;
+
 @Service
 @Slf4j
 @Transactional
@@ -75,6 +79,7 @@ public class OrderServiceImpl implements OrderService {
   private final OrderRepository orderRepository;
   private final CartRepository cartRepository;
   private final AddressRepository addressRepository;
+  private final PaymentRepository paymentRepository;
   private final PromotionFacade promotionFacade;
   private final SimpleShippingCalculator shippingCalculator;
   private final UserRepository userRepository;
@@ -95,6 +100,7 @@ public class OrderServiceImpl implements OrderService {
       OrderRepository orderRepository,
       CartRepository cartRepository,
       AddressRepository addressRepository,
+      PaymentRepository paymentRepository,
       PromotionFacade promotionFacade,
       SimpleShippingCalculator shippingCalculator,
       UserRepository userRepository,
@@ -110,6 +116,7 @@ public class OrderServiceImpl implements OrderService {
     this.orderRepository = orderRepository;
     this.cartRepository = cartRepository;
     this.addressRepository = addressRepository;
+    this.paymentRepository = paymentRepository;
     this.promotionFacade = promotionFacade;
     this.shippingCalculator = shippingCalculator;
     this.userRepository = userRepository;
@@ -197,8 +204,7 @@ public class OrderServiceImpl implements OrderService {
     sendOrderPlacedNotification(savedOrder, currentUser);
 
     // Auto-initiate payment for COD and CASH_IN_SHOP
-    // This sets order → CONFIRMED immediately without any manual step
-    autoInitiatePaymentIfApplicable(savedOrder, userId);
+    handlePaymentAfterCheckout(savedOrder, userId);
 
     // Re-fetch order to get latest status after auto-initiate
     Order finalOrder = orderRepository.findById(savedOrder.getId()).orElse(savedOrder);
@@ -213,31 +219,44 @@ public class OrderServiceImpl implements OrderService {
    * moves the order from PENDING → CONFIRMED immediately. BAKONG/QR_CODE orders are NOT
    * auto-initiated — customer must pay via QR first.
    */
-  private void autoInitiatePaymentIfApplicable(Order order, Long userId) {
+  // Fix in OrderServiceImpl.java - handlePaymentAfterCheckout method
+  private void handlePaymentAfterCheckout(Order order, Long userId) {
     PaymentMethod method = order.getPaymentMethod();
 
-    if (method == null || !AUTO_INITIATE_METHODS.contains(method)) {
-      log.info(
-          "Order #{} — skipping auto-initiate for payment method: {}",
-          order.getOrderNumber(),
-          method);
-      return;
+    // Step 1: Always create payment (your strategy will handle behavior)
+    InitiatePaymentRequest request = new InitiatePaymentRequest();
+    request.setOrderId(order.getId());
+    request.setGateway(PaymentGateway.fromPaymentMethod(method));
+
+    paymentService.initiate(request, userId);
+
+    // Step 2: Control ORDER + PAYMENT status (IMPORTANT)
+    // IMPORTANT: Only set status if not already set by paymentService.initiate
+    switch (method) {
+      case COD -> {
+        // Order should be CONFIRMED immediately for COD
+        if (order.getOrderStatus() == OrderStatus.PENDING) {
+          order.setOrderStatus(OrderStatus.CONFIRMED);
+        }
+        order.setPaymentStatus(PaymentStatus.PENDING);
+      }
+      case CASH_IN_SHOP -> {
+        // Order is ready for pickup immediately
+        if (order.getOrderStatus() == OrderStatus.PENDING) {
+          order.setOrderStatus(OrderStatus.READY_FOR_PICKUP);
+        }
+        order.setPaymentStatus(PaymentStatus.PENDING);
+      }
+      case QR_CODE -> {
+        // Keep PENDING until payment is confirmed via webhook
+        order.setOrderStatus(OrderStatus.PENDING);
+        order.setPaymentStatus(PaymentStatus.PENDING);
+      }
+      default -> throw new IllegalStateException("Unsupported payment method: " + method);
     }
 
-    try {
-      InitiatePaymentRequest paymentRequest = new InitiatePaymentRequest();
-      paymentRequest.setOrderId(order.getId());
-      // Gateway auto-resolved from paymentMethod inside PaymentServiceImpl
-      paymentRequest.setGateway(PaymentGateway.fromPaymentMethod(method));
-
-      paymentService.initiate(paymentRequest, userId);
-      log.info("Auto-initiated {} payment for order #{}", method, order.getOrderNumber());
-
-    } catch (Exception e) {
-      // Never fail checkout because of payment initiation failure
-      log.error(
-          "Auto-initiate payment failed for order #{}: {}", order.getOrderNumber(), e.getMessage());
-    }
+    orderRepository.save(order);
+    saveOrderStatusHistory(order, order.getOrderStatus());
   }
 
   // ─── Cancel order ─────────────────────────────────────────────────────────
@@ -684,5 +703,59 @@ public class OrderServiceImpl implements OrderService {
     } catch (Exception e) {
       log.warn("Failed to send cancel notification: {}", e.getMessage());
     }
+  }
+
+  @Transactional
+  public void confirmCodOrderDelivery(Long orderId) {
+    Order order =
+        orderRepository
+            .findById(orderId)
+            .orElseThrow(() -> new ResourceNotFoundException("Order", orderId));
+
+    if (order.getPaymentMethod() != PaymentMethod.COD) {
+      throw new BadRequestException("Only COD orders can be confirmed via this method");
+    }
+
+    if (order.getOrderStatus() != OrderStatus.CONFIRMED) {
+      throw new BadRequestException("Order is not in CONFIRMED status");
+    }
+
+    order.setOrderStatus(OrderStatus.DELIVERED);
+    orderRepository.save(order);
+    saveOrderStatusHistory(order, OrderStatus.DELIVERED);
+
+    log.info("COD order #{} marked as delivered", order.getOrderNumber());
+  }
+
+  @Transactional
+  public void confirmCashInShopPickup(Long orderId) {
+    Order order =
+        orderRepository
+            .findById(orderId)
+            .orElseThrow(() -> new ResourceNotFoundException("Order", orderId));
+
+    if (order.getPaymentMethod() != PaymentMethod.CASH_IN_SHOP) {
+      throw new BadRequestException("Only Cash-in-Shop orders can be confirmed via this method");
+    }
+
+    if (order.getOrderStatus() != OrderStatus.READY_FOR_PICKUP) {
+      throw new BadRequestException("Order is not in READY_FOR_PICKUP status");
+    }
+
+    // Check if payment has expired
+    Payment payment =
+        paymentRepository
+            .findByOrderId(orderId)
+            .orElseThrow(() -> new ResourceNotFoundException("Payment not found"));
+
+    if (payment.getExpiredAt() != null && LocalDateTime.now().isAfter(payment.getExpiredAt())) {
+      throw new BadRequestException("Payment reservation has expired. Order has been cancelled.");
+    }
+
+    order.setOrderStatus(OrderStatus.COMPLETED);
+    orderRepository.save(order);
+    saveOrderStatusHistory(order, OrderStatus.COMPLETED);
+
+    log.info("Cash-in-Shop order #{} marked as picked up", order.getOrderNumber());
   }
 }

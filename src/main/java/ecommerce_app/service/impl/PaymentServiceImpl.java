@@ -3,19 +3,27 @@ package ecommerce_app.service.impl;
 import ecommerce_app.constant.enums.NotificationType;
 import ecommerce_app.constant.enums.OrderStatus;
 import ecommerce_app.constant.enums.PaymentGateway;
+import ecommerce_app.constant.enums.PaymentMethod;
 import ecommerce_app.constant.enums.PaymentStatus;
 import ecommerce_app.dto.request.InitiatePaymentRequest;
 import ecommerce_app.dto.request.NotificationRequest;
+import ecommerce_app.dto.response.DailyCashSummary;
 import ecommerce_app.dto.response.InitiatePaymentResponse;
 import ecommerce_app.dto.response.PaymentStatusResponse;
 import ecommerce_app.entity.Order;
 import ecommerce_app.entity.Payment;
+import ecommerce_app.entity.PaymentTransaction;
 import ecommerce_app.exception.BadRequestException;
 import ecommerce_app.exception.ResourceNotFoundException;
 import ecommerce_app.repository.OrderRepository;
 import ecommerce_app.repository.PaymentRepository;
+import ecommerce_app.repository.PaymentTransactionRepository;
+import ecommerce_app.repository.UserRepository;
 import ecommerce_app.service.PaymentService;
 import ecommerce_app.service.strategy.PaymentGatewayStrategy;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -33,22 +41,29 @@ public class PaymentServiceImpl implements PaymentService {
   private final PaymentRepository paymentRepository;
   private final OrderRepository orderRepository;
   private final NotificationService notificationService;
+  private final FinancialService financialService;
+  private final UserRepository userRepository;
+  private final PaymentTransactionRepository transactionRepository;
   private final Map<PaymentGateway, PaymentGatewayStrategy> strategies;
 
   public PaymentServiceImpl(
       PaymentRepository paymentRepository,
       OrderRepository orderRepository,
       NotificationService notificationService,
+      FinancialService financialService,
+      UserRepository userRepository,
+      PaymentTransactionRepository transactionRepository,
       List<PaymentGatewayStrategy> gatewayStrategies) {
     this.paymentRepository = paymentRepository;
     this.orderRepository = orderRepository;
     this.notificationService = notificationService;
+    this.financialService = financialService;
+    this.userRepository = userRepository;
+    this.transactionRepository = transactionRepository;
     this.strategies =
         gatewayStrategies.stream()
             .collect(Collectors.toMap(PaymentGatewayStrategy::getGateway, Function.identity()));
   }
-
-  // ─── 1. Initiate payment ─────────────────────────────────────────────────
 
   @Override
   public InitiatePaymentResponse initiate(InitiatePaymentRequest request, Long userId) {
@@ -71,7 +86,7 @@ public class PaymentServiceImpl implements PaymentService {
           "Order #" + order.getOrderNumber() + " is cancelled and cannot be paid.");
     }
 
-    // Auto-resolve gateway from order's paymentMethod if not explicitly provided in request
+    // Auto-resolve gateway from order's paymentMethod
     PaymentGateway gateway =
         request.getGateway() != null
             ? request.getGateway()
@@ -79,10 +94,10 @@ public class PaymentServiceImpl implements PaymentService {
 
     log.info("Resolved gateway: {} for order #{}", gateway, order.getOrderNumber());
 
-    // Resolve strategy — throws UnsupportedOperationException for BAKONG
+    // Resolve strategy
     PaymentGatewayStrategy strategy = resolveStrategy(gateway);
 
-    // Delegate to strategy — builds Payment entity (not yet persisted)
+    // Delegate to strategy — builds Payment entity
     Payment payment = strategy.initiate(order, request);
     payment.setOrder(order);
 
@@ -90,21 +105,18 @@ public class PaymentServiceImpl implements PaymentService {
     Payment savedPayment = paymentRepository.save(payment);
     log.info("Payment #{} created for order #{}", savedPayment.getId(), order.getOrderNumber());
 
-    // For COD and CASH_IN_SHOP: confirm order immediately (no waiting for gateway callback)
+    // For COD and CASH_IN_SHOP: order is already confirmed in checkout flow
     if (gateway == PaymentGateway.COD || gateway == PaymentGateway.CASH_IN_SHOP) {
-      order.setOrderStatus(OrderStatus.CONFIRMED);
-      orderRepository.save(order);
-      log.info("Order #{} confirmed ({})", order.getOrderNumber(), gateway);
-
       sendNotification(
           order.getUser().getId(),
           "Order Confirmed!",
-          "Your order #"
-              + order.getOrderNumber()
-              + " is confirmed. "
-              + (gateway == PaymentGateway.COD
-                  ? "Pay when your package arrives."
-                  : "Please visit our store within 24 hours to pay and collect."),
+          gateway == PaymentGateway.COD
+              ? "Your order #"
+                  + order.getOrderNumber()
+                  + " is confirmed. Pay when your package arrives."
+              : "Your order #"
+                  + order.getOrderNumber()
+                  + " is ready. Please visit our store within 24 hours to pay and collect.",
           NotificationType.ORDER_CONFIRMED,
           order.getId());
     }
@@ -112,10 +124,7 @@ public class PaymentServiceImpl implements PaymentService {
     return buildInitiateResponse(savedPayment, gateway);
   }
 
-  // ─── 2. Poll payment status ───────────────────────────────────────────────
-
   @Override
-  @Transactional
   public PaymentStatusResponse getStatus(Long paymentId, Long userId) {
     Payment payment =
         paymentRepository
@@ -140,10 +149,7 @@ public class PaymentServiceImpl implements PaymentService {
     return buildStatusResponse(payment);
   }
 
-  // ─── 3. Confirm payment (webhook / internal) ──────────────────────────────
-
   @Override
-  @Transactional
   public void confirmPayment(Payment payment) {
     if (payment.getStatus() == PaymentStatus.PAID) {
       log.info("Payment #{} already confirmed — skipping", payment.getId());
@@ -154,68 +160,114 @@ public class PaymentServiceImpl implements PaymentService {
     log.info("Payment #{} confirmed with status {}", payment.getId(), payment.getStatus());
   }
 
-  // ─── 4. Staff: mark COD as paid ──────────────────────────────────────────
-
   @Override
   @Transactional
   public void markCodPaid(Long orderId, Long staffUserId) {
     log.info("Staff {} marking COD payment as paid for order #{}", staffUserId, orderId);
 
+    // Get the pending COD payment
     Payment payment = getLatestPendingPayment(orderId, PaymentGateway.COD);
+    Order order = payment.getOrder();
 
+    // Verify order is in correct state
+    if (order.getOrderStatus() == OrderStatus.DELIVERED) {
+      log.warn("Order #{} already marked as delivered", order.getOrderNumber());
+      throw new BadRequestException("Order already delivered");
+    }
+
+    // Get staff info for recording
+    String staffName = getStaffName(staffUserId);
+
+    // Update payment status
     payment.setStatus(PaymentStatus.PAID);
     payment.setPaidAt(LocalDateTime.now());
     paymentRepository.save(payment);
 
-    Order order = payment.getOrder();
+    // Update order status
     order.setPaymentStatus(PaymentStatus.PAID);
     order.setOrderStatus(OrderStatus.DELIVERED);
     orderRepository.save(order);
 
+    // 🔴 RECORD THE CASH TRANSACTION
+    PaymentTransaction transaction =
+        financialService.recordCashPayment(order, payment, staffUserId, staffName);
+
+    log.info(
+        "✅ COD payment recorded - Receipt: {} for order #{}",
+        transaction.getReferenceNumber(),
+        order.getOrderNumber());
+
+    // Send notification with receipt
     sendNotification(
         order.getUser().getId(),
-        "Payment Received",
-        "Cash payment received for order #" + order.getOrderNumber() + ". Thank you!",
+        "Payment Received - COD",
+        String.format(
+            "Cash payment of $%.2f received for order #%s.\nReceipt: %s\nThank you for your purchase!",
+            order.getTotalAmount(), order.getOrderNumber(), transaction.getReferenceNumber()),
         NotificationType.PAYMENT_SUCCESS,
         order.getId());
-
-    log.info("COD payment marked as paid for order #{}", order.getOrderNumber());
   }
-
-  // ─── 5. Staff: mark Cash-in-Shop as paid ─────────────────────────────────
 
   @Override
   @Transactional
   public void markCashInShopPaid(Long orderId, Long staffUserId) {
     log.info("Staff {} marking Cash-in-Shop payment as paid for order #{}", staffUserId, orderId);
 
+    // Get the pending Cash-in-Shop payment
     Payment payment = getLatestPendingPayment(orderId, PaymentGateway.CASH_IN_SHOP);
+    Order order = payment.getOrder();
 
+    // Check if payment has expired
     if (payment.getExpiredAt() != null && LocalDateTime.now().isAfter(payment.getExpiredAt())) {
       throw new BadRequestException(
-          "Order #" + payment.getOrder().getOrderNumber() + " reservation has expired.");
+          "Order #"
+              + order.getOrderNumber()
+              + " reservation has expired. Please create a new order.");
     }
 
+    // Verify order is in correct state
+    if (order.getOrderStatus() != OrderStatus.READY_FOR_PICKUP) {
+      throw new BadRequestException(
+          "Order #"
+              + order.getOrderNumber()
+              + " is not ready for pickup. Current status: "
+              + order.getOrderStatus());
+    }
+
+    // Get staff info for recording
+    String staffName = getStaffName(staffUserId);
+
+    // Update payment status
     payment.setStatus(PaymentStatus.PAID);
     payment.setPaidAt(LocalDateTime.now());
     paymentRepository.save(payment);
 
-    Order order = payment.getOrder();
+    // Update order status
     order.setPaymentStatus(PaymentStatus.PAID);
     order.setOrderStatus(OrderStatus.COMPLETED);
     orderRepository.save(order);
 
+    // 🔴 RECORD THE CASH TRANSACTION
+    PaymentTransaction transaction =
+        financialService.recordCashPayment(order, payment, staffUserId, staffName);
+
+    log.info(
+        "✅ Cash-in-Shop payment recorded - Receipt: {} for order #{}",
+        transaction.getReferenceNumber(),
+        order.getOrderNumber());
+
+    // Send notification with receipt
     sendNotification(
         order.getUser().getId(),
-        "Payment Received",
-        "Payment received for order #" + order.getOrderNumber() + ". Enjoy your purchase!",
+        "Payment Received - Store Pickup",
+        String.format(
+            "Payment of $%.2f received at store for order #%s.\nReceipt: %s\nPlease keep this receipt for your records.\nThank you for shopping with us!",
+            order.getTotalAmount(), order.getOrderNumber(), transaction.getReferenceNumber()),
         NotificationType.PAYMENT_SUCCESS,
         order.getId());
-
-    log.info("Cash-in-Shop payment marked as paid for order #{}", order.getOrderNumber());
   }
 
-  // ─── Private helpers ──────────────────────────────────────────────────────
+  // ─── Private Helper Methods ─────────────────────────────────────────────
 
   private PaymentGatewayStrategy resolveStrategy(PaymentGateway gateway) {
     PaymentGatewayStrategy strategy = strategies.get(gateway);
@@ -258,13 +310,29 @@ public class PaymentServiceImpl implements PaymentService {
   }
 
   private Payment getLatestPendingPayment(Long orderId, PaymentGateway gateway) {
-    return paymentRepository.findByOrderIdAndStatus(orderId, PaymentStatus.PENDING).stream()
+    List<Payment> payments =
+        paymentRepository.findByOrderIdAndStatus(orderId, PaymentStatus.PENDING);
+
+    return payments.stream()
         .filter(p -> p.getGateway() == gateway)
         .findFirst()
         .orElseThrow(
             () ->
                 new ResourceNotFoundException(
                     "No pending " + gateway + " payment found for order: " + orderId));
+  }
+
+  private String getStaffName(Long staffUserId) {
+    return userRepository
+        .findById(staffUserId)
+        .map(
+            user -> {
+              if (user.getFullName() != null && !user.getFullName().isEmpty()) {
+                return user.getFullName();
+              }
+              return user.getEmail();
+            })
+        .orElse("Staff-" + staffUserId);
   }
 
   private void sendNotification(
@@ -299,15 +367,23 @@ public class PaymentServiceImpl implements PaymentService {
             .expiredAt(payment.getExpiredAt());
 
     switch (gateway) {
-      case BAKONG ->
-          builder
-              .bakongDeeplink(payment.getPaymentUrl())
-              .message("Scan the QR or open the deeplink to pay via Bakong / KHQR");
-      case COD ->
-          builder.message("Order confirmed. Please prepare cash when your package arrives.");
-      case CASH_IN_SHOP ->
-          builder.message(
-              "Order confirmed. Please visit our store within 24 hours to pay and collect.");
+      case BAKONG:
+        builder
+            .bakongDeeplink(payment.getPaymentUrl())
+            .message("Scan the QR or open the deeplink to pay via Bakong / KHQR");
+        break;
+      case COD:
+        builder.message(
+            "Order confirmed. Please prepare $"
+                + payment.getAmount()
+                + " cash when your package arrives.");
+        break;
+      case CASH_IN_SHOP:
+        builder.message(
+            "Order confirmed. Please visit our store within 24 hours to pay $"
+                + payment.getAmount()
+                + " and collect your items.");
+        break;
     }
 
     return builder.build();
@@ -332,5 +408,97 @@ public class PaymentServiceImpl implements PaymentService {
         .paidAt(payment.getPaidAt())
         .message(message)
         .build();
+  }
+
+  // Add these methods to your PaymentServiceImpl.java
+
+  @Override
+  public DailyCashSummary getDailyCashSummary(LocalDate date) {
+    log.info("Getting daily cash summary for date: {}", date);
+
+    LocalDateTime startOfDay = date.atStartOfDay();
+    LocalDateTime endOfDay = date.atTime(23, 59, 59);
+
+    // Get COD totals
+    BigDecimal totalCodCollected =
+        transactionRepository.getTotalCashCollectedByDate(date, PaymentMethod.COD);
+    Integer totalCodOrders =
+        transactionRepository.getOrderCountByDateAndMethod(date, PaymentMethod.COD);
+
+    // Get Cash-in-Shop totals
+    BigDecimal totalCashInShopCollected =
+        transactionRepository.getTotalCashCollectedByDate(date, PaymentMethod.CASH_IN_SHOP);
+    Integer totalCashInShopOrders =
+        transactionRepository.getOrderCountByDateAndMethod(date, PaymentMethod.CASH_IN_SHOP);
+
+    // Get cashier summaries
+    List<DailyCashSummary.CashierSummary> cashierSummaries = getCashierSummaries(date);
+
+    BigDecimal grandTotal = BigDecimal.ZERO;
+    if (totalCodCollected != null) grandTotal = grandTotal.add(totalCodCollected);
+    if (totalCashInShopCollected != null) grandTotal = grandTotal.add(totalCashInShopCollected);
+
+    return DailyCashSummary.builder()
+        .date(date)
+        .totalCodCollected(totalCodCollected != null ? totalCodCollected : BigDecimal.ZERO)
+        .totalCashInShopCollected(
+            totalCashInShopCollected != null ? totalCashInShopCollected : BigDecimal.ZERO)
+        .grandTotal(grandTotal)
+        .totalCodOrders(totalCodOrders != null ? totalCodOrders : 0)
+        .totalCashInShopOrders(totalCashInShopOrders != null ? totalCashInShopOrders : 0)
+        .cashiers(cashierSummaries)
+        .build();
+  }
+
+  @Override
+  public DailyCashSummary getDailyCashSummaryByCashier(LocalDate date, Long cashierId) {
+    log.info("Getting daily cash summary for cashier: {} on date: {}", cashierId, date);
+
+    List<PaymentTransaction> transactions =
+        transactionRepository.findByCashierUserIdAndTransactionDateBetween(
+            cashierId, date.atStartOfDay(), date.atTime(23, 59, 59));
+
+    BigDecimal totalCod =
+        transactions.stream()
+            .filter(t -> t.getPaymentMethod() == PaymentMethod.COD)
+            .map(PaymentTransaction::getAmount)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+    BigDecimal totalCashInShop =
+        transactions.stream()
+            .filter(t -> t.getPaymentMethod() == PaymentMethod.CASH_IN_SHOP)
+            .map(PaymentTransaction::getAmount)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+    long codCount =
+        transactions.stream().filter(t -> t.getPaymentMethod() == PaymentMethod.COD).count();
+    long cashInShopCount =
+        transactions.stream()
+            .filter(t -> t.getPaymentMethod() == PaymentMethod.CASH_IN_SHOP)
+            .count();
+
+    return DailyCashSummary.builder()
+        .date(date)
+        .totalCodCollected(totalCod)
+        .totalCashInShopCollected(totalCashInShop)
+        .grandTotal(totalCod.add(totalCashInShop))
+        .totalCodOrders((int) codCount)
+        .totalCashInShopOrders((int) cashInShopCount)
+        .build();
+  }
+
+  private List<DailyCashSummary.CashierSummary> getCashierSummaries(LocalDate date) {
+    List<Object[]> results = transactionRepository.getCashierSummaryByDate(date);
+
+    return results.stream()
+        .map(
+            row ->
+                DailyCashSummary.CashierSummary.builder()
+                    .cashierId(((Number) row[0]).longValue())
+                    .cashierName((String) row[1])
+                    .totalCollected((BigDecimal) row[2])
+                    .orderCount(((Number) row[3]).intValue())
+                    .build())
+        .collect(Collectors.toList());
   }
 }
