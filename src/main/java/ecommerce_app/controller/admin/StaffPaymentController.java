@@ -170,6 +170,16 @@ public class StaffPaymentController {
     return BaseBodyResponse.success(receipts, "Success");
   }
 
+  @GetMapping("/test-endpoints")
+  public ResponseEntity<BaseBodyResponse<List<String>>> testEndpoints() {
+    // This will help verify if the controller is loaded
+    return BaseBodyResponse.success(
+        List.of(
+            "/api/admin/v1/staff/payments/orders/{orderId}/cod/mark-paid",
+            "/api/admin/v1/staff/payments/orders/{orderId}/cash-in-shop/mark-paid"),
+        "Success");
+  }
+
   // Private helper methods for mapping
   private PaymentTransactionResponse toTransactionResponse(PaymentTransaction transaction) {
     return PaymentTransactionResponse.builder()

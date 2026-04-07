@@ -14,6 +14,7 @@ import ecommerce_app.dto.request.CheckoutRequest;
 import ecommerce_app.dto.request.InitiatePaymentRequest;
 import ecommerce_app.dto.request.NotificationRequest;
 import ecommerce_app.dto.response.ApplyCouponResponse;
+import ecommerce_app.dto.response.InitiatePaymentResponse;
 import ecommerce_app.dto.response.OrderDetailResponse;
 import ecommerce_app.dto.response.OrderResponse;
 import ecommerce_app.entity.Address;
@@ -219,36 +220,31 @@ public class OrderServiceImpl implements OrderService {
    * moves the order from PENDING → CONFIRMED immediately. BAKONG/QR_CODE orders are NOT
    * auto-initiated — customer must pay via QR first.
    */
-  // Fix in OrderServiceImpl.java - handlePaymentAfterCheckout method
+  // OrderServiceImpl.java
   private void handlePaymentAfterCheckout(Order order, Long userId) {
     PaymentMethod method = order.getPaymentMethod();
 
-    // Step 1: Always create payment (your strategy will handle behavior)
+    // Step 1: Create payment record
     InitiatePaymentRequest request = new InitiatePaymentRequest();
     request.setOrderId(order.getId());
     request.setGateway(PaymentGateway.fromPaymentMethod(method));
 
-    paymentService.initiate(request, userId);
+    // This should create and save the payment
+    InitiatePaymentResponse response = paymentService.initiate(request, userId);
 
-    // Step 2: Control ORDER + PAYMENT status (IMPORTANT)
-    // IMPORTANT: Only set status if not already set by paymentService.initiate
+    log.info("Payment initiated with ID: {} for order: {}", response.getPaymentId(), order.getOrderNumber());
+
+    // Step 2: Update order status based on payment method
     switch (method) {
       case COD -> {
-        // Order should be CONFIRMED immediately for COD
-        if (order.getOrderStatus() == OrderStatus.PENDING) {
-          order.setOrderStatus(OrderStatus.CONFIRMED);
-        }
+        order.setOrderStatus(OrderStatus.CONFIRMED);
         order.setPaymentStatus(PaymentStatus.PENDING);
       }
       case CASH_IN_SHOP -> {
-        // Order is ready for pickup immediately
-        if (order.getOrderStatus() == OrderStatus.PENDING) {
-          order.setOrderStatus(OrderStatus.READY_FOR_PICKUP);
-        }
+        order.setOrderStatus(OrderStatus.CONFIRMED); // or READY_FOR_PICKUP
         order.setPaymentStatus(PaymentStatus.PENDING);
       }
       case QR_CODE -> {
-        // Keep PENDING until payment is confirmed via webhook
         order.setOrderStatus(OrderStatus.PENDING);
         order.setPaymentStatus(PaymentStatus.PENDING);
       }

@@ -21,12 +21,12 @@ import ecommerce_app.repository.PaymentTransactionRepository;
 import ecommerce_app.repository.UserRepository;
 import ecommerce_app.service.PaymentService;
 import ecommerce_app.service.strategy.PaymentGatewayStrategy;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
@@ -65,6 +65,7 @@ public class PaymentServiceImpl implements PaymentService {
             .collect(Collectors.toMap(PaymentGatewayStrategy::getGateway, Function.identity()));
   }
 
+  // PaymentServiceImpl.java
   @Override
   public InitiatePaymentResponse initiate(InitiatePaymentRequest request, Long userId) {
     log.info("Initiating payment for order #{}", request.getOrderId());
@@ -86,6 +87,15 @@ public class PaymentServiceImpl implements PaymentService {
           "Order #" + order.getOrderNumber() + " is cancelled and cannot be paid.");
     }
 
+    // Check if payment already exists for this order
+    Optional<Payment> existingPayment = paymentRepository.findByOrderId(order.getId());
+    if (existingPayment.isPresent() && existingPayment.get().getStatus() == PaymentStatus.PENDING) {
+      log.info(
+          "Payment already exists for order #{}, returning existing payment",
+          order.getOrderNumber());
+      return buildInitiateResponse(existingPayment.get(), existingPayment.get().getGateway());
+    }
+
     // Auto-resolve gateway from order's paymentMethod
     PaymentGateway gateway =
         request.getGateway() != null
@@ -101,25 +111,12 @@ public class PaymentServiceImpl implements PaymentService {
     Payment payment = strategy.initiate(order, request);
     payment.setOrder(order);
 
-    // Persist
+    // Persist - THIS IS CRITICAL
     Payment savedPayment = paymentRepository.save(payment);
     log.info("Payment #{} created for order #{}", savedPayment.getId(), order.getOrderNumber());
 
-    // For COD and CASH_IN_SHOP: order is already confirmed in checkout flow
-    if (gateway == PaymentGateway.COD || gateway == PaymentGateway.CASH_IN_SHOP) {
-      sendNotification(
-          order.getUser().getId(),
-          "Order Confirmed!",
-          gateway == PaymentGateway.COD
-              ? "Your order #"
-                  + order.getOrderNumber()
-                  + " is confirmed. Pay when your package arrives."
-              : "Your order #"
-                  + order.getOrderNumber()
-                  + " is ready. Please visit our store within 24 hours to pay and collect.",
-          NotificationType.ORDER_CONFIRMED,
-          order.getId());
-    }
+    // Update order with payment reference if needed
+    // order.setPayment(savedPayment); // If you have this relationship
 
     return buildInitiateResponse(savedPayment, gateway);
   }
@@ -226,7 +223,9 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     // Verify order is in correct state
-    if (order.getOrderStatus() != OrderStatus.READY_FOR_PICKUP) {
+    if (order.getOrderStatus() != OrderStatus.CONFIRMED
+            && order.getOrderStatus() != OrderStatus.PROCESSING
+            && order.getOrderStatus() != OrderStatus.READY_FOR_PICKUP) {
       throw new BadRequestException(
           "Order #"
               + order.getOrderNumber()
@@ -313,13 +312,51 @@ public class PaymentServiceImpl implements PaymentService {
     List<Payment> payments =
         paymentRepository.findByOrderIdAndStatus(orderId, PaymentStatus.PENDING);
 
-    return payments.stream()
-        .filter(p -> p.getGateway() == gateway)
-        .findFirst()
-        .orElseThrow(
-            () ->
-                new ResourceNotFoundException(
-                    "No pending " + gateway + " payment found for order: " + orderId));
+    // Try to find existing pending payment
+    Optional<Payment> existingPayment =
+        payments.stream().filter(p -> p.getGateway() == gateway).findFirst();
+
+    if (existingPayment.isPresent()) {
+      return existingPayment.get();
+    }
+
+    // If no payment found, create one automatically
+    log.warn(
+        "No pending {} payment found for order: {}. Creating one automatically.", gateway, orderId);
+
+    Order order =
+        orderRepository
+            .findById(orderId)
+            .orElseThrow(() -> new ResourceNotFoundException("Order not found: " + orderId));
+
+    // Create payment based on gateway
+    Payment newPayment = createPaymentForOrder(order, gateway);
+    Payment savedPayment = paymentRepository.save(newPayment);
+
+    log.info(
+        "Auto-created payment #{} for order #{}", savedPayment.getId(), order.getOrderNumber());
+
+    return savedPayment;
+  }
+
+  private Payment createPaymentForOrder(Order order, PaymentGateway gateway) {
+    Payment payment = new Payment();
+    payment.setOrder(order);
+    payment.setGateway(gateway);
+    payment.setAmount(order.getTotalAmount());
+    payment.setCurrency("USD");
+    payment.setStatus(PaymentStatus.PENDING);
+    payment.setCreatedAt(LocalDateTime.now());
+
+    if (gateway == PaymentGateway.CASH_IN_SHOP) {
+      // Set expiry for Cash-in-Shop (24 hours)
+      payment.setExpiredAt(LocalDateTime.now().plusHours(24));
+      payment.setGatewayReference("SHOP-" + order.getOrderNumber());
+    } else if (gateway == PaymentGateway.COD) {
+      payment.setGatewayReference("COD-" + order.getOrderNumber());
+    }
+
+    return payment;
   }
 
   private String getStaffName(Long staffUserId) {

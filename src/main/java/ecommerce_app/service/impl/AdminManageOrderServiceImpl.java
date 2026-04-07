@@ -1,6 +1,7 @@
 package ecommerce_app.service.impl;
 
 import ecommerce_app.constant.enums.OrderStatus;
+import ecommerce_app.constant.enums.PaymentMethod;
 import ecommerce_app.constant.enums.PaymentStatus;
 import ecommerce_app.exception.ResourceNotFoundException;
 import ecommerce_app.mapper.OrderMapper;
@@ -103,6 +104,26 @@ public class AdminManageOrderServiceImpl implements AdminManageOrderService {
 
     response.setStatusHistories(histories);
     return response;
+  }
+
+  @Transactional(readOnly = true)
+  @Override
+  public Page<OrderResponse> getOrdersReadyForCollection(PaymentMethod paymentMethod, int page, int size) {
+    PageRequest pageRequest =
+            PageRequest.of(page - 1, size, Sort.by(Sort.Direction.ASC, "orderDate"));
+
+    List<PaymentMethod> methods;
+    if (paymentMethod != null) {
+      methods = List.of(paymentMethod);
+    } else {
+      // Default to both COD and CASH_IN_SHOP
+      methods = List.of(PaymentMethod.COD, PaymentMethod.CASH_IN_SHOP, PaymentMethod.CASH);
+    }
+
+    Page<Order> orders =
+            orderRepository.findByPaymentMethodInAndPaymentStatusAndOrderStatusNot(
+                    methods, PaymentStatus.PENDING, OrderStatus.CANCELLED, pageRequest);
+    return orders.map(orderMapper::toSimpleResponse);
   }
 
   private void validateTransition(OrderStatus from, OrderStatus to) {
