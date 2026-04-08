@@ -168,4 +168,11 @@ public interface OrderRepository
       PaymentStatus paymentStatus,
       OrderStatus excludedStatus,
       Pageable pageable);
+
+  @Query("SELECT o FROM Order o WHERE o.orderDate BETWEEN :startDate AND :endDate AND o.createdBy = :createdBy")
+  List<Order> findByOrderDateBetweenAndCreatedBy(
+          @Param("startDate") LocalDateTime startDate,
+          @Param("endDate") LocalDateTime endDate,
+          @Param("createdBy") String createdBy
+  );
 }

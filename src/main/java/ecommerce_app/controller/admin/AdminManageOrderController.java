@@ -1,12 +1,16 @@
 package ecommerce_app.controller.admin;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import ecommerce_app.constant.enums.OrderStatus;
 import ecommerce_app.constant.enums.PaymentMethod;
 import ecommerce_app.constant.enums.PaymentStatus;
 import ecommerce_app.constant.message.MessageKeyConstant;
+import ecommerce_app.core.identify.custom.CustomUserDetails;
+import ecommerce_app.dto.request.POSOrderRequest;
 import ecommerce_app.dto.response.BaseBodyResponse;
 import ecommerce_app.dto.response.OrderDetailResponse;
 import ecommerce_app.dto.response.OrderResponse;
+import ecommerce_app.dto.response.POSOrderResponse;
 import ecommerce_app.mapper.OrderMapper;
 import ecommerce_app.repository.OrderRepository;
 import ecommerce_app.service.AdminManageOrderService;
@@ -16,15 +20,20 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.time.LocalDate;
 import java.util.List;
+
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -40,8 +49,8 @@ public class AdminManageOrderController {
   @PreAuthorize("hasAnyAuthority('ORDER_UPDATE', 'ORDER_DELETE', 'ORDER_CANCEL')")
   @PatchMapping("/{orderId}/update-status")
   public ResponseEntity<BaseBodyResponse<Void>> updateOrderStatus(
-          @PathVariable Long orderId,
-          @Parameter(name = "status") @RequestParam(name = "status") OrderStatus newStatus) {
+      @PathVariable Long orderId,
+      @Parameter(name = "status") @RequestParam(name = "status") OrderStatus newStatus) {
     this.adminManageOrderService.updateOrderStatus(orderId, newStatus);
     return BaseBodyResponse.success(
         messageSourceService.getMessage(MessageKeyConstant.ORDER_MESSAGE_STATUS_UPDATED));
@@ -80,7 +89,7 @@ public class AdminManageOrderController {
   @PreAuthorize("hasAnyAuthority('ORDER_READ', 'ORDER_UPDATE', 'ORDER_CANCEL', 'ORDER_DELETE')")
   @GetMapping("/{orderId}")
   public ResponseEntity<BaseBodyResponse<OrderDetailResponse>> getOrderDetail(
-          @PathVariable Long orderId) {
+      @PathVariable Long orderId) {
     return BaseBodyResponse.success(
         this.adminManageOrderService.getOrderDetailForAdmin(orderId),
         messageSourceService.getMessage(MessageKeyConstant.ORDER_TITLE_DETAIL));
@@ -95,9 +104,39 @@ public class AdminManageOrderController {
       @RequestParam(defaultValue = "1") int page,
       @RequestParam(defaultValue = "20") int size) {
 
-    Page<OrderResponse> orders = adminManageOrderService.getOrdersReadyForCollection(
-            paymentMethod, page, size, includePaid
-    );
+    Page<OrderResponse> orders =
+        adminManageOrderService.getOrdersReadyForCollection(paymentMethod, page, size, includePaid);
     return BaseBodyResponse.pageSuccess(orders, "Success");
+  }
+
+  @PostMapping("/staff/pos/create")
+  @Operation(summary = "Create POS order (in-store purchase)")
+  public ResponseEntity<BaseBodyResponse<POSOrderResponse>> createPOSOrder(
+      @Valid @RequestBody POSOrderRequest request,
+      @AuthenticationPrincipal CustomUserDetails userDetails) throws JsonProcessingException {
+
+    POSOrderResponse response =
+        adminManageOrderService.createPOSOrder(request, userDetails.getId());
+    return BaseBodyResponse.success(response, "Order created successfully");
+  }
+
+  @GetMapping("/staff/pos/order/{orderId}")
+  @Operation(summary = "Get POS order details")
+  public ResponseEntity<BaseBodyResponse<POSOrderResponse>> getPOSOrder(
+      @PathVariable Long orderId) {
+    POSOrderResponse response = adminManageOrderService.getPOSOrder(orderId);
+    return BaseBodyResponse.success(response, "Success");
+  }
+
+  @GetMapping("/staff/pos/today")
+  @Operation(summary = "Get today's POS orders")
+  public ResponseEntity<BaseBodyResponse<List<POSOrderResponse>>> getTodayPOSOrders(
+      @RequestParam(required = false) LocalDate date,
+      @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+    LocalDate targetDate = date != null ? date : LocalDate.now();
+    List<POSOrderResponse> orders =
+        adminManageOrderService.getTodayPOSOrders(targetDate, userDetails.getId());
+    return BaseBodyResponse.success(orders, "Success");
   }
 }
