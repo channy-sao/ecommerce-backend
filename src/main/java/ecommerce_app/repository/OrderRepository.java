@@ -157,11 +157,15 @@ public interface OrderRepository
   @Query("SELECT COUNT(o) FROM Order o WHERE CAST(o.orderDate AS date) = CAST(:date AS date)")
   Long countOrdersCreatedToday(@Param("date") LocalDate date);
 
-  // Add to OrderRepository.java
   Page<Order> findByPaymentMethodInAndPaymentStatusAndOrderStatusNot(
-          List<PaymentMethod> paymentMethods,
-          PaymentStatus paymentStatus,
-          OrderStatus excludedStatus,
-          Pageable pageable
-  );
+      List<PaymentMethod> methods,
+      PaymentStatus paymentStatus,
+      OrderStatus excludedStatus,
+      Pageable pageable);
+
+  Page<Order> findByPaymentMethodInAndPaymentStatusNotAndOrderStatusNot(
+      List<PaymentMethod> methods,
+      PaymentStatus paymentStatus,
+      OrderStatus excludedStatus,
+      Pageable pageable);
 }

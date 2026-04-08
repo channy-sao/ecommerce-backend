@@ -108,22 +108,48 @@ public class AdminManageOrderServiceImpl implements AdminManageOrderService {
 
   @Transactional(readOnly = true)
   @Override
-  public Page<OrderResponse> getOrdersReadyForCollection(PaymentMethod paymentMethod, int page, int size) {
+  public Page<OrderResponse> getOrdersReadyForCollection(
+      PaymentMethod paymentMethod, int page, int size, boolean includePaid) {
     PageRequest pageRequest =
-            PageRequest.of(page - 1, size, Sort.by(Sort.Direction.ASC, "orderDate"));
+        PageRequest.of(
+            page - 1, size, Sort.by(Sort.Direction.DESC, "orderDate") // Show newest first
+            );
 
     List<PaymentMethod> methods;
     if (paymentMethod != null) {
       methods = List.of(paymentMethod);
     } else {
-      // Default to both COD and CASH_IN_SHOP
       methods = List.of(PaymentMethod.COD, PaymentMethod.CASH_IN_SHOP, PaymentMethod.CASH);
     }
 
-    Page<Order> orders =
-            orderRepository.findByPaymentMethodInAndPaymentStatusAndOrderStatusNot(
-                    methods, PaymentStatus.PENDING, OrderStatus.CANCELLED, pageRequest);
+    Page<Order> orders;
+
+    if (includePaid) {
+      // For collected history - ONLY PAID orders
+      orders =
+          orderRepository.findByPaymentMethodInAndPaymentStatusAndOrderStatusNot(
+              methods,
+              PaymentStatus.PAID, // Only PAID
+              OrderStatus.CANCELLED,
+              pageRequest);
+    } else {
+      // For pending collection - exclude PAID and CANCELLED
+      orders =
+          orderRepository.findByPaymentMethodInAndPaymentStatusNotAndOrderStatusNot(
+              methods,
+              PaymentStatus.PAID, // Exclude PAID
+              OrderStatus.CANCELLED,
+              pageRequest);
+    }
+
     return orders.map(orderMapper::toSimpleResponse);
+  }
+
+  private List<PaymentMethod> getPaymentMethods(PaymentMethod paymentMethod) {
+    if (paymentMethod != null) {
+      return List.of(paymentMethod);
+    }
+    return List.of(PaymentMethod.COD, PaymentMethod.CASH_IN_SHOP, PaymentMethod.CASH);
   }
 
   private void validateTransition(OrderStatus from, OrderStatus to) {

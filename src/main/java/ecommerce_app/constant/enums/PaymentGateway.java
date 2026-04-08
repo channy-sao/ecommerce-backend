@@ -17,7 +17,10 @@ public enum PaymentGateway {
     return switch (method) {
       case COD -> COD;
       case CASH_IN_SHOP -> CASH_IN_SHOP;
+      case CASH -> CASH_IN_SHOP; // treat same as in-shop cash
       case QR_CODE -> BAKONG;
+      case CREDIT_CARD, DEBIT ->
+          throw new IllegalArgumentException("Payment method not yet supported: " + method);
       default ->
           throw new IllegalArgumentException("No payment gateway mapped for method: " + method);
     };

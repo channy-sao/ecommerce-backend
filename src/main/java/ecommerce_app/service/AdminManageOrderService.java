@@ -27,5 +27,6 @@ public interface AdminManageOrderService {
 
   OrderDetailResponse getOrderDetailForAdmin(Long orderId);
 
-  Page<OrderResponse> getOrdersReadyForCollection(PaymentMethod paymentMethod, int page, int size);
+  Page<OrderResponse> getOrdersReadyForCollection(
+      PaymentMethod paymentMethod, int page, int size, boolean includePaid);
 }

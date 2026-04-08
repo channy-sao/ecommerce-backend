@@ -10,9 +10,13 @@ import ecommerce_app.dto.request.NotificationRequest;
 import ecommerce_app.dto.response.DailyCashSummary;
 import ecommerce_app.dto.response.InitiatePaymentResponse;
 import ecommerce_app.dto.response.PaymentStatusResponse;
+import ecommerce_app.dto.response.PaymentTransactionResponse;
+import ecommerce_app.dto.response.ReceiptItem;
+import ecommerce_app.dto.response.ReceiptResponse;
 import ecommerce_app.entity.Order;
 import ecommerce_app.entity.Payment;
 import ecommerce_app.entity.PaymentTransaction;
+import ecommerce_app.entity.User;
 import ecommerce_app.exception.BadRequestException;
 import ecommerce_app.exception.ResourceNotFoundException;
 import ecommerce_app.repository.OrderRepository;
@@ -224,8 +228,8 @@ public class PaymentServiceImpl implements PaymentService {
 
     // Verify order is in correct state
     if (order.getOrderStatus() != OrderStatus.CONFIRMED
-            && order.getOrderStatus() != OrderStatus.PROCESSING
-            && order.getOrderStatus() != OrderStatus.READY_FOR_PICKUP) {
+        && order.getOrderStatus() != OrderStatus.PROCESSING
+        && order.getOrderStatus() != OrderStatus.READY_FOR_PICKUP) {
       throw new BadRequestException(
           "Order #"
               + order.getOrderNumber()
@@ -521,6 +525,93 @@ public class PaymentServiceImpl implements PaymentService {
         .grandTotal(totalCod.add(totalCashInShop))
         .totalCodOrders((int) codCount)
         .totalCashInShopOrders((int) cashInShopCount)
+        .build();
+  }
+
+  @Override
+  public List<PaymentTransactionResponse> getTransactionsByOrder(Long orderId) {
+    List<PaymentTransaction> transactions = transactionRepository.findByOrderId(orderId);
+    if (transactions.isEmpty()) {
+      throw new ResourceNotFoundException("No transactions found for order: " + orderId);
+    }
+    return transactions.stream().map(this::toTransactionResponse).collect(Collectors.toList());
+  }
+
+  @Override
+  public PaymentTransactionResponse getTransactionByReceipt(String receiptNumber) {
+    PaymentTransaction transaction =
+        transactionRepository
+            .findByReferenceNumber(receiptNumber)
+            .orElseThrow(
+                () ->
+                    new ResourceNotFoundException(
+                        "No transaction found for receipt: " + receiptNumber));
+    return toTransactionResponse(transaction);
+  }
+
+  @Override
+  public ReceiptResponse getReceiptByOrder(Long orderId) {
+    List<PaymentTransaction> transactions = transactionRepository.findByOrderId(orderId);
+    if (transactions.isEmpty()) {
+      throw new ResourceNotFoundException("No transaction found for order: " + orderId);
+    }
+    return buildReceiptResponse(transactions.getFirst());
+  }
+
+  @Override
+  public List<ReceiptResponse> getReceiptsByDateRange(LocalDateTime start, LocalDateTime end) {
+    return transactionRepository.findTransactionsBetween(start, end).stream()
+        .map(this::buildReceiptResponse)
+        .collect(Collectors.toList());
+  }
+
+  // Move mapping methods here from controller
+  private PaymentTransactionResponse toTransactionResponse(PaymentTransaction transaction) {
+    return PaymentTransactionResponse.builder()
+        .id(transaction.getId())
+        .referenceNumber(transaction.getReferenceNumber())
+        .amount(transaction.getAmount())
+        .paymentMethod(transaction.getPaymentMethod().name())
+        .transactionType(transaction.getType().name())
+        .status(transaction.getStatus().name())
+        .cashierName(transaction.getCashierName())
+        .transactionDate(transaction.getTransactionDate())
+        .notes(transaction.getNotes())
+        .orderId(transaction.getOrder().getId())
+        .orderNumber(transaction.getOrder().getOrderNumber())
+        .build();
+  }
+
+  private ReceiptResponse buildReceiptResponse(PaymentTransaction transaction) {
+    Order order = transaction.getOrder();
+    User user = order.getUser();
+
+    return ReceiptResponse.builder()
+        .receiptNumber(transaction.getReferenceNumber())
+        .orderNumber(order.getOrderNumber())
+        .date(transaction.getTransactionDate())
+        .amount(transaction.getAmount())
+        .paymentMethod(transaction.getPaymentMethod())
+        .cashierName(transaction.getCashierName())
+        .customerName(user.getFullName())
+        .customerEmail(user.getEmail())
+        .status(order.getPaymentStatus())
+        .items(
+            order.getOrderItems().stream()
+                .map(
+                    item ->
+                        ReceiptItem.builder()
+                            .productName(item.getProduct().getName())
+                            .productCode(item.getProduct().getCode())
+                            .quantity(item.getQuantity())
+                            .price(item.getOriginalPrice())
+                            .total(item.getTotalPrice())
+                            .build())
+                .collect(Collectors.toList()))
+        .subtotal(order.getSubtotalAmount())
+        .discount(order.getDiscountAmount())
+        .shipping(order.getShippingCost())
+        .total(order.getTotalAmount())
         .build();
   }
 

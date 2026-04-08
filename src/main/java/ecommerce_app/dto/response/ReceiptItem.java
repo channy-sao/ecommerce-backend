@@ -9,6 +9,7 @@ import java.math.BigDecimal;
 @Builder
 public class ReceiptItem {
   private String productName;
+  private String productCode;
   private Integer quantity;
   private BigDecimal price;
   private BigDecimal total;

@@ -4,9 +4,13 @@ import ecommerce_app.dto.request.InitiatePaymentRequest;
 import ecommerce_app.dto.response.DailyCashSummary;
 import ecommerce_app.dto.response.InitiatePaymentResponse;
 import ecommerce_app.dto.response.PaymentStatusResponse;
+import ecommerce_app.dto.response.PaymentTransactionResponse;
+import ecommerce_app.dto.response.ReceiptResponse;
 import ecommerce_app.entity.Payment;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
 
 public interface PaymentService {
 
@@ -36,4 +40,12 @@ public interface PaymentService {
   DailyCashSummary getDailyCashSummary(LocalDate date);
 
   DailyCashSummary getDailyCashSummaryByCashier(LocalDate date, Long cashierId);
+
+  List<PaymentTransactionResponse> getTransactionsByOrder(Long orderId);
+
+  PaymentTransactionResponse getTransactionByReceipt(String receiptNumber);
+
+  ReceiptResponse getReceiptByOrder(Long orderId);
+
+  List<ReceiptResponse> getReceiptsByDateRange(LocalDateTime start, LocalDateTime end);
 }

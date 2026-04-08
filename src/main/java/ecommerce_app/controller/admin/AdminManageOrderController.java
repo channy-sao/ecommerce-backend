@@ -17,6 +17,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import java.time.LocalDate;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -90,10 +91,13 @@ public class AdminManageOrderController {
   @Operation(summary = "Get orders ready for cash collection (COD & Cash-in-Shop)")
   public ResponseEntity<BaseBodyResponse<List<OrderResponse>>> getOrdersReadyForCollection(
       @RequestParam(required = false) PaymentMethod paymentMethod,
+      @RequestParam(defaultValue = "false") boolean includePaid,
       @RequestParam(defaultValue = "1") int page,
       @RequestParam(defaultValue = "20") int size) {
 
-    return BaseBodyResponse.pageSuccess(
-        adminManageOrderService.getOrdersReadyForCollection(paymentMethod, page, size), "Success");
+    Page<OrderResponse> orders = adminManageOrderService.getOrdersReadyForCollection(
+            paymentMethod, page, size, includePaid
+    );
+    return BaseBodyResponse.pageSuccess(orders, "Success");
   }
 }

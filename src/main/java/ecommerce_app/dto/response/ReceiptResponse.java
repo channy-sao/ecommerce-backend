@@ -2,6 +2,7 @@
 package ecommerce_app.dto.response;
 
 import ecommerce_app.constant.enums.PaymentMethod;
+import ecommerce_app.constant.enums.PaymentStatus;
 import lombok.Builder;
 import lombok.Data;
 import java.math.BigDecimal;
@@ -21,7 +22,9 @@ public class ReceiptResponse {
   private BigDecimal subtotal;
   private BigDecimal discount;
   private BigDecimal shipping;
-  private BigDecimal tax;
   private BigDecimal total;
+  private String customerName;   // add
+  private String customerEmail;  // add
+  private PaymentStatus status;  // add — for the "Payment confirmed" badge
 }
 

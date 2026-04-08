@@ -232,16 +232,15 @@ public class OrderServiceImpl implements OrderService {
     // This should create and save the payment
     InitiatePaymentResponse response = paymentService.initiate(request, userId);
 
-    log.info("Payment initiated with ID: {} for order: {}", response.getPaymentId(), order.getOrderNumber());
+    log.info(
+        "Payment initiated with ID: {} for order: {}",
+        response.getPaymentId(),
+        order.getOrderNumber());
 
     // Step 2: Update order status based on payment method
     switch (method) {
-      case COD -> {
+      case COD, CASH, CASH_IN_SHOP -> {
         order.setOrderStatus(OrderStatus.CONFIRMED);
-        order.setPaymentStatus(PaymentStatus.PENDING);
-      }
-      case CASH_IN_SHOP -> {
-        order.setOrderStatus(OrderStatus.CONFIRMED); // or READY_FOR_PICKUP
         order.setPaymentStatus(PaymentStatus.PENDING);
       }
       case QR_CODE -> {

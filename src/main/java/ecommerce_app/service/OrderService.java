@@ -1,5 +1,6 @@
 package ecommerce_app.service;
 
+import ecommerce_app.constant.enums.PaymentMethod;
 import ecommerce_app.dto.request.CheckoutRequest;
 import ecommerce_app.dto.response.OrderDetailResponse;
 import ecommerce_app.dto.response.OrderResponse;
