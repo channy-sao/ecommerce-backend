@@ -11,6 +11,7 @@ import ecommerce_app.dto.response.BaseBodyResponse;
 import ecommerce_app.dto.response.OrderDetailResponse;
 import ecommerce_app.dto.response.OrderResponse;
 import ecommerce_app.dto.response.POSOrderResponse;
+import ecommerce_app.dto.response.POSProductResponse;
 import ecommerce_app.mapper.OrderMapper;
 import ecommerce_app.repository.OrderRepository;
 import ecommerce_app.service.AdminManageOrderService;

@@ -3,6 +3,7 @@ package ecommerce_app.service.impl;
 import ecommerce_app.constant.TransactionStatus;
 import ecommerce_app.constant.TransactionType;
 import ecommerce_app.constant.enums.PaymentMethod;
+import ecommerce_app.constant.enums.PaymentStatus;
 import ecommerce_app.entity.Order;
 import ecommerce_app.entity.Payment;
 import ecommerce_app.entity.PaymentTransaction;
@@ -12,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -25,11 +27,20 @@ public class FinancialService {
   @Transactional
   public PaymentTransaction recordCashPayment(
       Order order, Payment payment, Long cashierUserId, String cashierName) {
-    log.info(
-        "Recording cash payment for order: {}, Amount: {}, Method: {}",
-        order.getOrderNumber(),
-        order.getTotalAmount(),
-        order.getPaymentMethod());
+    return recordCashPayment(
+        order, payment, cashierUserId, cashierName, order.getTotalAmount(), null);
+  }
+
+  @Transactional
+  public PaymentTransaction recordCashPayment(
+      Order order,
+      Payment payment,
+      Long cashierUserId,
+      String cashierName,
+      BigDecimal amount,
+      String note) {
+
+    log.info("Recording cash payment for order: {}, Amount: {}", order.getOrderNumber(), amount);
 
     // Generate unique receipt number
     String receiptNumber = generateReceiptNumber(order.getPaymentMethod(), order.getId());
@@ -41,7 +52,7 @@ public class FinancialService {
             .order(order)
             .type(TransactionType.CAPTURE)
             .paymentMethod(order.getPaymentMethod())
-            .amount(order.getTotalAmount())
+            .amount(amount != null ? amount : order.getTotalAmount())
             .currency("USD")
             .status(TransactionStatus.COMPLETED)
             .referenceNumber(receiptNumber)
@@ -49,19 +60,14 @@ public class FinancialService {
             .cashierUserId(cashierUserId)
             .transactionDate(LocalDateTime.now())
             .notes(
-                String.format(
-                    "Cash payment collected via %s for order #%s",
-                    order.getPaymentMethod(), order.getOrderNumber()))
+                note != null
+                    ? note
+                    : String.format(
+                        "Cash payment collected via %s for order #%s",
+                        order.getPaymentMethod(), order.getOrderNumber()))
             .build();
 
-    PaymentTransaction saved = transactionRepository.save(transaction);
-
-    log.info(
-        "✅ Cash payment recorded with receipt: {} for order: {}",
-        receiptNumber,
-        order.getOrderNumber());
-
-    return saved;
+    return transactionRepository.save(transaction);
   }
 
   @Transactional

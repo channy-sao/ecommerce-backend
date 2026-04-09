@@ -20,6 +20,9 @@ public interface PaymentTransactionRepository extends JpaRepository<PaymentTrans
 
   List<PaymentTransaction> findByOrderId(Long orderId);
 
+  @Query("SELECT t FROM PaymentTransaction t WHERE t.order.id IN :orderIds")
+  List<PaymentTransaction> findByOrderIdIn(@Param("orderIds") List<Long> orderIds);
+
   List<PaymentTransaction> findByPaymentId(Long paymentId);
 
   // ADD THESE NEW METHODS

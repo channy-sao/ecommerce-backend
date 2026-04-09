@@ -129,13 +129,14 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
   @ExceptionHandler(DuplicateResourceException.class)
   public ResponseEntity<BaseBodyResponse<Void>> handleDuplicate(
       DuplicateResourceException ex, HttpServletRequest request) {
-
+    log.error(ex.getMessage(), ex);
     return BaseBodyResponse.failed(HttpStatus.CONFLICT, ex.getMessage());
   }
 
   @ExceptionHandler(EntityNotFoundException.class)
   public ResponseEntity<BaseBodyResponse<Void>> handleNotFound(
       EntityNotFoundException ex, HttpServletRequest request) {
+    log.error(ex.getMessage(), ex);
     return BaseBodyResponse.failed(HttpStatus.NOT_FOUND, ex.getMessage());
   }
 
@@ -144,6 +145,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
   @ExceptionHandler(DataIntegrityViolationException.class)
   public ResponseEntity<BaseBodyResponse<Void>> handleDataIntegrity(
       DataIntegrityViolationException ex, HttpServletRequest request) {
+    log.error(ex.getMessage(), ex);
 
     String message = "Database constraint violation";
     String causeMsg = ex.getMostSpecificCause().getMessage().toLowerCase();
@@ -160,12 +162,13 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
       message = "Field value exceeds maximum length";
     }
 
-    return BaseBodyResponse.failed(HttpStatus.CONFLICT, message);
+    return BaseBodyResponse.failed(HttpStatus.BAD_REQUEST, message);
   }
 
   @ExceptionHandler(OptimisticLockingFailureException.class)
   public ResponseEntity<BaseBodyResponse<Void>> handleOptimisticLock(
       OptimisticLockingFailureException ex, HttpServletRequest request) {
+    log.error(ex.getMessage(), ex);
     return BaseBodyResponse.failed(
         HttpStatus.CONFLICT, "Resource was modified by another request, please retry");
   }
@@ -173,6 +176,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
   @ExceptionHandler(DataAccessException.class)
   public ResponseEntity<BaseBodyResponse<Void>> handleDataAccess(
       DataAccessException ex, HttpServletRequest request) {
+    log.error(ex.getMessage(), ex);
     return BaseBodyResponse.failed(
         HttpStatus.SERVICE_UNAVAILABLE, "Database is temporarily unavailable");
   }

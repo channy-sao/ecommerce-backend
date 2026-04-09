@@ -25,9 +25,10 @@ public class POSOrderRequest {
   private String customerPhone;
 
   @NotNull(message = "Payment method is required")
-  private String paymentMethod; // CASH, COD, CASH_IN_SHOP
+  private String paymentMethod;
 
   private BigDecimal discountAmount;
+  private BigDecimal cashReceived;
   private String discountNote;
   private String notes;
 }

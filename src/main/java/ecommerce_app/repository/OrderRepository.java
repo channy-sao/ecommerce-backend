@@ -153,6 +153,11 @@ public interface OrderRepository
   // Check if order number exists
   boolean existsByOrderNumber(String orderNumber);
 
+  @Query(
+      "SELECT COUNT(o) FROM Order o WHERE DATE(o.orderDate) = :date AND o.orderNumber LIKE CONCAT(:prefix, '%')")
+  Long countOrdersCreatedTodayWithPrefix(
+      @Param("date") LocalDate date, @Param("prefix") String prefix);
+
   // Count orders created today (for order number generation)
   @Query("SELECT COUNT(o) FROM Order o WHERE CAST(o.orderDate AS date) = CAST(:date AS date)")
   Long countOrdersCreatedToday(@Param("date") LocalDate date);
@@ -169,10 +174,18 @@ public interface OrderRepository
       OrderStatus excludedStatus,
       Pageable pageable);
 
-  @Query("SELECT o FROM Order o WHERE o.orderDate BETWEEN :startDate AND :endDate AND o.createdBy = :createdBy")
-  List<Order> findByOrderDateBetweenAndCreatedBy(
-          @Param("startDate") LocalDateTime startDate,
-          @Param("endDate") LocalDateTime endDate,
-          @Param("createdBy") String createdBy
-  );
+  @Query(
+      """
+    SELECT DISTINCT o FROM Order o
+    LEFT JOIN FETCH o.orderItems oi
+    LEFT JOIN FETCH oi.product
+    JOIN FETCH o.user
+    WHERE o.orderDate BETWEEN :startDate AND :endDate
+    AND o.createdBy = :createdBy
+    ORDER BY o.orderDate DESC
+    """)
+  List<Order> findByOrderDateBetweenAndCreatedByWithItems(
+      @Param("startDate") LocalDateTime startDate,
+      @Param("endDate") LocalDateTime endDate,
+      @Param("createdBy") Long createdBy);
 }

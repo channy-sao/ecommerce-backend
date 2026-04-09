@@ -6,6 +6,7 @@ import ecommerce_app.constant.enums.OrderStatus;
 import ecommerce_app.constant.enums.PaymentGateway;
 import ecommerce_app.constant.enums.PaymentMethod;
 import ecommerce_app.constant.enums.PaymentStatus;
+import ecommerce_app.constant.enums.ShippingMethod;
 import ecommerce_app.dto.request.POSOrderItemRequest;
 import ecommerce_app.dto.request.POSOrderRequest;
 import ecommerce_app.dto.response.POSOrderItemResponse;
@@ -41,8 +42,10 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import ecommerce_app.util.JsonUtils;
@@ -71,6 +74,7 @@ public class AdminManageOrderServiceImpl implements AdminManageOrderService {
   private final StockRepository stockRepository;
   private final OrderItemRepository orderItemRepository;
   private final FinancialService financialService;
+  private final OrderNumberGenerator orderNumberGenerator;
 
   @Transactional(rollbackFor = Exception.class)
   @Override
@@ -84,10 +88,10 @@ public class AdminManageOrderServiceImpl implements AdminManageOrderService {
 
     validateTransition(currentStatus, newStatus);
 
-    // 🔥 Update order
+    // Update order
     order.setOrderStatus(newStatus);
 
-    // 🔥 Save history
+    // Save history
     OrderStatusHistory history =
         OrderStatusHistory.builder().order(order).status(newStatus).build();
 
@@ -95,7 +99,7 @@ public class AdminManageOrderServiceImpl implements AdminManageOrderService {
   }
 
   @Override
-  @Transactional
+  @Transactional(rollbackFor = Exception.class)
   public POSOrderResponse createPOSOrder(POSOrderRequest request, Long staffUserId)
       throws JsonProcessingException {
     log.info("Creating POS order by staff: {}", staffUserId);
@@ -105,27 +109,53 @@ public class AdminManageOrderServiceImpl implements AdminManageOrderService {
             .findById(staffUserId)
             .orElseThrow(() -> new ResourceNotFoundException("Staff not found"));
 
-    // Create order
+    // Create order with ALL required fields
     Order order = new Order();
-    order.setOrderNumber(generateOrderNumber());
+    order.setOrderNumber(orderNumberGenerator.generatePOSOrderNumber());
     order.setOrderDate(LocalDateTime.now());
-    order.setOrderStatus(OrderStatus.COMPLETED); // POS orders are completed immediately
-    order.setPaymentStatus(PaymentStatus.PAID); // Payment collected immediately
-
-    // Set payment method
+    order.setOrderStatus(OrderStatus.COMPLETED);
+    order.setPaymentStatus(PaymentStatus.PAID);
     order.setPaymentMethod(PaymentMethod.valueOf(request.getPaymentMethod()));
+
+    // ✅ CRITICAL: Set the user (staff) for the order
+    order.setUser(staff);
+
+    // ✅ Set all numeric fields with default values
+    order.setSubtotalAmount(BigDecimal.ZERO);
+    order.setDiscountAmount(BigDecimal.ZERO);
+    order.setShippingCost(BigDecimal.ZERO);
+    order.setTotalAmount(BigDecimal.ZERO);
+
+    // ✅ Set default shipping method for POS
+    order.setShippingMethod(ShippingMethod.STANDARD);
+
+    // ✅ Set cart to NULL for POS orders (no shopping cart involved)
+    order.setCart(null);
 
     // Set customer info (optional)
     if (StringUtils.isNotBlank(request.getCustomerName())) {
-      order.setShippingAddressSnapshot(
-          JsonUtils.toJson(
-              Map.of(
-                  "customerName", request.getCustomerName(),
-                  "customerEmail", request.getCustomerEmail(),
-                  "customerPhone", request.getCustomerPhone())));
+      Map<String, String> customerInfo = new HashMap<>();
+      customerInfo.put("customerName", truncate(request.getCustomerName(), 255));
+      customerInfo.put("customerEmail", truncate(request.getCustomerEmail(), 255));
+      customerInfo.put("customerPhone", truncate(request.getCustomerPhone(), 50));
+
+      String snapshot = JsonUtils.toJson(customerInfo);
+      if (snapshot != null && snapshot.length() > 1000) {
+        snapshot = snapshot.substring(0, 1000);
+      }
+      order.setShippingAddressSnapshot(snapshot);
+    } else {
+      // If shipping_address_snapshot has NOT NULL constraint, set empty JSON
+      order.setShippingAddressSnapshot("{}");
+    }
+
+    // Set notes if provided
+    if (StringUtils.isNotBlank(request.getNotes())) {
+      order.setNotes(truncate(request.getNotes(), 500));
     }
 
     Order savedOrder = orderRepository.save(order);
+    log.info("Saved order with ID: {}", savedOrder.getId());
 
     // Process items and calculate totals
     BigDecimal subtotal = BigDecimal.ZERO;
@@ -170,13 +200,21 @@ public class AdminManageOrderServiceImpl implements AdminManageOrderService {
               .originalPrice(unitPrice)
               .subtotal(itemTotal)
               .totalPrice(itemTotal)
+              .cart(null)
+              .discountAmount(BigDecimal.ZERO)
               .build();
 
       orderItems.add(orderItem);
     }
 
+    // ✅ FIX: Save order items and update collection without replacing
     orderItemRepository.saveAll(orderItems);
-    savedOrder.setOrderItems(orderItems);
+
+    // Properly add items to existing collection
+    if (savedOrder.getOrderItems() == null) {
+      savedOrder.setOrderItems(new ArrayList<>());
+    }
+    savedOrder.getOrderItems().addAll(orderItems);
 
     // Calculate totals
     BigDecimal discount =
@@ -186,33 +224,70 @@ public class AdminManageOrderServiceImpl implements AdminManageOrderService {
     savedOrder.setSubtotalAmount(subtotal);
     savedOrder.setDiscountAmount(discount);
     savedOrder.setTotalAmount(total);
-    orderRepository.save(savedOrder);
+
+    // Save updated order
+    Order finalOrder = orderRepository.save(savedOrder);
+    log.info(
+        "Updated order with totals: subtotal={}, discount={}, total={}", subtotal, discount, total);
+
+    // ── Cash change logic ──────────────────────────────────────
+    BigDecimal cashReceived = null;
+    BigDecimal changeAmount = null;
+    String paymentNote = null;
+
+    if ("CASH".equals(request.getPaymentMethod())
+        || "CASH_IN_SHOP".equals(request.getPaymentMethod())) {
+      if (request.getCashReceived() != null) {
+        if (request.getCashReceived().compareTo(total) < 0) {
+          throw new BadRequestException(
+              "Cash received ("
+                  + request.getCashReceived()
+                  + ") is less than total ("
+                  + total
+                  + ")");
+        }
+        cashReceived = request.getCashReceived();
+        changeAmount = cashReceived.subtract(total);
+        paymentNote = "Cash received: " + cashReceived + ", Change: " + changeAmount;
+      }
+    }
+    // ────────────────────────────────────────────────────────────
 
     // Create payment record
     Payment payment =
         Payment.builder()
-            .order(savedOrder)
-            .gateway(PaymentGateway.fromPaymentMethod(order.getPaymentMethod()))
+            .order(finalOrder)
+            .gateway(PaymentGateway.fromPaymentMethod(finalOrder.getPaymentMethod()))
             .amount(total)
             .currency("USD")
             .status(PaymentStatus.PAID)
             .paidAt(LocalDateTime.now())
-            .gatewayReference("POS-" + savedOrder.getOrderNumber())
+            .gatewayReference("POS-" + finalOrder.getOrderNumber())
+            .createdAt(LocalDateTime.now())
             .build();
 
     paymentRepository.save(payment);
+    log.info("Payment record created for order: {}", finalOrder.getOrderNumber());
 
     // Record transaction
     String staffName = staff.getFullName() != null ? staff.getFullName() : staff.getEmail();
     PaymentTransaction transaction =
-        financialService.recordCashPayment(savedOrder, payment, staffUserId, staffName);
+        financialService.recordCashPayment(
+            finalOrder, payment, staffUserId, staffName, total, paymentNote);
 
     log.info(
         "POS order created: {} with receipt: {}",
-        savedOrder.getOrderNumber(),
+        finalOrder.getOrderNumber(),
         transaction.getReferenceNumber());
 
-    return buildPOSResponse(savedOrder, transaction, staffName);
+    return buildPOSResponse(finalOrder, transaction, staffName, cashReceived, changeAmount);
+  }
+
+  // Helper method to truncate strings
+  private String truncate(String value, int maxLength) {
+    if (value == null) return null;
+    if (value.length() <= maxLength) return value;
+    return value.substring(0, maxLength);
   }
 
   @Override
@@ -226,7 +301,12 @@ public class AdminManageOrderServiceImpl implements AdminManageOrderService {
     PaymentTransaction transaction =
         transactionRepository.findByOrderId(orderId).stream().findFirst().orElse(null);
 
-    return buildPOSResponse(order, transaction, null);
+    // Recover cash context from payment record if available
+    Payment payment = paymentRepository.findByOrderId(orderId).orElse(null);
+    BigDecimal cashReceived = payment != null ? payment.getCashReceived() : null;
+    BigDecimal changeAmount = payment != null ? payment.getChangeAmount() : null;
+
+    return buildPOSResponse(order, transaction, null, cashReceived, changeAmount);
   }
 
   @Override
@@ -236,20 +316,24 @@ public class AdminManageOrderServiceImpl implements AdminManageOrderService {
     LocalDateTime endOfDay = date.atTime(23, 59, 59);
 
     List<Order> orders =
-        orderRepository.findByOrderDateBetweenAndCreatedBy(
-            startOfDay,
-            endOfDay,
-            userRepository.findById(staffUserId).map(User::getEmail).orElse(null));
+        orderRepository.findByOrderDateBetweenAndCreatedByWithItems(
+            startOfDay, endOfDay, staffUserId);
+
+    if (orders.isEmpty()) return List.of();
+
+    // Single bulk query instead of one per order
+    List<Long> orderIds = orders.stream().map(Order::getId).toList();
+    Map<Long, PaymentTransaction> transactionByOrderId =
+        transactionRepository.findByOrderIdIn(orderIds).stream()
+            .collect(
+                Collectors.toMap(
+                    t -> t.getOrder().getId(),
+                    Function.identity(),
+                    (a, b) -> a // keep first if duplicates
+                    ));
 
     return orders.stream()
-        .map(
-            order -> {
-              PaymentTransaction transaction =
-                  transactionRepository.findByOrderId(order.getId()).stream()
-                      .findFirst()
-                      .orElse(null);
-              return buildPOSResponse(order, transaction, null);
-            })
+        .map(order -> buildPOSResponse(order, transactionByOrderId.get(order.getId())))
         .collect(Collectors.toList());
   }
 
@@ -258,40 +342,6 @@ public class AdminManageOrderServiceImpl implements AdminManageOrderService {
         + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"))
         + "-"
         + (int) (Math.random() * 1000);
-  }
-
-  private POSOrderResponse buildPOSResponse(
-      Order order, PaymentTransaction transaction, String cashierName) {
-    List<POSOrderItemResponse> items =
-        order.getOrderItems().stream()
-            .map(
-                item ->
-                    POSOrderItemResponse.builder()
-                        .productId(item.getProduct().getId())
-                        .productName(item.getProduct().getName())
-                        .quantity(item.getQuantity())
-                        .unitPrice(item.getOriginalPrice())
-                        .total(item.getTotalPrice())
-                        .build())
-            .collect(Collectors.toList());
-
-    return POSOrderResponse.builder()
-        .orderId(order.getId())
-        .orderNumber(order.getOrderNumber())
-        .orderDate(order.getOrderDate())
-        .subtotal(order.getSubtotalAmount())
-        .discountAmount(order.getDiscountAmount())
-        .totalAmount(order.getTotalAmount())
-        .paymentMethod(order.getPaymentMethod().name())
-        .paymentStatus(order.getPaymentStatus().name())
-        .orderStatus(order.getOrderStatus().name())
-        .receiptNumber(transaction != null ? transaction.getReferenceNumber() : null)
-        .cashierName(
-            cashierName != null
-                ? cashierName
-                : transaction != null ? transaction.getCashierName() : null)
-        .items(items)
-        .build();
   }
 
   @Transactional(readOnly = true)
@@ -387,6 +437,58 @@ public class AdminManageOrderServiceImpl implements AdminManageOrderService {
       return List.of(paymentMethod);
     }
     return List.of(PaymentMethod.COD, PaymentMethod.CASH_IN_SHOP, PaymentMethod.CASH);
+  }
+
+  private POSOrderResponse buildPOSResponse(
+      Order order,
+      PaymentTransaction transaction,
+      String staffName,
+      BigDecimal cashReceived,
+      BigDecimal changeAmount) { // ← new params
+
+    // resolve cashierName
+    String cashierName = staffName;
+    if (cashierName == null) {
+      cashierName =
+          (transaction != null && transaction.getCashierName() != null)
+              ? transaction.getCashierName()
+              : (order.getUser() != null ? order.getUser().getFullName() : null);
+    }
+
+    List<POSOrderItemResponse> items =
+        order.getOrderItems().stream()
+            .map(
+                item ->
+                    POSOrderItemResponse.builder()
+                        .productId(item.getProduct().getId())
+                        .productName(item.getProduct().getName())
+                        .quantity(item.getQuantity())
+                        .unitPrice(item.getOriginalPrice())
+                        .total(item.getTotalPrice())
+                        .build())
+            .collect(Collectors.toList());
+
+    return POSOrderResponse.builder()
+        .orderId(order.getId())
+        .orderNumber(order.getOrderNumber())
+        .orderDate(order.getOrderDate())
+        .subtotal(order.getSubtotalAmount())
+        .discountAmount(order.getDiscountAmount())
+        .totalAmount(order.getTotalAmount())
+        .paymentMethod(order.getPaymentMethod().name())
+        .paymentStatus(order.getPaymentStatus().name())
+        .orderStatus(order.getOrderStatus().name())
+        .receiptNumber(transaction != null ? transaction.getReferenceNumber() : null)
+        .cashierName(cashierName)
+        .cashReceived(cashReceived) // ← new
+        .changeAmount(changeAmount) // ← new
+        .items(items)
+        .build();
+  }
+
+  // 2-arg overload used by getTodayPOSOrders and getPOSOrder (no cash context needed)
+  private POSOrderResponse buildPOSResponse(Order order, PaymentTransaction transaction) {
+    return buildPOSResponse(order, transaction, null, null, null);
   }
 
   private void validateTransition(OrderStatus from, OrderStatus to) {

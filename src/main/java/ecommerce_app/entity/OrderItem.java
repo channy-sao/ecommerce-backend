@@ -69,7 +69,7 @@ public class OrderItem {
       cascade = {CascadeType.PERSIST, CascadeType.MERGE},
       targetEntity = Cart.class,
       optional = false)
-  @JoinColumn(name = "cart_id", nullable = false, referencedColumnName = "id")
+  @JoinColumn(name = "cart_id", nullable = true, referencedColumnName = "id")
   @JsonIgnore
   private Cart cart;
 

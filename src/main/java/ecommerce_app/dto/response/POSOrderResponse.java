@@ -26,4 +26,6 @@ public class POSOrderResponse {
   private String receiptNumber;
   private String cashierName;
   private List<POSOrderItemResponse> items;
+  private BigDecimal cashReceived;
+  private BigDecimal changeAmount;
 }

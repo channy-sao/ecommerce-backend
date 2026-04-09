@@ -67,7 +67,7 @@ public class Order extends UserAuditableEntity {
       optional = false,
       targetEntity = Cart.class,
       cascade = {CascadeType.PERSIST, CascadeType.MERGE})
-  @JoinColumn(name = "cart_id", nullable = false, referencedColumnName = "id")
+  @JoinColumn(name = "cart_id", nullable = true, referencedColumnName = "id")
   @JsonIgnore
   private Cart cart;
 
@@ -152,4 +152,7 @@ public class Order extends UserAuditableEntity {
 
   @Column(name = "coupon_discount", precision = 10, scale = 2)
   private BigDecimal couponDiscount;
+
+  @Column(name = "notes", length = 500)
+  private String notes;
 }
