@@ -64,10 +64,9 @@ public class Order extends UserAuditableEntity {
 
   @ManyToOne(
       fetch = FetchType.LAZY,
-      optional = false,
       targetEntity = Cart.class,
       cascade = {CascadeType.PERSIST, CascadeType.MERGE})
-  @JoinColumn(name = "cart_id", nullable = true, referencedColumnName = "id")
+  @JoinColumn(name = "cart_id", referencedColumnName = "id")
   @JsonIgnore
   private Cart cart;
 

@@ -67,9 +67,8 @@ public class OrderItem {
   @ManyToOne(
       fetch = FetchType.LAZY,
       cascade = {CascadeType.PERSIST, CascadeType.MERGE},
-      targetEntity = Cart.class,
-      optional = false)
-  @JoinColumn(name = "cart_id", nullable = true, referencedColumnName = "id")
+      targetEntity = Cart.class)
+  @JoinColumn(name = "cart_id", referencedColumnName = "id")
   @JsonIgnore
   private Cart cart;
 
