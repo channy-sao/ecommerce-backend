@@ -1,4 +1,4 @@
-package ecommerce_app.constant;
+package ecommerce_app.constant.enums;
 
 public enum TransactionStatus {
     PENDING,

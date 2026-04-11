@@ -1,9 +1,8 @@
 package ecommerce_app.service.impl;
 
-import ecommerce_app.constant.TransactionStatus;
-import ecommerce_app.constant.TransactionType;
+import ecommerce_app.constant.enums.TransactionStatus;
+import ecommerce_app.constant.enums.TransactionType;
 import ecommerce_app.constant.enums.PaymentMethod;
-import ecommerce_app.constant.enums.PaymentStatus;
 import ecommerce_app.entity.Order;
 import ecommerce_app.entity.Payment;
 import ecommerce_app.entity.PaymentTransaction;

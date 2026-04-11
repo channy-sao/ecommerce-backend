@@ -1,7 +1,7 @@
 package ecommerce_app.entity;
 
-import ecommerce_app.constant.TransactionStatus;
-import ecommerce_app.constant.TransactionType;
+import ecommerce_app.constant.enums.TransactionStatus;
+import ecommerce_app.constant.enums.TransactionType;
 import ecommerce_app.constant.enums.PaymentMethod;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

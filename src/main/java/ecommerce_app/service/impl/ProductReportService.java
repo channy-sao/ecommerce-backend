@@ -6,7 +6,7 @@ import ecommerce_app.entity.Product;
 import ecommerce_app.repository.ProductRepository;
 import java.util.List;
 
-import ecommerce_app.service.ReportService;
+import ecommerce_app.service.CatalogReportService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -15,7 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class ProductReportService implements ReportService<Product> {
+public class ProductReportService implements CatalogReportService<Product> {
 
   private final ProductRepository productRepository;
   private final JasperReportService jasperReportService;

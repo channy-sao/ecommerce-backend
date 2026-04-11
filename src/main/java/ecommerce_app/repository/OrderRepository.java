@@ -188,4 +188,30 @@ public interface OrderRepository
       @Param("startDate") LocalDateTime startDate,
       @Param("endDate") LocalDateTime endDate,
       @Param("createdBy") Long createdBy);
+
+  /**
+   * Fetches order with orderItems, products, and user in a single query.
+   * Used by ReportService to avoid N+1 when generating PDF reports.
+   */
+  @Query("""
+            SELECT DISTINCT o FROM Order o
+            LEFT JOIN FETCH o.user
+            LEFT JOIN FETCH o.orderItems oi
+            LEFT JOIN FETCH oi.product
+            WHERE o.id = :id
+            """)
+  Optional<Order> findByIdWithItemsAndUser(@Param("id") Long id);
+
+//  /**
+//   * Fetches order with items and user, scoped to a specific user.
+//   * Used to verify ownership before generating a report.
+//   */
+//  @Query("""
+//            SELECT DISTINCT o FROM Order o
+//            LEFT JOIN FETCH o.user
+//            LEFT JOIN FETCH o.orderItems oi
+//            LEFT JOIN FETCH oi.product
+//            WHERE o.id = :id AND o.user.id = :userId
+//            """)
+//  Optional<Order> findByIdAndUserId(@Param("id") Long id, @Param("userId") Long userId);
 }

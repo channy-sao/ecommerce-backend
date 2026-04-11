@@ -1,27 +1,37 @@
 package ecommerce_app.service;
 
-import ecommerce_app.constant.enums.ExportFormat;
-
-public interface ReportService<T> {
-  /**
-   * Export data as report
-   *
-   * @param format Export format
-   * @return byte array of report
-   */
-  byte[] export(ExportFormat format);
+/** Service interface for generating reports (invoices and receipts) */
+public interface ReportService {
 
   /**
-   * Get report template name
+   * Generate invoice PDF by order ID.
    *
-   * @return template name without extension
+   * @param orderId the order ID
+   * @return byte array of the PDF
    */
-  String getReportTemplateName();
+  byte[] generateInvoicePdf(Long orderId);
 
   /**
-   * Get base filename for export
+   * Generate invoice HTML preview by order ID.
    *
-   * @return base filename
+   * @param orderId the order ID
+   * @return HTML string representation of the invoice
    */
-  String getBaseFilename();
+  String generateInvoiceHtml(Long orderId);
+
+  /**
+   * Generate receipt PDF by order ID. Uses the most recent PaymentTransaction linked to the order.
+   *
+   * @param orderId the order ID
+   * @return byte array of the PDF
+   */
+  byte[] generateReceiptPdf(Long orderId);
+
+  /**
+   * Generate receipt HTML preview by order ID.
+   *
+   * @param orderId the order ID
+   * @return HTML string representation of the receipt
+   */
+  String generateReceiptHtml(Long orderId);
 }

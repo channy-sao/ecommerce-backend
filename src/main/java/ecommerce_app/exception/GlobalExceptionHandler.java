@@ -7,7 +7,6 @@ import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataAccessException;
@@ -63,12 +62,13 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
   }
 
   @ExceptionHandler(ConstraintViolationException.class)
-  public ResponseEntity<BaseBodyResponse<Void>> handleConstraintViolation(ConstraintViolationException ex) {
+  public ResponseEntity<BaseBodyResponse<Void>> handleConstraintViolation(
+      ConstraintViolationException ex) {
     log.error(ex.getMessage(), ex);
-    String message = ex.getConstraintViolations()
-            .stream()
+    String message =
+        ex.getConstraintViolations().stream()
             .findFirst()
-            .map(ConstraintViolation::getMessage)  // ← returns clean message only, no path prefix
+            .map(ConstraintViolation::getMessage) // ← returns clean message only, no path prefix
             .orElse("Validation error");
 
     return BaseBodyResponse.failed(HttpStatus.BAD_REQUEST, message);
@@ -179,5 +179,11 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     log.error(ex.getMessage(), ex);
     return BaseBodyResponse.failed(
         HttpStatus.SERVICE_UNAVAILABLE, "Database is temporarily unavailable");
+  }
+
+  @ExceptionHandler(ReportGenerationException.class)
+  public ResponseEntity<BaseBodyResponse<Void>> handleReportError(ReportGenerationException ex) {
+    log.error("Report generation failed: {}", ex.getMessage(), ex);
+    return BaseBodyResponse.failed(HttpStatus.INTERNAL_SERVER_ERROR, "Report generation failed");
   }
 }

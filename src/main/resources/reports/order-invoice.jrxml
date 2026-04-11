@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+              name="Invoice"
+              pageWidth="595"
+              pageHeight="842"
+              columnWidth="555"
+              leftMargin="20"
+              rightMargin="20"
+              topMargin="30"
+              bottomMargin="30">
+
+    <!-- PARAMETERS -->
+    <parameter name="CompanyName" class="java.lang.String"/>
+    <parameter name="CompanyLogo" class="java.lang.String"/>
+    <parameter name="CompanyAddress" class="java.lang.String"/>
+    <parameter name="CompanyPhone" class="java.lang.String"/>
+    <parameter name="CompanyEmail" class="java.lang.String"/>
+
+    <parameter name="OrderNumber" class="java.lang.String"/>
+    <parameter name="OrderDate" class="java.lang.String"/>
+    <parameter name="OrderStatus" class="java.lang.String"/>
+
+    <parameter name="CustomerName" class="java.lang.String"/>
+    <parameter name="CustomerEmail" class="java.lang.String"/>
+    <parameter name="CustomerPhone" class="java.lang.String"/>
+
+    <parameter name="ShippingAddress" class="java.lang.String"/>
+
+    <parameter name="Subtotal" class="java.math.BigDecimal"/>
+    <parameter name="Discount" class="java.math.BigDecimal"/>
+    <parameter name="ShippingCost" class="java.math.BigDecimal"/>
+    <parameter name="Total" class="java.math.BigDecimal"/>
+
+    <!-- FIELDS -->
+    <field name="productName" class="java.lang.String"/>
+    <field name="quantity" class="java.lang.Integer"/>
+    <field name="unitPrice" class="java.math.BigDecimal"/>
+    <field name="total" class="java.math.BigDecimal"/>
+    <field name="discount" class="java.math.BigDecimal"/>
+
+    <!-- TITLE -->
+    <title>
+        <band height="100">
+
+            <image>
+                <reportElement x="0" y="0" width="120" height="50"/>
+                <imageExpression><![CDATA[$P{CompanyLogo}]]></imageExpression>
+            </image>
+
+            <staticText>
+                <reportElement x="350" y="0" width="200" height="40"/>
+                <textElement textAlignment="Right" fontSize="20" isBold="true"/>
+                <text><![CDATA[INVOICE]]></text>
+            </staticText>
+
+            <textField>
+                <reportElement x="0" y="55" width="555" height="15"/>
+                <textElement textAlignment="Center"/>
+                <textFieldExpression><![CDATA[$P{CompanyName}]]></textFieldExpression>
+            </textField>
+
+            <textField>
+                <reportElement x="0" y="70" width="555" height="15"/>
+                <textElement textAlignment="Center" fontSize="9"/>
+                <textFieldExpression><![CDATA[
+                    ($P{CompanyAddress} == null ? "" : $P{CompanyAddress} + " | ") +
+                    ($P{CompanyPhone} == null ? "" : $P{CompanyPhone} + " | ") +
+                    ($P{CompanyEmail} == null ? "" : $P{CompanyEmail})
+                ]]></textFieldExpression>
+            </textField>
+
+        </band>
+    </title>
+
+    <!-- HEADER -->
+    <pageHeader>
+        <band height="120">
+
+            <!-- CUSTOMER -->
+            <staticText>
+                <reportElement x="0" y="0" width="200" height="20"/>
+                <textElement isBold="true"/>
+                <text><![CDATA[Bill To]]></text>
+            </staticText>
+
+            <textField>
+                <reportElement x="0" y="20" width="250" height="15"/>
+                <textFieldExpression><![CDATA[$P{CustomerName}]]></textFieldExpression>
+            </textField>
+
+            <textField>
+                <reportElement x="0" y="35" width="250" height="15"/>
+                <textFieldExpression><![CDATA[$P{CustomerEmail}]]></textFieldExpression>
+            </textField>
+
+            <textField>
+                <reportElement x="0" y="50" width="250" height="15"/>
+                <textFieldExpression><![CDATA[$P{CustomerPhone}]]></textFieldExpression>
+            </textField>
+
+            <!-- ORDER -->
+            <staticText>
+                <reportElement x="320" y="0" width="200" height="20"/>
+                <textElement isBold="true"/>
+                <text><![CDATA[Order Info]]></text>
+            </staticText>
+
+            <textField>
+                <reportElement x="320" y="20" width="200" height="15"/>
+                <textFieldExpression><![CDATA["Order #: " + $P{OrderNumber}]]></textFieldExpression>
+            </textField>
+
+            <textField>
+                <reportElement x="320" y="35" width="200" height="15"/>
+                <textFieldExpression><![CDATA["Date: " + $P{OrderDate}]]></textFieldExpression>
+            </textField>
+
+            <textField>
+                <reportElement x="320" y="50" width="200" height="15"/>
+                <textFieldExpression><![CDATA["Status: " + $P{OrderStatus}]]></textFieldExpression>
+            </textField>
+
+            <!-- SHIPPING -->
+            <staticText>
+                <reportElement x="0" y="75" width="200" height="20"/>
+                <textElement isBold="true"/>
+                <text><![CDATA[Shipping Address]]></text>
+            </staticText>
+
+            <textField>
+                <reportElement x="0" y="95" width="555" height="20"/>
+                <textFieldExpression><![CDATA[$P{ShippingAddress}]]></textFieldExpression>
+            </textField>
+
+        </band>
+    </pageHeader>
+
+    <!-- TABLE HEADER -->
+    <columnHeader>
+        <band height="25">
+            <staticText><reportElement x="0" y="0" width="250" height="25"/><text><![CDATA[Product]]></text></staticText>
+            <staticText><reportElement x="250" y="0" width="60" height="25"/><text><![CDATA[Qty]]></text></staticText>
+            <staticText><reportElement x="310" y="0" width="80" height="25"/><text><![CDATA[Price]]></text></staticText>
+            <staticText><reportElement x="390" y="0" width="80" height="25"/><text><![CDATA[Discount]]></text></staticText>
+            <staticText><reportElement x="470" y="0" width="85" height="25"/><text><![CDATA[Total]]></text></staticText>
+        </band>
+    </columnHeader>
+
+    <!-- DETAIL (ONLY ONE) -->
+    <detail>
+        <band height="20">
+
+            <textField>
+                <reportElement x="0" y="0" width="250" height="20"/>
+                <textFieldExpression><![CDATA[$F{productName}]]></textFieldExpression>
+            </textField>
+
+            <textField>
+                <reportElement x="250" y="0" width="60" height="20"/>
+                <textFieldExpression><![CDATA[$F{quantity}]]></textFieldExpression>
+            </textField>
+
+            <textField>
+                <reportElement x="310" y="0" width="80" height="20"/>
+                <textFieldExpression><![CDATA[
+                    $F{unitPrice} == null ? "$0.00" :
+                    "$" + new java.text.DecimalFormat("#,##0.00").format($F{unitPrice})
+                ]]></textFieldExpression>
+            </textField>
+
+            <textField>
+                <reportElement x="390" y="0" width="80" height="20"/>
+                <textFieldExpression><![CDATA[
+                    ($F{discount} == null || $F{discount}.compareTo(java.math.BigDecimal.ZERO) == 0)
+                    ? "-"
+                    : "-$" + new java.text.DecimalFormat("#,##0.00").format($F{discount})
+                ]]></textFieldExpression>
+            </textField>
+
+            <textField>
+                <reportElement x="470" y="0" width="85" height="20"/>
+                <textFieldExpression><![CDATA[
+                    $F{total} == null ? "$0.00" :
+                    "$" + new java.text.DecimalFormat("#,##0.00").format($F{total})
+                ]]></textFieldExpression>
+            </textField>
+
+        </band>
+    </detail>
+
+    <!-- SUMMARY -->
+    <summary>
+        <band height="120">
+
+            <textField>
+                <reportElement x="350" y="10" width="200" height="20"/>
+                <textFieldExpression><![CDATA[
+                    "Subtotal: $" + new java.text.DecimalFormat("#,##0.00").format(
+                        $P{Subtotal} == null ? java.math.BigDecimal.ZERO : $P{Subtotal})
+                ]]></textFieldExpression>
+            </textField>
+
+            <textField>
+                <reportElement x="350" y="30" width="200" height="20"/>
+                <textFieldExpression><![CDATA[
+                    "Discount: $" + new java.text.DecimalFormat("#,##0.00").format(
+                        $P{Discount} == null ? java.math.BigDecimal.ZERO : $P{Discount})
+                ]]></textFieldExpression>
+            </textField>
+
+            <textField>
+                <reportElement x="350" y="50" width="200" height="20"/>
+                <textFieldExpression><![CDATA[
+                    "Shipping: $" + new java.text.DecimalFormat("#,##0.00").format(
+                        $P{ShippingCost} == null ? java.math.BigDecimal.ZERO : $P{ShippingCost})
+                ]]></textFieldExpression>
+            </textField>
+
+            <textField>
+                <reportElement x="350" y="80" width="200" height="25"/>
+                <textElement isBold="true"/>
+                <textFieldExpression><![CDATA[
+                    "Total: $" + new java.text.DecimalFormat("#,##0.00").format(
+                        $P{Total} == null ? java.math.BigDecimal.ZERO : $P{Total})
+                ]]></textFieldExpression>
+            </textField>
+
+        </band>
+    </summary>
+
+    <!-- FOOTER -->
+    <pageFooter>
+        <band height="30">
+            <textField>
+                <reportElement x="0" y="10" width="200" height="15"/>
+                <textFieldExpression><![CDATA["Thank you for your business!"]]></textFieldExpression>
+            </textField>
+
+            <textField>
+                <reportElement x="400" y="10" width="150" height="15"/>
+                <textElement textAlignment="Right"/>
+                <textFieldExpression><![CDATA["Page " + $V{PAGE_NUMBER}]]></textFieldExpression>
+            </textField>
+        </band>
+    </pageFooter>
+
+</jasperReport>
