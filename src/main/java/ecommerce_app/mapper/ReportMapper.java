@@ -1,5 +1,6 @@
 package ecommerce_app.mapper;
 
+import ecommerce_app.constant.app.SettingKeys;
 import ecommerce_app.dto.report.InvoiceReportDto;
 import ecommerce_app.dto.report.ReceiptReportDto;
 import ecommerce_app.dto.report.ReportLineItem;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -22,10 +24,6 @@ public class ReportMapper {
 
   // ── Hardcoded company info (replace later) ───────────────────────────
   private static final String COMPANY_NAME = "My E-Commerce Store";
-  private static final String COMPANY_LOGO = null; // set to URL/path when ready
-  private static final String COMPANY_ADDRESS = null;
-  private static final String COMPANY_PHONE = null;
-  private static final String COMPANY_EMAIL = null;
 
   // ────────────────────────────────────────────────────────────────────
   // Invoice
@@ -35,14 +33,14 @@ public class ReportMapper {
    * Maps an Order entity to InvoiceReportDto. Call this when generating an invoice (before or after
    * payment).
    */
-  public InvoiceReportDto toInvoiceDto(Order order) {
+  public InvoiceReportDto toInvoiceDto(Order order, Map<String, String> settingMap) {
     return InvoiceReportDto.builder()
         // company
         .companyName(COMPANY_NAME)
-        .companyLogo(COMPANY_LOGO)
-        .companyAddress(COMPANY_ADDRESS)
-        .companyPhone(COMPANY_PHONE)
-        .companyEmail(COMPANY_EMAIL)
+        .companyLogo(null)
+        .companyAddress(settingMap.getOrDefault(SettingKeys.STORE_ADDRESS, null))
+        .companyPhone(settingMap.getOrDefault(SettingKeys.STORE_PHONE, null))
+        .companyEmail(settingMap.getOrDefault(SettingKeys.STORE_EMAIL, null))
         // order
         .orderNumber(order.getOrderNumber())
         .orderDate(order.getOrderDate())
@@ -80,17 +78,18 @@ public class ReportMapper {
    *
    * @param transaction the PaymentTransaction — must have order and payment eagerly loaded
    */
-  public ReceiptReportDto toReceiptDto(PaymentTransaction transaction) {
+  public ReceiptReportDto toReceiptDto(
+      PaymentTransaction transaction, Map<String, String> settingMap) {
     Order order = transaction.getOrder();
     Payment payment = transaction.getPayment();
 
     return ReceiptReportDto.builder()
         // company
         .companyName(COMPANY_NAME)
-        .companyLogo(COMPANY_LOGO)
-        .companyAddress(COMPANY_ADDRESS)
-        .companyPhone(COMPANY_PHONE)
-        .companyEmail(COMPANY_EMAIL)
+        .companyLogo(null)
+        .companyAddress(settingMap.getOrDefault(SettingKeys.STORE_ADDRESS, null))
+        .companyPhone(settingMap.getOrDefault(SettingKeys.STORE_PHONE, null))
+        .companyEmail(settingMap.getOrDefault(SettingKeys.STORE_EMAIL, null))
         // receipt
         .receiptNumber(transaction.getReferenceNumber())
         .receiptDate(transaction.getTransactionDate())

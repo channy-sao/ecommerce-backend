@@ -2,6 +2,7 @@ package ecommerce_app.service.impl;
 
 import ecommerce_app.dto.report.InvoiceReportDto;
 import ecommerce_app.dto.report.ReceiptReportDto;
+import ecommerce_app.dto.response.SettingResponse;
 import ecommerce_app.entity.Order;
 import ecommerce_app.entity.PaymentTransaction;
 import ecommerce_app.exception.ReportGenerationException;
@@ -10,6 +11,14 @@ import ecommerce_app.mapper.ReportMapper;
 import ecommerce_app.repository.OrderRepository;
 import ecommerce_app.repository.PaymentTransactionRepository;
 import ecommerce_app.service.ReportService;
+import ecommerce_app.service.SettingService;
+import java.io.ByteArrayOutputStream;
+import java.math.BigDecimal;
+import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.sf.jasperreports.engine.*;
@@ -23,13 +32,6 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.io.ByteArrayOutputStream;
-import java.math.BigDecimal;
-import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -40,9 +42,13 @@ public class ReportServiceImpl implements ReportService {
       DateTimeFormatter.ofPattern("MMMM dd, yyyy");
   private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("hh:mm a");
 
+  /** Classpath location of the app logo — lives at resources/static/app-logo.png */
+  private static final String LOGO_CLASSPATH = "static/app-logo.png";
+
   private final OrderRepository orderRepository;
   private final PaymentTransactionRepository transactionRepository;
   private final ReportMapper reportMapper;
+  private final SettingService settingService;
 
   // ────────────────────────────────────────────────────────────────────
   // Invoice
@@ -91,7 +97,10 @@ public class ReportServiceImpl implements ReportService {
         orderRepository
             .findByIdWithItemsAndUser(orderId)
             .orElseThrow(() -> new ResourceNotFoundException("Order not found: " + orderId));
-    return reportMapper.toInvoiceDto(order);
+    Map<String, String> settings =
+        settingService.getAll().stream()
+            .collect(Collectors.toMap(SettingResponse::getKey, SettingResponse::getValue));
+    return reportMapper.toInvoiceDto(order, settings);
   }
 
   private ReceiptReportDto buildReceiptDto(Long orderId) {
@@ -103,7 +112,11 @@ public class ReportServiceImpl implements ReportService {
     }
     // Use the most recent transaction
     PaymentTransaction transaction = transactions.getFirst();
-    return reportMapper.toReceiptDto(transaction);
+
+    Map<String, String> settings =
+        settingService.getAll().stream()
+            .collect(Collectors.toMap(SettingResponse::getKey, SettingResponse::getValue));
+    return reportMapper.toReceiptDto(transaction, settings);
   }
 
   // ────────────────────────────────────────────────────────────────────
@@ -143,7 +156,7 @@ public class ReportServiceImpl implements ReportService {
 
     // Company
     p.put("CompanyName", dto.getCompanyName());
-    p.put("CompanyLogo", dto.getCompanyLogo());
+    p.put("CompanyLogo", resolveLogoUrl());
     p.put("CompanyAddress", dto.getCompanyAddress());
     p.put("CompanyPhone", dto.getCompanyPhone());
     p.put("CompanyEmail", dto.getCompanyEmail());
@@ -182,7 +195,7 @@ public class ReportServiceImpl implements ReportService {
 
     // Company
     p.put("CompanyName", dto.getCompanyName());
-    p.put("CompanyLogo", dto.getCompanyLogo());
+    p.put("CompanyLogo", resolveLogoUrl());
     p.put("CompanyAddress", dto.getCompanyAddress());
     p.put("CompanyPhone", dto.getCompanyPhone());
     p.put("CompanyEmail", dto.getCompanyEmail());
@@ -256,6 +269,25 @@ public class ReportServiceImpl implements ReportService {
   // ────────────────────────────────────────────────────────────────────
   // Helpers
   // ────────────────────────────────────────────────────────────────────
+
+  /**
+   * Resolves the app logo to a URL string that JasperReports can load. Uses
+   * ClassLoader.getResource() so it works in both IDE and packaged JAR. Returns null silently if
+   * the file is missing; JRXML onErrorType="Blank" handles that.
+   */
+  private String resolveLogoUrl() {
+    try {
+      java.net.URL url = getClass().getClassLoader().getResource(LOGO_CLASSPATH);
+      if (url == null) {
+        log.warn("App logo not found at classpath: {}", LOGO_CLASSPATH);
+        return null;
+      }
+      return url.toString(); // e.g. "file:/app/resources/static/app-logo.png"
+    } catch (Exception e) {
+      log.warn("Could not resolve logo URL: {}", e.getMessage());
+      return null;
+    }
+  }
 
   private JasperReport compileReport(String classpathLocation) throws JRException {
     try {
