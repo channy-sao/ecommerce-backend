@@ -19,7 +19,7 @@ import org.springframework.stereotype.Component;
 public class CashInShopPaymentStrategy implements PaymentGatewayStrategy {
 
   // Orders expire if customer doesn't show up within 24 hours
-  private static final int EXPIRY_HOURS = 24;
+  private static final int EXPIRY_HOURS = 48;
 
   @Override
   public PaymentGateway getGateway() {

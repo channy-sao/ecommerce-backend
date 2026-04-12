@@ -44,7 +44,7 @@ public class OrderMapper {
 
     return OrderDetailResponse.builder()
         .id(order.getId())
-        .orderNumber(generateOrderNumber(order))
+        .orderNumber(order.getOrderNumber())
         .orderDate(order.getOrderDate())
         .orderStatus(order.getOrderStatus())
         .paymentStatus(order.getPaymentStatus())
@@ -68,7 +68,7 @@ public class OrderMapper {
 
     return OrderResponse.builder()
         .id(order.getId())
-        .orderNumber(generateOrderNumber(order))
+        .orderNumber(order.getOrderNumber())
         .user(userMapper.toUserOrder(order.getUser()))
         .orderDate(order.getOrderDate())
         .orderStatus(order.getOrderStatus())
@@ -92,7 +92,7 @@ public class OrderMapper {
   public OrderResponse toCheckoutResponse(Order order) {
     return OrderResponse.builder()
         .id(order.getId())
-        .orderNumber(generateOrderNumber(order))
+        .orderNumber(order.getOrderNumber())
         .user(userMapper.toUserOrder(order.getUser()))
         .orderDate(order.getOrderDate())
         .orderStatus(order.getOrderStatus())
@@ -107,7 +107,7 @@ public class OrderMapper {
         .totalAmount(order.getTotalAmount())
         .promotionCode(order.getPromotionCode())
         .itemCount(order.getOrderItems() != null ? order.getOrderItems().size() : 0)
-        .message("Order placed successfully! Order #" + generateOrderNumber(order))
+        .message("Order placed successfully! Order #" + order.getOrderNumber())
         .build();
   }
 
@@ -137,10 +137,6 @@ public class OrderMapper {
   private static AddressResponse parseAddressSnapshot(String snapshot) {
     return SimpleTry.ofReThrowChecked(
         () -> JsonUtils.fromJson(snapshot, AddressResponse.class), SimpleTryException::new);
-  }
-
-  private static String generateOrderNumber(Order order) {
-    return String.format("ORD-%06d", order.getId());
   }
 
   /**

@@ -98,6 +98,7 @@ public class ReportServiceImpl implements ReportService {
     // Find the latest successful transaction for this order
     List<PaymentTransaction> transactions = transactionRepository.findByOrderId(orderId);
     if (transactions.isEmpty()) {
+      log.error("No payment transaction found for order: {}", orderId);
       throw new ResourceNotFoundException("No payment transaction found for order: " + orderId);
     }
     // Use the most recent transaction
@@ -116,6 +117,7 @@ public class ReportServiceImpl implements ReportService {
       JRBeanCollectionDataSource ds = new JRBeanCollectionDataSource(dto.getItems());
       return JasperFillManager.fillReport(report, params, ds);
     } catch (JRException e) {
+      log.error(e.getMessage(), e);
       throw new ReportGenerationException("Failed to fill invoice report", e);
     }
   }
@@ -127,6 +129,7 @@ public class ReportServiceImpl implements ReportService {
       JRBeanCollectionDataSource ds = new JRBeanCollectionDataSource(dto.getItems());
       return JasperFillManager.fillReport(report, params, ds);
     } catch (JRException e) {
+      log.error(e.getMessage(), e);
       throw new ReportGenerationException("Failed to fill receipt report", e);
     }
   }
@@ -231,6 +234,7 @@ public class ReportServiceImpl implements ReportService {
       exporter.exportReport();
       return out.toByteArray();
     } catch (JRException e) {
+      log.error(e.getMessage(), e);
       throw new ReportGenerationException("Failed to export PDF", e);
     }
   }
@@ -244,6 +248,7 @@ public class ReportServiceImpl implements ReportService {
       exporter.exportReport();
       return out.toString();
     } catch (JRException e) {
+      log.error(e.getMessage(), e);
       throw new ReportGenerationException("Failed to export HTML", e);
     }
   }
@@ -257,6 +262,7 @@ public class ReportServiceImpl implements ReportService {
       ClassPathResource resource = new ClassPathResource(classpathLocation);
       return JasperCompileManager.compileReport(resource.getInputStream());
     } catch (Exception e) {
+      log.error(e.getMessage(), e);
       throw new JRException("Could not load report: " + classpathLocation, e);
     }
   }

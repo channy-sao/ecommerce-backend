@@ -194,7 +194,7 @@ public class PaymentServiceImpl implements PaymentService {
         financialService.recordCashPayment(order, payment, staffUserId, staffName);
 
     log.info(
-        "✅ COD payment recorded - Receipt: {} for order #{}",
+        "COD payment recorded - Receipt: {} for order #{}",
         transaction.getReferenceNumber(),
         order.getOrderNumber());
 
@@ -255,7 +255,7 @@ public class PaymentServiceImpl implements PaymentService {
         financialService.recordCashPayment(order, payment, staffUserId, staffName);
 
     log.info(
-        "✅ Cash-in-Shop payment recorded - Receipt: {} for order #{}",
+        "Cash-in-Shop payment recorded - Receipt: {} for order #{}",
         transaction.getReferenceNumber(),
         order.getOrderNumber());
 
