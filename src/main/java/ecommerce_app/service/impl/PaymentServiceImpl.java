@@ -229,7 +229,8 @@ public class PaymentServiceImpl implements PaymentService {
     // Verify order is in correct state
     if (order.getOrderStatus() != OrderStatus.CONFIRMED
         && order.getOrderStatus() != OrderStatus.PROCESSING
-        && order.getOrderStatus() != OrderStatus.READY_FOR_PICKUP) {
+        && order.getOrderStatus() != OrderStatus.READY_FOR_PICKUP
+        && order.getOrderStatus() != OrderStatus.DELIVERED) {
       throw new BadRequestException(
           "Order #"
               + order.getOrderNumber()
