@@ -1,5 +1,10 @@
 package ecommerce_app.service;
 
+import ecommerce_app.dto.response.RecentOrderResponse;
+
+import java.time.LocalDate;
+import java.util.List;
+
 /** Service interface for generating reports (invoices and receipts) */
 public interface ReportService {
 
@@ -34,4 +39,8 @@ public interface ReportService {
    * @return HTML string representation of the receipt
    */
   String generateReceiptHtml(Long orderId);
+
+  // ── Recent Orders Export ─────────────────────────────────────────
+  byte[] exportRecentOrdersPdf(List<RecentOrderResponse> orders, LocalDate fromDate, LocalDate toDate);
+  String exportRecentOrdersHtml(List<RecentOrderResponse> orders, LocalDate fromDate, LocalDate toDate);
 }

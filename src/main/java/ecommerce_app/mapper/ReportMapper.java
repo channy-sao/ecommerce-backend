@@ -3,7 +3,10 @@ package ecommerce_app.mapper;
 import ecommerce_app.constant.app.SettingKeys;
 import ecommerce_app.dto.report.InvoiceReportDto;
 import ecommerce_app.dto.report.ReceiptReportDto;
+import ecommerce_app.dto.report.RecentOrderReportDto;
+import ecommerce_app.dto.report.RecentOrderRowItem;
 import ecommerce_app.dto.report.ReportLineItem;
+import ecommerce_app.dto.response.RecentOrderResponse;
 import ecommerce_app.entity.Order;
 import ecommerce_app.entity.OrderItem;
 import ecommerce_app.entity.Payment;
@@ -11,6 +14,9 @@ import ecommerce_app.entity.PaymentTransaction;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -115,6 +121,54 @@ public class ReportMapper {
         .changeDue(payment != null ? payment.getChangeAmount() : null)
         .currency(payment != null ? payment.getCurrency() : "USD")
         .build();
+  }
+
+  // Inside ReportMapper.java — add this method
+
+  public RecentOrderReportDto toRecentOrderReportDto(
+          List<RecentOrderResponse> orders,
+          LocalDate fromDate,
+          LocalDate toDate,
+          Map<String, String> settingMap) {
+
+    DateTimeFormatter displayFmt = DateTimeFormatter.ofPattern("MMMM dd, yyyy");
+    DateTimeFormatter rowFmt     = DateTimeFormatter.ofPattern("MMM dd, yyyy");
+
+    List<RecentOrderRowItem> rows = orders.stream()
+            .map(o -> RecentOrderRowItem.builder()
+                    .id(o.getId())
+                    .orderNumber(o.getOrderNumber())
+                    .customer(o.getCustomer())
+                    .date(o.getDate() != null ? o.getDate().format(rowFmt) : "")
+                    .amount(o.getAmount() != null ? o.getAmount() : BigDecimal.ZERO)
+                    .status(o.getStatus())
+                    .items(o.getItems())
+                    .build())
+            .toList();
+
+    BigDecimal grandTotal = rows.stream()
+            .map(RecentOrderRowItem::getAmount)
+            .filter(java.util.Objects::nonNull)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+    int totalItems = rows.stream()
+            .mapToInt(r -> r.getItems() != null ? r.getItems() : 0)
+            .sum();
+
+    return RecentOrderReportDto.builder()
+            .companyName(COMPANY_NAME)
+            .companyLogo(null)
+            .companyAddress(settingMap.getOrDefault(SettingKeys.STORE_ADDRESS, null))
+            .companyPhone(settingMap.getOrDefault(SettingKeys.STORE_PHONE, null))
+            .companyEmail(settingMap.getOrDefault(SettingKeys.STORE_EMAIL, null))
+            .fromDate(fromDate.format(displayFmt))
+            .toDate(toDate.format(displayFmt))
+            .generatedAt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("MMMM dd, yyyy hh:mm a")))
+            .totalRecords(rows.size())
+            .grandTotal(grandTotal)
+            .totalItems(totalItems)
+            .rows(rows)
+            .build();
   }
 
   // ────────────────────────────────────────────────────────────────────

@@ -9,6 +9,7 @@ import ecommerce_app.dto.response.RecentOrderResponse;
 import ecommerce_app.dto.response.RevenueTrendResponse;
 import ecommerce_app.dto.response.StatusDistributionResponse;
 import ecommerce_app.dto.response.TopProductResponse;
+import ecommerce_app.service.ReportService;
 import ecommerce_app.service.impl.OrderStatsServiceImpl;
 import ecommerce_app.util.MessageSourceService;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -17,6 +18,8 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -33,6 +36,7 @@ public class DashboardController {
 
   private final OrderStatsServiceImpl orderStatsService;
   private final MessageSourceService messageSourceService;
+  private final ReportService reportService;
 
   /** Get dashboard statistics (last 30 days) GET /api/v1/orders/stats/dashboard */
   @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'SUPERVISOR', 'SUPER_ADMIN')")
@@ -172,7 +176,7 @@ public class DashboardController {
         messageSourceService.getMessage(MessageKeyConstant.REPORTS_LABEL_TOP_PRODUCTS));
   }
 
-  /** Get recent orders for dashboard */
+  /** Get recent orders for the dashboard */
   @GetMapping("/recent-orders")
   @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'SUPERVISOR', 'SUPER_ADMIN')")
   public ResponseEntity<BaseBodyResponse<List<RecentOrderResponse>>> getRecentOrders(
@@ -215,7 +219,7 @@ public class DashboardController {
     List<RecentOrderResponse> recentOrders =
         orderStatsService.getRecentOrders(fromDate, toDate, 10);
 
-    // Create dashboard overview DTO
+    // Create a dashboard overview DTO
     DashboardOverviewResponse overview =
         DashboardOverviewResponse.builder()
             .stats(stats)
@@ -227,5 +231,59 @@ public class DashboardController {
 
     return BaseBodyResponse.success(
         overview, messageSourceService.getMessage(MessageKeyConstant.NAV_DASHBOARD));
+  }
+
+  // ────────────────────────────────────────────────────────────────────
+// Recent Orders Export endpoints
+// ────────────────────────────────────────────────────────────────────
+
+  @GetMapping("/recent-orders/pdf")
+  @PreAuthorize("hasAnyAuthority('REPORT_CREATE', 'REPORT_READ')")
+  public ResponseEntity<byte[]> exportRecentOrdersPdf(
+          @RequestParam(defaultValue = "10000") int limit,   // max 10000 orders per PDF
+          @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+          @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate) {
+
+    if (fromDate == null || toDate == null) {
+      toDate   = LocalDate.now();
+      fromDate = toDate.minusDays(30);
+    }
+
+    if (limit > 10000) {
+      log.warn("Limit cannot exceed 10000 orders per PDF. Setting limit to 10000.");
+      limit = 10000;
+    }
+
+    log.info("Exporting recent orders PDF from {} to {}, limit={}", fromDate, toDate, limit);
+
+    List<RecentOrderResponse> orders = orderStatsService.getRecentOrders(fromDate, toDate, limit);
+    byte[] pdf = reportService.exportRecentOrdersPdf(orders, fromDate, toDate);
+
+    String filename = "recent_orders_" + fromDate + "_to_" + toDate + ".pdf";
+    return ResponseEntity.ok()
+            .contentType(MediaType.APPLICATION_PDF)
+            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+            .header(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate")
+            .body(pdf);
+  }
+
+  @GetMapping(value = "/recent-orders/html", produces = MediaType.TEXT_HTML_VALUE)
+  @PreAuthorize("hasAnyAuthority('REPORT_CREATE', 'REPORT_READ')")
+  public ResponseEntity<String> exportRecentOrdersHtml(
+          @RequestParam(defaultValue = "10") int limit,
+          @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+          @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate) {
+
+    if (fromDate == null || toDate == null) {
+      toDate   = LocalDate.now();
+      fromDate = toDate.minusDays(30);
+    }
+
+    log.info("Exporting recent orders HTML from {} to {}, limit={}", fromDate, toDate, limit);
+
+    List<RecentOrderResponse> orders = orderStatsService.getRecentOrders(fromDate, toDate, limit);
+    String html = reportService.exportRecentOrdersHtml(orders, fromDate, toDate);
+
+    return ResponseEntity.ok().contentType(MediaType.TEXT_HTML).body(html);
   }
 }

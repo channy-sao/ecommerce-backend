@@ -2,6 +2,8 @@ package ecommerce_app.service.impl;
 
 import ecommerce_app.dto.report.InvoiceReportDto;
 import ecommerce_app.dto.report.ReceiptReportDto;
+import ecommerce_app.dto.report.RecentOrderReportDto;
+import ecommerce_app.dto.response.RecentOrderResponse;
 import ecommerce_app.dto.response.SettingResponse;
 import ecommerce_app.entity.Order;
 import ecommerce_app.entity.PaymentTransaction;
@@ -14,6 +16,7 @@ import ecommerce_app.service.ReportService;
 import ecommerce_app.service.SettingService;
 import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
@@ -86,6 +89,68 @@ public class ReportServiceImpl implements ReportService {
     ReceiptReportDto dto = buildReceiptDto(orderId);
     JasperPrint print = fillReceiptReport(dto);
     return exportToHtml(print);
+  }
+
+  // ────────────────────────────────────────────────────────────────────
+// Recent Orders Export
+// ────────────────────────────────────────────────────────────────────
+
+  @Override
+  public byte[] exportRecentOrdersPdf(
+          List<RecentOrderResponse> orders, LocalDate fromDate, LocalDate toDate) {
+    RecentOrderReportDto dto = buildRecentOrderDto(orders, fromDate, toDate);
+    JasperPrint print = fillRecentOrderReport(dto);
+    return exportToPdf(print);
+  }
+
+  @Override
+  public String exportRecentOrdersHtml(
+          List<RecentOrderResponse> orders, LocalDate fromDate, LocalDate toDate) {
+    RecentOrderReportDto dto = buildRecentOrderDto(orders, fromDate, toDate);
+    JasperPrint print = fillRecentOrderReport(dto);
+    return exportToHtml(print);
+  }
+
+  private RecentOrderReportDto buildRecentOrderDto(
+          List<RecentOrderResponse> orders, LocalDate fromDate, LocalDate toDate) {
+    Map<String, String> settings = settingService.getAll().stream()
+            .collect(Collectors.toMap(SettingResponse::getKey, SettingResponse::getValue));
+    return reportMapper.toRecentOrderReportDto(orders, fromDate, toDate, settings);
+  }
+
+  private JasperPrint fillRecentOrderReport(RecentOrderReportDto dto) {
+    try {
+      JasperReport report = compileReport("reports/RecentOrders.jrxml");
+      Map<String, Object> params = buildRecentOrderParams(dto);
+      JRBeanCollectionDataSource ds = new JRBeanCollectionDataSource(dto.getRows());
+      return JasperFillManager.fillReport(report, params, ds);
+    } catch (JRException e) {
+      log.error(e.getMessage(), e);
+      throw new ReportGenerationException("Failed to fill recent orders report", e);
+    }
+  }
+
+  private Map<String, Object> buildRecentOrderParams(RecentOrderReportDto dto) {
+    Map<String, Object> p = new HashMap<>();
+
+    // Company
+    p.put("CompanyName",    dto.getCompanyName());
+    p.put("CompanyLogo",    resolveLogoUrl());
+    p.put("CompanyAddress", dto.getCompanyAddress());
+    p.put("CompanyPhone",   dto.getCompanyPhone());
+    p.put("CompanyEmail",   dto.getCompanyEmail());
+
+    // Report meta
+    p.put("FromDate",       dto.getFromDate());
+    p.put("ToDate",         dto.getToDate());
+    p.put("GeneratedAt",    dto.getGeneratedAt());
+    p.put("TotalRecords",   dto.getTotalRecords());
+
+    // Summary
+    p.put("GrandTotal",     orZero(dto.getGrandTotal()));
+    p.put("TotalItems",     dto.getTotalItems());
+
+    return p;
   }
 
   // ────────────────────────────────────────────────────────────────────
