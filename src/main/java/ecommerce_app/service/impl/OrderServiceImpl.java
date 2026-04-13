@@ -327,7 +327,7 @@ public class OrderServiceImpl implements OrderService {
             .findByIdAndUserId(orderId, userId)
             .orElseThrow(
                 () -> new ResourceNotFoundException("Order not found with ID: " + orderId));
-    return OrderMapper.toDetailResponse(order);
+    return orderMapper.toDetailResponse(order);
   }
 
   // ─── Private helpers ──────────────────────────────────────────────────────

@@ -23,7 +23,7 @@ public class OrderMapper {
 
   // ─── Detail response ─────────────────────────────────────────────────────
 
-  public static OrderDetailResponse toDetailResponse(Order order) {
+  public OrderDetailResponse toDetailResponse(Order order) {
     AddressResponse addressInfo = null;
     if (order.getShippingAddressSnapshot() != null) {
       addressInfo = parseAddressSnapshot(order.getShippingAddressSnapshot());
@@ -45,6 +45,7 @@ public class OrderMapper {
     return OrderDetailResponse.builder()
         .id(order.getId())
         .orderNumber(order.getOrderNumber())
+        .user(userMapper.toUserOrder(order.getUser()))
         .orderDate(order.getOrderDate())
         .orderStatus(order.getOrderStatus())
         .paymentStatus(order.getPaymentStatus())

@@ -30,6 +30,9 @@ public class OrderDetailResponse {
   @Schema(description = "Human-readable order number", example = "ORD-20240101-0001")
   private String orderNumber;
 
+  @Schema(description = "User who placed the order")
+  private UserOrderResponse user;
+
   @Schema(description = "Date and time the order was placed", example = "2024-01-01 10:00:00")
   @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
   private LocalDateTime orderDate;

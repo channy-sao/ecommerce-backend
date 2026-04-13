@@ -381,7 +381,7 @@ public class AdminManageOrderServiceImpl implements AdminManageOrderService {
                 () -> new ResourceNotFoundException("Order not found with ID: " + orderId));
 
     // Map order entity → detail DTO
-    OrderDetailResponse response = OrderMapper.toDetailResponse(order);
+    OrderDetailResponse response = orderMapper.toDetailResponse(order);
 
     // Load status history (sorted by createdAt asc)
     List<OrderStatusHistoryResponse> histories =
