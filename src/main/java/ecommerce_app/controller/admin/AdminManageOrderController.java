@@ -60,6 +60,7 @@ public class AdminManageOrderController {
   @PreAuthorize("hasAnyAuthority('ORDER_READ', 'ORDER_UPDATE', 'ORDER_CANCEL', 'ORDER_DELETE')")
   @GetMapping
   public ResponseEntity<BaseBodyResponse<List<OrderResponse>>> getOrders(
+      @RequestParam(value = "orderNumber", required = false) String orderNumber,
       @RequestParam(value = "orderStatus", required = false) OrderStatus orderStatus,
       @RequestParam(value = "paymentStatus", required = false) PaymentStatus paymentStatus,
       @RequestParam(value = "fromDate", required = false)
@@ -75,6 +76,7 @@ public class AdminManageOrderController {
       @RequestParam(value = "sortDirection", defaultValue = "DESC") Sort.Direction sortDirection) {
     return BaseBodyResponse.pageSuccess(
         this.adminManageOrderService.adminGetOrders(
+            orderNumber,
             orderStatus,
             paymentStatus,
             fromDate,

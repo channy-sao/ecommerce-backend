@@ -25,6 +25,7 @@ public interface AdminManageOrderService {
   List<POSOrderResponse> getTodayPOSOrders(LocalDate date, Long staffUserId);
 
   Page<OrderResponse> adminGetOrders(
+      String orderNumber,
       OrderStatus orderStatus,
       PaymentStatus paymentStatus,
       LocalDate fromDate,

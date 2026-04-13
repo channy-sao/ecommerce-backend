@@ -347,6 +347,7 @@ public class AdminManageOrderServiceImpl implements AdminManageOrderService {
   @Transactional(readOnly = true)
   @Override
   public Page<OrderResponse> adminGetOrders(
+      String orderNumber,
       OrderStatus orderStatus,
       PaymentStatus paymentStatus,
       LocalDate fromDate,
@@ -357,7 +358,7 @@ public class AdminManageOrderServiceImpl implements AdminManageOrderService {
       String sortBy,
       Sort.Direction sortDirection) {
     Specification<Order> specification =
-        OrderSpecification.filter(orderStatus, paymentStatus, fromDate, toDate);
+        OrderSpecification.filter(orderNumber,orderStatus, paymentStatus, fromDate, toDate);
     Sort sort = Sort.by(sortDirection, sortBy);
     if (!isPaged) {
       final List<Order> productList = orderRepository.findAll(specification, sort);

@@ -15,9 +15,12 @@ import org.springframework.data.jpa.domain.Specification;
 public class OrderSpecification {
 
   public static Specification<Order> filter(
-      OrderStatus orderStatus, PaymentStatus paymentStatus, LocalDate fromDate, LocalDate toDate) {
+      String orderNumber, OrderStatus orderStatus, PaymentStatus paymentStatus, LocalDate fromDate, LocalDate toDate) {
     return (root, query, cb) -> {
       List<Predicate> predicates = new ArrayList<>();
+      if (orderNumber != null) {
+        predicates.add(cb.like(cb.lower(root.get("orderNumber")), "%" + orderNumber.toLowerCase().replace("#", "") + "%"));
+      }
 
       if (orderStatus != null) {
         predicates.add(cb.equal(root.get("orderStatus"), orderStatus));
