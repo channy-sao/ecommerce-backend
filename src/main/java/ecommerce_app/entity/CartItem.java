@@ -53,6 +53,10 @@ public class CartItem {
   @JsonIgnore
   private Cart cart;
 
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "variant_id", referencedColumnName = "id", nullable = true)
+  private ProductVariant variant;
+
   @Column(name = "quantity", nullable = false)
   private int quantity;
 

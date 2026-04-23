@@ -1,6 +1,9 @@
 package ecommerce_app.service.impl;
 
 import ecommerce_app.annotation.LogExecutionTime;
+import ecommerce_app.constant.enums.StockMovementType;
+import ecommerce_app.dto.request.StockAdjustmentRequest;
+import ecommerce_app.exception.BadRequestException;
 import ecommerce_app.exception.ResourceNotFoundException;
 import ecommerce_app.mapper.ProductImportMapper;
 import ecommerce_app.entity.base.TimeAuditableEntity;
@@ -15,6 +18,7 @@ import ecommerce_app.entity.Stock;
 import ecommerce_app.repository.ProductImportRepository;
 import ecommerce_app.repository.StockRepository;
 import ecommerce_app.service.ProductImportService;
+import ecommerce_app.service.ProductVariantService;
 import ecommerce_app.service.StockService;
 import ecommerce_app.specification.ProductImportSpecification;
 import ecommerce_app.util.ProductMapper;
@@ -45,6 +49,7 @@ public class ProductImportServiceImpl implements ProductImportService {
   private final ProductRepository productRepository;
   private final ProductImportRepository productImportRepository;
   private final ProductImportMapper productImportMapper;
+  private final ProductVariantService productVariantService;
 
   private static ProductImport getPrepareProductImport(
       ProductImportRequest productImportRequest, Product product) {
@@ -64,25 +69,33 @@ public class ProductImportServiceImpl implements ProductImportService {
 
   @Transactional(rollbackFor = Exception.class)
   @Override
-  public void importProduct(ProductImportRequest productImportRequest) {
-    log.info("Importing product to stock");
+  public void importProduct(ProductImportRequest request) {
+    Product product = productRepository.findById(request.getProductId())
+            .orElseThrow(() -> new ResourceNotFoundException("Product", request.getProductId()));
 
-    Product product =
-        productRepository
-            .findById(productImportRequest.getProductId())
-            .orElseThrow(
-                () ->
-                    new ResourceNotFoundException("Product", productImportRequest.getProductId()));
+    // ✅ Route by hasVariants
+    if (Boolean.TRUE.equals(product.getHasVariants())) {
 
-    // 1. Save history
-    ProductImport importRecord = getPrepareProductImport(productImportRequest, product);
-    productImportRepository.save(importRecord);
+      // Variant import — must specify variantId
+      if (request.getVariantId() == null) {
+        throw new BadRequestException("variantId is required for products with variants");
+      }
 
-    // 2. Update stock
-    stockService.increaseStock(
-        productImportRequest.getProductId(), productImportRequest.getQuantity());
+      productVariantService.adjustStock(StockAdjustmentRequest.builder()
+              .variantId(request.getVariantId())
+              .movementType(StockMovementType.IN)
+              .quantity(request.getQuantity())
+              .referenceType("IMPORT")
+              .note("Imported via ProductImport")
+              .build());
+
+    } else {
+      // Simple product import — existing flow
+      ProductImport importRecord = getPrepareProductImport(request, product);
+      productImportRepository.save(importRecord);
+      stockService.increaseStock(request.getProductId(), request.getQuantity());
+    }
   }
-
   @LogExecutionTime
   @Transactional(rollbackFor = Exception.class)
   @Override

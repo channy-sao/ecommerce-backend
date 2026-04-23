@@ -52,6 +52,10 @@ public class OrderItem {
   @JoinColumn(name = "product_id", nullable = false, referencedColumnName = "id")
   private Product product;
 
+  @ManyToOne(fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+  @JoinColumn(name = "variant_id", referencedColumnName = "id", nullable = true)
+  private ProductVariant variant;  // null = simple product
+
   // How many units of this product were ordered
   @Column(nullable = false, name = "quantity")
   private Integer quantity;

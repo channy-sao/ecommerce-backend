@@ -23,6 +23,8 @@ public class ProductImportRequest {
   @NotNull(message = "Product Id is Required")
   private Long productId;
 
+  private Long variantId;  // ✅ required only when product hasVariants = true
+
   @Positive(message = "quantity must be > 0")
   @Schema(description = "Initial stock quantity", example = "100")
   private Integer quantity;
