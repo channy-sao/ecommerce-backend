@@ -166,6 +166,40 @@ public class Product extends SoftDeletableEntity {
   @Column(name = "warranty_description", length = 500)
   private String warrantyDescription; // "Covers all hardware defects"
 
+  @Column(name = "has_variants", nullable = false)
+  @Builder.Default
+  private Boolean hasVariants = false;
+
+  @OneToMany(
+          mappedBy = "product",
+          cascade = CascadeType.ALL,
+          orphanRemoval = true,
+          fetch = FetchType.LAZY)
+  @JsonIgnore
+  @Builder.Default
+  private List<ProductVariant> variants = new ArrayList<>();
+
+  // Aggregate stock across all active variants
+  @Transient
+  public int getTotalStockQuantity() {
+    if (!Boolean.TRUE.equals(hasVariants)) return getStockQuantity();
+    return variants.stream()
+            .filter(ProductVariant::getIsActive)
+            .mapToInt(ProductVariant::getStockQuantity)
+            .sum();
+  }
+
+  @Transient
+  public StockStatus getAggregatedStockStatus() {
+    if (!Boolean.TRUE.equals(hasVariants)) return getStockStatus();
+    int total = getTotalStockQuantity();
+    if (total <= 0) return StockStatus.OUT_OF_STOCK;
+    boolean anyLow = variants.stream()
+            .filter(ProductVariant::getIsActive)
+            .anyMatch(v -> v.getStockStatus() == StockStatus.LOW_STOCK);
+    return anyLow ? StockStatus.LOW_STOCK : StockStatus.IN_STOCK;
+  }
+
   @Transient
   public List<String> getSpecTexts() {
     if (specs == null) return List.of();

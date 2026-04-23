@@ -8,11 +8,16 @@ import ecommerce_app.constant.enums.CouponDiscountType;
 import ecommerce_app.constant.enums.PaymentMethod;
 import ecommerce_app.constant.enums.PromotionType;
 import ecommerce_app.constant.enums.ShippingMethod;
+import ecommerce_app.constant.enums.StockMovementType;
 import ecommerce_app.core.io.service.StorageConfig;
 import ecommerce_app.entity.Banner;
 import ecommerce_app.entity.Brand;
 import ecommerce_app.entity.Coupon;
+import ecommerce_app.entity.ProductAttributeDefinition;
+import ecommerce_app.entity.ProductAttributeValue;
+import ecommerce_app.entity.ProductVariant;
 import ecommerce_app.entity.Promotion;
+import ecommerce_app.entity.VariantStockMovement;
 import ecommerce_app.exception.BadRequestException;
 import ecommerce_app.exception.ResourceNotFoundException;
 import ecommerce_app.entity.Address;
@@ -21,7 +26,11 @@ import ecommerce_app.repository.AddressRepository;
 import ecommerce_app.repository.BannerRepository;
 import ecommerce_app.repository.BrandRepository;
 import ecommerce_app.repository.CouponRepository;
+import ecommerce_app.repository.ProductAttributeDefinitionRepository;
+import ecommerce_app.repository.ProductAttributeValueRepository;
+import ecommerce_app.repository.ProductVariantRepository;
 import ecommerce_app.repository.PromotionRepository;
+import ecommerce_app.repository.VariantStockMovementRepository;
 import ecommerce_app.service.CartService;
 import ecommerce_app.entity.Category;
 import ecommerce_app.repository.CategoryRepository;
@@ -48,7 +57,9 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -80,6 +91,10 @@ public class DummyService {
   private final BannerRepository bannerRepository;
   private final BrandRepository brandRepository;
   private final CouponRepository couponRepository;
+  private final ProductAttributeDefinitionRepository attributeDefinitionRepository;
+  private final ProductAttributeValueRepository attributeValueRepository;
+  private final ProductVariantRepository variantRepository;
+  private final VariantStockMovementRepository stockMovementRepository;
   private final Faker faker = new Faker();
 
   // dummy 15 rows
@@ -935,12 +950,166 @@ public class DummyService {
     log.info("Finish dummy banners");
   }
 
+  // ─────────────────────────────────────────────────────────────────────────────
+// NEW: Attribute Definitions  (Color, Size, Material, Storage, RAM)
+// ─────────────────────────────────────────────────────────────────────────────
+  public void dummyAttributeDefinitions() {
+    log.info("Start dummy attribute definitions");
+
+    if (dummyRepository.existsByNameAndAgainFalse("Dummy Attribute Definitions")) {
+      log.info("Dummy Attribute Definitions already exist");
+      return;
+    }
+
+    // name → list of values
+    Map<String, List<String>> schema = new LinkedHashMap<>();
+    schema.put("Color",    List.of("Red", "Blue", "Green", "Black", "White", "Yellow", "Purple", "Orange"));
+    schema.put("Size",     List.of("XS", "S", "M", "L", "XL", "XXL"));
+    schema.put("Material", List.of("Cotton", "Polyester", "Leather", "Wool", "Silk", "Denim"));
+    schema.put("Storage",  List.of("64GB", "128GB", "256GB", "512GB", "1TB"));
+    schema.put("RAM",      List.of("4GB", "8GB", "16GB", "32GB"));
+
+    int order = 0;
+    for (Map.Entry<String, List<String>> entry : schema.entrySet()) {
+      ProductAttributeDefinition def = ProductAttributeDefinition.builder()
+              .name(entry.getKey())
+              .displayName(entry.getKey())
+              .isActive(true)
+              .build();
+      attributeDefinitionRepository.save(def);
+
+      int valOrder = 0;
+      for (String val : entry.getValue()) {
+        ProductAttributeValue attrVal = ProductAttributeValue.builder()
+                .definition(def)
+                .value(val)
+                .displayOrder(valOrder++)
+                .isActive(true)
+                .build();
+        attributeValueRepository.save(attrVal);
+      }
+      order++;
+    }
+
+    Dummy dummy = new Dummy();
+    dummy.setName("Dummy Attribute Definitions");
+    dummy.setNumRows((long) schema.size());
+    dummy.setDummyDescription("Dummy Attribute Definitions %d rows".formatted(schema.size()));
+    dummyRepository.save(dummy);
+
+    log.info("Finish dummy attribute definitions");
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+// NEW: Product Variants — attach variants to ~30% of existing products
+// ─────────────────────────────────────────────────────────────────────────────
+  public void dummyProductVariants() {
+    log.info("Start dummy product variants");
+
+    if (dummyRepository.existsByNameAndAgainFalse("Dummy Product Variants")) {
+      log.info("Dummy Product Variants already exist");
+      return;
+    }
+
+    List<Product> products = productRepository.findAll();
+    List<ProductAttributeValue> colorValues    = attributeValueRepository.findByDefinitionName("Color");
+    List<ProductAttributeValue> sizeValues     = attributeValueRepository.findByDefinitionName("Size");
+    List<ProductAttributeValue> storageValues  = attributeValueRepository.findByDefinitionName("Storage");
+
+    if (colorValues.isEmpty() || sizeValues.isEmpty()) {
+      throw new IllegalStateException("Run dummyAttributeDefinitions first.");
+    }
+
+    int totalVariants = 0;
+
+    for (Product product : products) {
+      // Only ~30% of products get variants
+      if (faker.number().numberBetween(0, 10) >= 3) continue;
+
+      product.setHasVariants(true);
+      productRepository.save(product);
+
+      // Decide attribute combo: Color×Size (clothing) or Color×Storage (tech)
+      boolean isTech = faker.bool().bool();
+      List<ProductAttributeValue> axis1 = colorValues;
+      List<ProductAttributeValue> axis2 = isTech ? storageValues : sizeValues;
+
+      // Pick 2–3 values from each axis
+      List<ProductAttributeValue> pickedAxis1 = randomSublist(axis1, 2, 3);
+      List<ProductAttributeValue> pickedAxis2 = randomSublist(axis2, 2, 3);
+
+      for (ProductAttributeValue av1 : pickedAxis1) {
+        for (ProductAttributeValue av2 : pickedAxis2) {
+
+          String sku = product.getCode()
+                  + "-" + av1.getValue().toUpperCase().replace(" ", "")
+                  + "-" + av2.getValue().toUpperCase().replace(" ", "");
+
+          int stock = faker.number().numberBetween(0, 100);
+          BigDecimal priceAdjust = product.getPrice()
+                  .multiply(BigDecimal.valueOf(faker.number().numberBetween(90, 120)))
+                  .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+
+          ProductVariant variant = ProductVariant.builder()
+                  .product(product)
+                  .sku(sku)
+                  .price(priceAdjust)
+                  .stockQuantity(stock)
+                  .lowStockThreshold(10)
+                  .isActive(true)
+                  .attributeValues(List.of(av1, av2))
+                  .build();
+
+          try {
+            variantRepository.save(variant);
+
+            // Record an initial stock-in movement
+            if (stock > 0) {
+              VariantStockMovement movement = VariantStockMovement.builder()
+                      .variant(variant)
+                      .movementType(StockMovementType.IN)
+                      .quantity(stock)
+                      .quantityBefore(0)
+                      .quantityAfter(stock)
+                      .referenceType("INITIAL_DUMMY")
+                      .note("Initial stock from dummy data")
+                      .build();
+              stockMovementRepository.save(movement);
+            }
+
+            totalVariants++;
+          } catch (DataIntegrityViolationException e) {
+            log.warn("Duplicate variant SKU skipped: {}", sku);
+          }
+        }
+      }
+    }
+
+    Dummy dummy = new Dummy();
+    dummy.setName("Dummy Product Variants");
+    dummy.setNumRows((long) totalVariants);
+    dummy.setDummyDescription("Dummy Product Variants %d rows".formatted(totalVariants));
+    dummyRepository.save(dummy);
+
+    log.info("Finish dummy product variants — {} variants created", totalVariants);
+  }
+
+  // ─── private helper ───────────────────────────────────────────────────────────
+  private <T> List<T> randomSublist(List<T> source, int min, int max) {
+    List<T> copy = new ArrayList<>(source);
+    Collections.shuffle(copy);
+    int count = faker.number().numberBetween(min, Math.min(max + 1, copy.size() + 1));
+    return copy.subList(0, Math.min(count, copy.size()));
+  }
+
   //  @Async
   public void dummyAll() {
     log.info("Start dummy all data");
     dummyRoleAndUser();
     dummyBrand();
     dummyCategoryAndProduct();
+    dummyAttributeDefinitions();   // ← NEW (must run before variants)
+    dummyProductVariants();
     dummyCoupons();
     dummyPromotion();
     dummyBanner();
