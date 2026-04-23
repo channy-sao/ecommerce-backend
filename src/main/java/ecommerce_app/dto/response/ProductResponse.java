@@ -120,4 +120,7 @@ public class ProductResponse {
 
   @Schema(name = "warranty", description = "Details of the warranty associated with the product")
   private WarrantyResponse warranty;
+
+  @Schema(name = "hasVariants", description = "Indicates if the product has variants")
+  private boolean hasVariants;
 }

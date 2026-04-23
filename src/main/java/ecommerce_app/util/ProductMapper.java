@@ -86,6 +86,7 @@ public class ProductMapper {
     response.setPromotionBadge(promotionBadge);
     response.setSpecs(product.getSpecTexts());
     response.setCode(product.getCode());
+    response.setHasVariants(product.getHasVariants() || (product.getVariants() != null && !product.getVariants().isEmpty()));
 
     // warranty
     WarrantyResponse warrantyResponse = new WarrantyResponse();
@@ -139,6 +140,7 @@ public class ProductMapper {
     response.setCategoryName(product.getCategory().getName());
     response.setStockStatus(product.getStockStatus());
     response.setCode(product.getCode());
+    response.setHasVariations(product.getHasVariants() || (product.getVariants() != null && !product.getVariants().isEmpty()));
 
     SimpleBrandResponse brandResponse = null;
     if (product.getBrand() != null) {

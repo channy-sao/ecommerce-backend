@@ -52,4 +52,7 @@ public class SimpleProductResponse {
             example = "In Stock")
     private StockStatus stockStatus;
 
+    @Schema(description = "Indicates if the product has variations")
+    private boolean hasVariations;
+
 }
