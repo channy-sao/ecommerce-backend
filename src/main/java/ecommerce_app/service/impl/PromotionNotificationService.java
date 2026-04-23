@@ -4,6 +4,7 @@ import ecommerce_app.constant.enums.NotificationType;
 import ecommerce_app.dto.request.NotificationRequest;
 import ecommerce_app.entity.Coupon;
 import ecommerce_app.entity.Promotion;
+import ecommerce_app.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

@@ -42,6 +42,7 @@ import ecommerce_app.repository.PromotionUsageRepository;
 import ecommerce_app.repository.StockRepository;
 import ecommerce_app.repository.UserRepository;
 import ecommerce_app.service.CouponService;
+import ecommerce_app.service.NotificationService;
 import ecommerce_app.service.OrderService;
 import ecommerce_app.service.PaymentService;
 import ecommerce_app.service.facade.PromotionFacade;
@@ -63,8 +64,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
-
-import static ecommerce_app.constant.enums.PaymentGateway.BAKONG;
 
 @Service
 @Slf4j
