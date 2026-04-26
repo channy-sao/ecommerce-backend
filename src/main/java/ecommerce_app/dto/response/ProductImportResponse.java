@@ -24,6 +24,9 @@ public class ProductImportResponse {
   @Schema(description = "Representation of product")
   private ProductResponse product;
 
+  @Schema(description = "Variant that was imported (null for simple products)")
+  private ProductVariantResponse variant;
+
   @Schema(description = "Quantity of the product imported", example = "50")
   private int quantity;
 

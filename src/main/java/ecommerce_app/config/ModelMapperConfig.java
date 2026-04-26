@@ -2,6 +2,7 @@ package ecommerce_app.config;
 
 import ecommerce_app.core.io.service.FileManagerService;
 import ecommerce_app.core.io.service.StorageConfig;
+import ecommerce_app.mapper.ProductVariantMapper;
 import ecommerce_app.property.StorageConfigProperty;
 import ecommerce_app.dto.request.ProductRequest;
 import ecommerce_app.entity.Product;
@@ -23,13 +24,13 @@ import java.util.Set;
 public class ModelMapperConfig {
   @Bean
   public ModelMapper modelMapper(
-      FileManagerService fileManagerService,
-      StorageConfigProperty storageConfigProperty,
-      StorageConfig storageConfig,
-      AuditUserResolver auditUserResolver) {
+          FileManagerService fileManagerService,
+          StorageConfigProperty storageConfigProperty,
+          StorageConfig storageConfig,
+          AuditUserResolver auditUserResolver, ProductVariantMapper variantMapper) {
     ModelMapper modelMapper = new ModelMapper();
     ProductMapper.setProperties(
-        modelMapper, fileManagerService, storageConfigProperty, storageConfig, auditUserResolver);
+        modelMapper, fileManagerService, storageConfigProperty, storageConfig, auditUserResolver, variantMapper);
 
     modelMapper.getConfiguration().setMatchingStrategy(MatchingStrategies.STRICT);
     // Converter to prepend full path

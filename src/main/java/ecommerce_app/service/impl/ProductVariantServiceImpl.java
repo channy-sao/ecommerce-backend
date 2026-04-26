@@ -9,6 +9,7 @@ import ecommerce_app.entity.ProductAttributeValue;
 import ecommerce_app.entity.ProductVariant;
 import ecommerce_app.entity.VariantStockMovement;
 import ecommerce_app.exception.BadRequestException;
+import ecommerce_app.exception.DuplicateResourceException;
 import ecommerce_app.exception.ResourceNotFoundException;
 import ecommerce_app.mapper.ProductVariantMapper;
 import ecommerce_app.repository.ProductAttributeValueRepository;
@@ -21,222 +22,250 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
-@Transactional(readOnly = true)
 public class ProductVariantServiceImpl implements ProductVariantService {
 
-    private final ProductVariantRepository variantRepository;
-    private final ProductRepository productRepository;
-    private final ProductAttributeValueRepository attributeValueRepository;
-    private final VariantStockMovementRepository movementRepository;
-    private final ProductVariantMapper variantMapper;
+  private final ProductVariantRepository variantRepository;
+  private final ProductRepository productRepository;
+  private final ProductAttributeValueRepository attributeValueRepository;
+  private final VariantStockMovementRepository stockMovementRepository;
+  private final ProductVariantMapper variantMapper;
 
-    // ── Create variants ──────────────────────────────────────────────
-    @Override
-    @Transactional
-    public List<ProductVariantResponse> createVariants(Long productId, List<ProductVariantRequest> requests) {
-        Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new ResourceNotFoundException("Product not found: " + productId));
+  // ── READ ─────────────────────────────────────────────────────────────────
 
-        List<ProductVariant> saved = requests.stream().map(req -> {
-            if (variantRepository.existsBySku(req.getSku())) {
-                throw new BadRequestException("SKU already exists: " + req.getSku());
-            }
+  @Transactional(readOnly = true)
+  @Override
+  public List<ProductVariantResponse> getVariantsByProduct(Long productId) {
+    ensureProductExists(productId);
+    return variantMapper.toResponseList(variantRepository.findByProductId(productId));
+  }
 
-            List<ProductAttributeValue> attrValues = attributeValueRepository
-                    .findAllActiveByIds(req.getAttributeValueIds());
+  @Transactional(readOnly = true)
+  @Override
+  public ProductVariantResponse getVariantById(Long variantId) {
+    return variantMapper.toResponse(findVariantById(variantId));
+  }
 
-            if (attrValues.size() != req.getAttributeValueIds().size()) {
-                throw new BadRequestException("One or more attribute value IDs are invalid or inactive");
-            }
+  // ── CREATE ───────────────────────────────────────────────────────────────
 
-            ProductVariant variant = variantMapper.toEntity(req);
-            variant.setProduct(product);
-            variant.setAttributeValues(attrValues);
+  @Transactional(rollbackFor = Exception.class)
+  @Override
+  public ProductVariantResponse createVariant(Long productId, ProductVariantRequest request) {
+    Product product = findProductById(productId);
 
-            ProductVariant savedVariant = variantRepository.save(variant);
-
-            if (req.getStockQuantity() != null && req.getStockQuantity() > 0) {
-                recordMovement(savedVariant, StockMovementType.IN,
-                        req.getStockQuantity(), 0, req.getStockQuantity(),
-                        null, "INITIAL", "Initial stock on variant creation");
-            }
-
-            return savedVariant;
-        }).toList();
-
-        product.setHasVariants(true);
-        productRepository.save(product);
-
-        log.info("Created {} variants for product id={}", saved.size(), productId);
-        return variantMapper.toResponseList(saved);
+    if (!Boolean.TRUE.equals(product.getHasVariants())) {
+      throw new BadRequestException(
+          "Product "
+              + productId
+              + " is not a variant product. "
+              + "Set hasVariants = true on the product first.");
     }
 
-    // ── Update variant ───────────────────────────────────────────────
-    @Override
-    @Transactional
-    public ProductVariantResponse updateVariant(Long variantId, ProductVariantRequest request) {
-        ProductVariant variant = findVariantOrThrow(variantId);
+    String sku = normalizeSku(request.getSku());
+    if (variantRepository.existsBySku(sku)) {
+      throw new DuplicateResourceException("ProductVariant", "sku", sku);
+    }
 
-        // Check SKU uniqueness excluding self
-        if (variantRepository.existsBySkuAndIdNot(request.getSku(), variantId)) {
-            throw new BadRequestException("SKU already exists: " + request.getSku());
+    List<ProductAttributeValue> attrValues = resolveAttrValues(request.getAttributeValueIds());
+
+    ProductVariant variant = variantMapper.toEntity(request);
+    variant.setSku(sku);
+    variant.setProduct(product);
+    variant.setAttributeValues(attrValues);
+    variant.setStockMovements(new ArrayList<>());
+
+    ProductVariant saved = variantRepository.save(variant);
+
+    // Record initial IN movement if stock > 0
+    if (saved.getStockQuantity() > 0) {
+      recordMovement(
+          saved,
+          StockMovementType.IN,
+          saved.getStockQuantity(),
+          0,
+          saved.getStockQuantity(),
+          null,
+          "INITIAL",
+          "Initial stock on variant creation");
+    }
+
+    log.info("Created variant SKU='{}' for product {}", saved.getSku(), productId);
+    return variantMapper.toResponse(saved);
+  }
+
+  // ── UPDATE ───────────────────────────────────────────────────────────────
+
+  @Transactional(rollbackFor = Exception.class)
+  @Override
+  public ProductVariantResponse updateVariant(Long variantId, ProductVariantRequest request) {
+    ProductVariant variant = findVariantById(variantId);
+
+    String newSku = normalizeSku(request.getSku());
+    if (!variant.getSku().equals(newSku)
+        && variantRepository.existsBySkuAndIdNot(newSku, variantId)) {
+      throw new DuplicateResourceException("ProductVariant", "sku", newSku);
+    }
+
+    // Update scalar fields via mapper (SKU, price, lowStockThreshold)
+    variantMapper.updateEntity(variant, request);
+    variant.setSku(newSku);
+
+    // Replace attribute values if provided
+    if (request.getAttributeValueIds() != null) {
+      variant.setAttributeValues(resolveAttrValues(request.getAttributeValueIds()));
+    }
+
+    log.info("Updated variant {}", variantId);
+    return variantMapper.toResponse(variantRepository.save(variant));
+  }
+
+  // ── DELETE (soft) ─────────────────────────────────────────────────────────
+
+  @Transactional(rollbackFor = Exception.class)
+  @Override
+  public void deleteVariant(Long variantId) {
+    ProductVariant variant = findVariantById(variantId);
+    variant.setIsActive(false);
+    variantRepository.save(variant);
+    log.info("Deactivated variant {}", variantId);
+  }
+
+  // ── STOCK ADJUSTMENT ──────────────────────────────────────────────────────
+  // Called by: ProductImportServiceImpl (IN), OrderServiceImpl can also call here
+
+  @Transactional(rollbackFor = Exception.class)
+  @Override
+  public ProductVariantResponse adjustStock(StockAdjustmentRequest request) {
+    if (request.getQuantity() <= 0) {
+      throw new BadRequestException("Quantity must be positive");
+    }
+
+    ProductVariant variant = findVariantById(request.getVariantId());
+    int before = variant.getStockQuantity();
+    int after;
+
+    switch (request.getMovementType()) {
+      case IN, RETURN -> after = before + request.getQuantity();
+      case OUT -> {
+        if (before < request.getQuantity()) {
+          throw new BadRequestException(
+              "Insufficient stock for variant '"
+                  + variant.getSku()
+                  + "': available="
+                  + before
+                  + ", requested="
+                  + request.getQuantity());
         }
-
-        // Validate and fetch new attribute values
-        List<ProductAttributeValue> attrValues = attributeValueRepository
-                .findAllActiveByIds(request.getAttributeValueIds());
-
-        if (attrValues.size() != request.getAttributeValueIds().size()) {
-            throw new BadRequestException("One or more attribute value IDs are invalid or inactive");
-        }
-
-        variantMapper.updateEntity(variant, request);
-        variant.setAttributeValues(attrValues);
-
-        ProductVariant updated = variantRepository.save(variant);
-        log.info("Updated variant id={}", variantId);
-        return variantMapper.toResponse(updated);
+        after = before - request.getQuantity();
+      }
+      case ADJUSTMENT -> after = request.getQuantity(); // set absolute value
+      default ->
+          throw new BadRequestException("Unknown movement type: " + request.getMovementType());
     }
 
-    // ── Get variant by id ────────────────────────────────────────────
-    @Override
-    public ProductVariantResponse getVariantById(Long variantId) {
-        return variantMapper.toResponse(findVariantOrThrow(variantId));
+    variant.setStockQuantity(after);
+    variantRepository.save(variant);
+
+    recordMovement(
+        variant,
+        request.getMovementType(),
+        request.getQuantity(),
+        before,
+        after,
+        request.getReferenceId(),
+        request.getReferenceType(),
+        request.getNote());
+
+    log.info(
+        "Stock adjusted for variant '{}': {} → {} ({})",
+        variant.getSku(),
+        before,
+        after,
+        request.getMovementType());
+
+    return variantMapper.toResponse(variant);
+  }
+
+  // ── Bulk create ───────────────────────────────────────────────────────────
+
+  @Transactional(rollbackFor = Exception.class)
+  @Override
+  public List<ProductVariantResponse> createVariants(Long productId, List<ProductVariantRequest> requests) {
+    if (requests == null || requests.isEmpty()) {
+      throw new BadRequestException("At least one variant is required");
     }
+    return requests.stream()
+            .map(request -> createVariant(productId, request))
+            .toList();
+  }
 
-    // ── Get variants by product ──────────────────────────────────────
-    @Override
-    public List<ProductVariantResponse> getVariantsByProduct(Long productId) {
-        if (!productRepository.existsById(productId)) {
-            throw new ResourceNotFoundException("Product not found: " + productId);
-        }
-        return variantMapper.toResponseList(
-                variantRepository.findByProductIdAndIsActiveTrue(productId)
-        );
-    }
+// ── Stock history ─────────────────────────────────────────────────────────
 
-    // ── Adjust stock ─────────────────────────────────────────────────
-    @Override
-    @Transactional
-    public ProductVariantResponse adjustStock(StockAdjustmentRequest request) {
-        ProductVariant variant = findVariantOrThrow(request.getVariantId());
+  @Transactional(readOnly = true)
+  @Override
+  public List<VariantStockMovement> getStockHistory(Long variantId) {
+    findVariantById(variantId); // ensure variant exists
+    return stockMovementRepository
+            .findByVariantIdOrderByCreatedAtDesc(variantId);
+  }
 
-        int before = variant.getStockQuantity();
-        int after = switch (request.getMovementType()) {
-            case IN, RETURN -> before + request.getQuantity();
-            case OUT -> {
-                if (before < request.getQuantity()) {
-                    throw new BadRequestException(
-                            "Insufficient stock for variant id=" + variant.getId() +
-                                    ". Available: " + before + ", Requested: " + request.getQuantity()
-                    );
-                }
-                yield before - request.getQuantity();
-            }
-            case ADJUSTMENT -> {
-                if (request.getQuantity() < 0) {
-                    throw new BadRequestException("Adjustment quantity cannot be negative");
-                }
-                yield request.getQuantity(); // set absolute value
-            }
-        };
+  // ── Private helpers ───────────────────────────────────────────────────────
 
-        variant.setStockQuantity(after);
-        variantRepository.save(variant);
+  private Product findProductById(Long id) {
+    return productRepository
+        .findById(id)
+        .orElseThrow(() -> new ResourceNotFoundException("Product", id));
+  }
 
-        recordMovement(variant, request.getMovementType(), request.getQuantity(),
-                before, after, request.getReferenceId(),
-                request.getReferenceType(), request.getNote());
+  private void ensureProductExists(Long id) {
+    findProductById(id); // throws if missing
+  }
 
-        log.info("Stock adjusted variant id={} type={} qty={} {} -> {}",
-                variant.getId(), request.getMovementType(),
-                request.getQuantity(), before, after);
+  private ProductVariant findVariantById(Long id) {
+    return variantRepository
+        .findById(id)
+        .orElseThrow(() -> new ResourceNotFoundException("ProductVariant", id));
+  }
 
-        return variantMapper.toResponse(variant);
-    }
+  private List<ProductAttributeValue> resolveAttrValues(List<Long> ids) {
+    if (ids == null || ids.isEmpty()) return new ArrayList<>();
+    return ids.stream()
+        .map(
+            id ->
+                attributeValueRepository
+                    .findById(id)
+                    .orElseThrow(() -> new ResourceNotFoundException("AttributeValue", id)))
+        .toList();
+  }
 
-    // ── Deduct stock on order ────────────────────────────────────────
-    @Override
-    @Transactional
-    public void deductStockForOrder(Long variantId, int quantity, Long orderId) {
-        adjustStock(StockAdjustmentRequest.builder()
-                .variantId(variantId)
-                .movementType(StockMovementType.OUT)
-                .quantity(quantity)
-                .referenceId(orderId)
-                .referenceType("ORDER")
-                .note("Deducted on order #" + orderId)
-                .build());
-    }
+  private String normalizeSku(String sku) {
+    return sku == null ? null : sku.trim().toUpperCase();
+  }
 
-    // ── Restore stock on order cancel ────────────────────────────────
-    @Override
-    @Transactional
-    public void restoreStockForOrder(Long variantId, int quantity, Long orderId) {
-        adjustStock(StockAdjustmentRequest.builder()
-                .variantId(variantId)
-                .movementType(StockMovementType.RETURN)
-                .quantity(quantity)
-                .referenceId(orderId)
-                .referenceType("ORDER_CANCEL")
-                .note("Restored on order cancel #" + orderId)
-                .build());
-    }
-
-    // ── Get stock history ────────────────────────────────────────────
-    @Override
-    public List<VariantStockMovement> getStockHistory(Long variantId) {
-        if (!variantRepository.existsById(variantId)) {
-            throw new ResourceNotFoundException("Variant not found: " + variantId);
-        }
-        return movementRepository.findByVariantIdOrderByCreatedAtDesc(variantId);
-    }
-
-    // ── Soft delete variant ──────────────────────────────────────────
-    @Override
-    @Transactional
-    public void deleteVariant(Long variantId) {
-        ProductVariant variant = findVariantOrThrow(variantId);
-        variant.setIsActive(false);
-        variantRepository.save(variant);
-
-        // If all variants are inactive, reset hasVariants flag on product
-        Long productId = variant.getProduct().getId();
-        boolean anyActive = variantRepository.findByProductIdAndIsActiveTrue(productId).isEmpty();
-        if (anyActive) {
-            Product product = productRepository.findById(productId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Product not found: " + productId));
-            product.setHasVariants(false);
-            productRepository.save(product);
-            log.info("All variants inactive — reset hasVariants=false for product id={}", productId);
-        }
-
-        log.info("Soft deleted variant id={}", variantId);
-    }
-
-    // ── Private helpers ──────────────────────────────────────────────
-    private ProductVariant findVariantOrThrow(Long variantId) {
-        return variantRepository.findById(variantId)
-                .orElseThrow(() -> new ResourceNotFoundException("Variant not found: " + variantId));
-    }
-
-    private void recordMovement(ProductVariant variant, StockMovementType type,
-                                int qty, int before, int after,
-                                Long refId, String refType, String note) {
-        movementRepository.save(VariantStockMovement.builder()
-                .variant(variant)
-                .movementType(type)
-                .quantity(qty)
-                .quantityBefore(before)
-                .quantityAfter(after)
-                .referenceId(refId)
-                .referenceType(refType)
-                .note(note)
-                .build());
-    }
+  private void recordMovement(
+      ProductVariant variant,
+      StockMovementType type,
+      int quantity,
+      int before,
+      int after,
+      Long referenceId,
+      String referenceType,
+      String note) {
+    stockMovementRepository.save(
+        VariantStockMovement.builder()
+            .variant(variant)
+            .movementType(type)
+            .quantity(quantity)
+            .quantityBefore(before)
+            .quantityAfter(after)
+            .referenceId(referenceId)
+            .referenceType(referenceType)
+            .note(note)
+            .build());
+  }
 }

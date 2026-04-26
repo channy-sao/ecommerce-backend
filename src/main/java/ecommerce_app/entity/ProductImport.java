@@ -67,4 +67,10 @@ public class ProductImport extends UserAuditableEntity {
 
   @Column(name = "remark")
   private String remark;
+
+  @ManyToOne(fetch = FetchType.LAZY, optional = true)
+  @JoinColumn(name = "variant_id", referencedColumnName = "id", nullable = true)
+  @JsonIgnore
+  private ProductVariant variant; // null for simple products
+
 }

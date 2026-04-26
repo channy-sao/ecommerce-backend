@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 public interface VariantStockMovementRepository extends JpaRepository<VariantStockMovement, Long> {
-    List<VariantStockMovement> findByVariantIdOrderByCreatedAtDesc(Long variantId);
-    List<VariantStockMovement> findByVariantIdAndMovementType(Long variantId, StockMovementType type);
+  List<VariantStockMovement> findByVariantIdOrderByCreatedAtDesc(Long variantId);
+
+  List<VariantStockMovement> findByVariantIdAndMovementType(Long variantId, StockMovementType type);
 }

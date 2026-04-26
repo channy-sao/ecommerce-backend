@@ -8,40 +8,23 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.Optional;
 
-public interface ProductAttributeValueRepository extends JpaRepository<ProductAttributeValue, Long> {
+public interface ProductAttributeValueRepository
+    extends JpaRepository<ProductAttributeValue, Long> {
 
-    // Find all active values for a definition (e.g. all Colors)
-    List<ProductAttributeValue> findByDefinitionIdAndIsActiveTrueOrderByDisplayOrderAsc(Long definitionId);
 
-    // Find all active values across all definitions
-    List<ProductAttributeValue> findByIsActiveTrueOrderByDefinitionIdAscDisplayOrderAsc();
+  List<ProductAttributeValue> findByDefinitionIdOrderByDisplayOrderAsc(Long definitionId);
 
-    // Check duplicate value under the same definition
-    boolean existsByDefinitionIdAndValueIgnoreCase(Long definitionId, String value);
+  List<ProductAttributeValue> findByDefinitionIdAndIsActiveTrueOrderByDisplayOrderAsc(
+      Long definitionId);
 
-    // Check duplicate excluding self (for update)
-    boolean existsByDefinitionIdAndValueIgnoreCaseAndIdNot(Long definitionId, String value, Long id);
+  boolean existsByDefinitionIdAndValueIgnoreCase(Long definitionId, String value);
 
-    // Find by definition name (e.g. "Color")
-    @Query("""
-        SELECT v FROM ProductAttributeValue v
-        JOIN v.definition d
-        WHERE LOWER(d.name) = LOWER(:definitionName)
-        AND v.isActive = true
-        ORDER BY v.displayOrder ASC
-    """)
-    List<ProductAttributeValue> findByDefinitionName(@Param("definitionName") String definitionName);
+  long countByDefinitionId(Long definitionId);
 
-    // Find all values used by a specific product's variants
-    @Query("""
-        SELECT DISTINCT av FROM ProductAttributeValue av
-        JOIN av.variants v
-        WHERE v.product.id = :productId
-        AND v.isActive = true
-    """)
-    List<ProductAttributeValue> findUsedByProduct(@Param("productId") Long productId);
+  @Query(
+      "SELECT COALESCE(MAX(v.displayOrder), 0) FROM ProductAttributeValue v WHERE v.definition.id = :definitionId")
+  int findMaxDisplayOrderByDefinitionId(@Param("definitionId") Long definitionId);
 
-    // Find all values for given IDs that are active
-    @Query("SELECT v FROM ProductAttributeValue v WHERE v.id IN :ids AND v.isActive = true")
-    List<ProductAttributeValue> findAllActiveByIds(@Param("ids") List<Long> ids);
+  @Query("SELECT v FROM ProductAttributeValue v WHERE v.definition.name = :definitionName AND v.isActive = true")
+  List<ProductAttributeValue> findByDefinitionName(@Param("definitionName") String definitionName);
 }

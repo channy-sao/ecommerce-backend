@@ -7,6 +7,7 @@ import ecommerce_app.core.io.service.FileManagerService;
 import ecommerce_app.core.io.service.StaticResourceService;
 import ecommerce_app.core.io.service.StorageConfig;
 import ecommerce_app.dto.request.ProductRequest;
+import ecommerce_app.dto.request.ProductVariantRequest;
 import ecommerce_app.dto.response.ImportProductFromExcelResponse;
 import ecommerce_app.dto.response.NearEmptyStockResponse;
 import ecommerce_app.dto.response.ProductResponse;
@@ -20,7 +21,9 @@ import ecommerce_app.exception.ResourceNotFoundException;
 import ecommerce_app.repository.BrandRepository;
 import ecommerce_app.repository.CategoryRepository;
 import ecommerce_app.repository.ProductRepository;
+import ecommerce_app.repository.ProductVariantRepository;
 import ecommerce_app.service.ProductService;
+import ecommerce_app.service.ProductVariantService;
 import ecommerce_app.service.SettingService;
 import ecommerce_app.specification.ProductSpecification;
 import ecommerce_app.util.AuthenticationUtils;
@@ -59,6 +62,8 @@ public class ProductServiceImpl implements ProductService {
   private final StorageConfig storageConfig;
   private final SettingService settingService;
   private final BrandRepository brandRepository;
+  private final ProductVariantService variantService;
+  private final ProductVariantRepository variantRepository; // add to fields
 
   // -------------------------------------------------------------------------
   // CREATE
@@ -110,6 +115,24 @@ public class ProductServiceImpl implements ProductService {
 
       // Set back for response
       saved.setCode(code);
+
+      // set variant
+      if (Boolean.TRUE.equals(productRequest.getHasVariants())
+              && productRequest.getVariants() != null
+              && !productRequest.getVariants().isEmpty()) {
+
+        saved.setHasVariants(true);
+        productRepository.save(saved);
+
+        for (ProductVariantRequest varReq : productRequest.getVariants()) {
+          variantService.createVariant(saved.getId(), varReq);
+        }
+        // re fetch product
+        Product finalSaved = saved;
+        saved = productRepository.findById(saved.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Product", finalSaved.getId()));
+      }
+
       return ProductMapper.toProductResponse(saved);
 
     } catch (DataIntegrityViolationException e) {
@@ -164,12 +187,52 @@ public class ProductServiceImpl implements ProductService {
 
       handleImageUpdate(productRequest, existingProduct);
       handleSpecUpdate(productRequest, existingProduct);
+      handleVariantUpdate(productRequest, existingProduct);
 
       return ProductMapper.toProductResponse(productRepository.save(existingProduct));
 
     } catch (DataIntegrityViolationException e) {
       log.error(e.getMessage(), e);
       throw new BadRequestException(e.getMessage());
+    }
+  }
+
+  /**
+   * Three scenarios:
+   * 1. variants = null           → no change (user didn't touch variants)
+   * 2. hasVariants switched to false → deactivate all existing variants
+   * 3. variants = [...] provided → update existing, add new ones
+   */
+  private void handleVariantUpdate(ProductRequest request, Product product) {
+    // null = no change intended — skip entirely
+    if (request.getVariants() == null && request.getHasVariants() == null) return;
+
+    // Switching hasVariants flag
+    if (request.getHasVariants() != null) {
+      product.setHasVariants(request.getHasVariants());
+    }
+
+    // Turned OFF variants → deactivate all existing variants
+    if (!Boolean.TRUE.equals(product.getHasVariants())) {
+      variantRepository.findByProductId(product.getId())
+              .forEach(v -> {
+                v.setIsActive(false);
+                variantRepository.save(v);
+              });
+      return;
+    }
+
+    // No variant list sent → nothing to add or update
+    if (request.getVariants() == null || request.getVariants().isEmpty()) return;
+
+    for (ProductVariantRequest varReq : request.getVariants()) {
+      if (varReq.getId() != null) {
+        // ── Update existing variant ───────────────────────────
+        variantService.updateVariant(varReq.getId(), varReq);
+      } else {
+        // ── Add new variant ───────────────────────────────────
+        variantService.createVariant(product.getId(), varReq);
+      }
     }
   }
 

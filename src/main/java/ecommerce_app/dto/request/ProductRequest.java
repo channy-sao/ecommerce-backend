@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
 import java.util.List;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -97,4 +98,12 @@ public class ProductRequest {
       example = "Covers manufacturing defects only.",
       maxLength = 500)
   private String warrantyDescription;
+
+  @Schema(description = "Whether this product has variants (e.g. color/size)", example = "false")
+  @Builder.Default
+  private Boolean hasVariants = false;
+
+  @Schema(description = "Variant definitions (only used when hasVariants = true)")
+  @Valid
+  private List<ProductVariantRequest> variants;
 }

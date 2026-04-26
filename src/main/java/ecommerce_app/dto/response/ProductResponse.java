@@ -13,7 +13,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
-
 @Getter
 @Setter
 @NoArgsConstructor
@@ -123,4 +122,13 @@ public class ProductResponse {
 
   @Schema(name = "hasVariants", description = "Indicates if the product has variants")
   private boolean hasVariants;
+
+  @Schema(description = "Variants of this product (only populated when hasVariants = true)")
+  private List<ProductVariantResponse> variants;
+
+  @Schema(description = "Aggregated stock across all active variants", example = "38")
+  private Integer totalStockQuantity;
+
+  @Schema(description = "Aggregated stock status across all active variants")
+  private StockStatus aggregatedStockStatus;
 }

@@ -9,6 +9,7 @@ import ecommerce_app.dto.response.SimpleProductResponse;
 import ecommerce_app.dto.response.WarrantyResponse;
 import ecommerce_app.entity.Product;
 import ecommerce_app.entity.ProductImage;
+import ecommerce_app.mapper.ProductVariantMapper;
 import ecommerce_app.property.StorageConfigProperty;
 import java.util.Comparator;
 import java.util.List;
@@ -21,6 +22,7 @@ public class ProductMapper {
 
   private static ModelMapper modelMapper;
   private static FileManagerService fileManagerService;
+  private static ProductVariantMapper variantMapper;
   private static StorageConfigProperty storageConfigProperty;
   private static AuditUserResolver auditUserResolver;
   private static StorageConfig storageConfig;
@@ -30,12 +32,14 @@ public class ProductMapper {
       FileManagerService fileManagerService,
       StorageConfigProperty storageConfigProperty,
       StorageConfig storageConfig,
-      AuditUserResolver auditUserResolver) {
+      AuditUserResolver auditUserResolver,
+      ProductVariantMapper variantMapper) {
     ProductMapper.modelMapper = modelMapper;
     ProductMapper.fileManagerService = fileManagerService;
     ProductMapper.storageConfigProperty = storageConfigProperty;
     ProductMapper.storageConfig = storageConfig;
     ProductMapper.auditUserResolver = auditUserResolver;
+    ProductMapper.variantMapper = variantMapper;
   }
 
   public static ProductResponse toProductResponse(Product product) {
@@ -86,8 +90,16 @@ public class ProductMapper {
     response.setPromotionBadge(promotionBadge);
     response.setSpecs(product.getSpecTexts());
     response.setCode(product.getCode());
-    response.setHasVariants(product.getHasVariants() || (product.getVariants() != null && !product.getVariants().isEmpty()));
-
+    response.setHasVariants(product.getHasVariants());
+    response.setVariants(
+        Boolean.TRUE.equals(product.getHasVariants()) && product.getVariants() != null
+            ? product.getVariants().stream()
+                .filter(v -> Boolean.TRUE.equals(v.getIsActive()))
+                .map(variantMapper::toResponse) // ← needs variantMapper injected
+                .toList()
+            : List.of());
+    response.setTotalStockQuantity(product.getTotalStockQuantity());
+    response.setAggregatedStockStatus(product.getAggregatedStockStatus());
     // warranty
     WarrantyResponse warrantyResponse = new WarrantyResponse();
     warrantyResponse.setType(product.getWarrantyType());
@@ -140,8 +152,16 @@ public class ProductMapper {
     response.setCategoryName(product.getCategory().getName());
     response.setStockStatus(product.getStockStatus());
     response.setCode(product.getCode());
-    response.setHasVariations(product.getHasVariants() || (product.getVariants() != null && !product.getVariants().isEmpty()));
-
+    response.setHasVariants(product.getHasVariants());
+    response.setVariants(
+        Boolean.TRUE.equals(product.getHasVariants()) && product.getVariants() != null
+            ? product.getVariants().stream()
+                .filter(v -> Boolean.TRUE.equals(v.getIsActive()))
+                .map(variantMapper::toResponse) // ← needs variantMapper injected
+                .toList()
+            : List.of());
+    response.setTotalStockQuantity(product.getTotalStockQuantity());
+    response.setAggregatedStockStatus(product.getAggregatedStockStatus());
     SimpleBrandResponse brandResponse = null;
     if (product.getBrand() != null) {
       brandResponse =

@@ -3,6 +3,7 @@ package ecommerce_app.service.impl;
 import ecommerce_app.annotation.LogExecutionTime;
 import ecommerce_app.constant.enums.StockMovementType;
 import ecommerce_app.dto.request.StockAdjustmentRequest;
+import ecommerce_app.entity.ProductVariant;
 import ecommerce_app.exception.BadRequestException;
 import ecommerce_app.exception.ResourceNotFoundException;
 import ecommerce_app.mapper.ProductImportMapper;
@@ -16,7 +17,9 @@ import ecommerce_app.dto.response.ProductImportResponse;
 import ecommerce_app.entity.ProductImport;
 import ecommerce_app.entity.Stock;
 import ecommerce_app.repository.ProductImportRepository;
+import ecommerce_app.repository.ProductVariantRepository;
 import ecommerce_app.repository.StockRepository;
+import ecommerce_app.repository.VariantStockMovementRepository;
 import ecommerce_app.service.ProductImportService;
 import ecommerce_app.service.ProductVariantService;
 import ecommerce_app.service.StockService;
@@ -50,6 +53,7 @@ public class ProductImportServiceImpl implements ProductImportService {
   private final ProductImportRepository productImportRepository;
   private final ProductImportMapper productImportMapper;
   private final ProductVariantService productVariantService;
+  private final ProductVariantRepository productVariantRepository;
 
   private static ProductImport getPrepareProductImport(
       ProductImportRequest productImportRequest, Product product) {
@@ -70,24 +74,42 @@ public class ProductImportServiceImpl implements ProductImportService {
   @Transactional(rollbackFor = Exception.class)
   @Override
   public void importProduct(ProductImportRequest request) {
-    Product product = productRepository.findById(request.getProductId())
+    Product product =
+        productRepository
+            .findById(request.getProductId())
             .orElseThrow(() -> new ResourceNotFoundException("Product", request.getProductId()));
 
-    // ✅ Route by hasVariants
     if (Boolean.TRUE.equals(product.getHasVariants())) {
 
-      // Variant import — must specify variantId
       if (request.getVariantId() == null) {
         throw new BadRequestException("variantId is required for products with variants");
       }
 
-      productVariantService.adjustStock(StockAdjustmentRequest.builder()
+      // Guard: variant must belong to this product
+      ProductVariant variant =
+          productVariantRepository
+              .findById(request.getVariantId())
+              .orElseThrow(() -> new ResourceNotFoundException("Variant", request.getVariantId()));
+
+      if (!variant.getProduct().getId().equals(product.getId())) {
+        throw new BadRequestException("Variant does not belong to product " + product.getId());
+      }
+
+      // Adjust stock + record movement
+      productVariantService.adjustStock(
+          StockAdjustmentRequest.builder()
               .variantId(request.getVariantId())
               .movementType(StockMovementType.IN)
               .quantity(request.getQuantity())
               .referenceType("IMPORT")
-              .note("Imported via ProductImport")
+              .note(request.getRemark()) // ← use actual remark not hardcoded string
               .build());
+
+      // ✅ Save import record so history is preserved
+      ProductImport importRecord = getPrepareProductImport(request, product);
+      importRecord.setVariant(variant);
+      importRecord.setRemark(request.getRemark());
+      productImportRepository.save(importRecord);
 
     } else {
       // Simple product import — existing flow
@@ -96,6 +118,7 @@ public class ProductImportServiceImpl implements ProductImportService {
       stockService.increaseStock(request.getProductId(), request.getQuantity());
     }
   }
+
   @LogExecutionTime
   @Transactional(rollbackFor = Exception.class)
   @Override
@@ -112,20 +135,42 @@ public class ProductImportServiceImpl implements ProductImportService {
 
     // Adjust stock only if needed
     if (diff != 0) {
-      Stock stock =
-          stockRepository
-              .findByProductId(productId)
-              .orElseThrow(
-                  () -> new IllegalStateException("Stock not found for product " + productId));
+      Product product = importRecord.getProduct();
 
-      int newStock = stock.getQuantity() + diff;
-      if (newStock < 0) {
-        log.warn("Stock is negative");
-        throw new IllegalStateException("Stock cannot be negative");
+      if (Boolean.TRUE.equals(product.getHasVariants())) {
+        // ── Variant product path ──────────────────────────────
+        if (importRecord.getVariant() == null) {
+          throw new IllegalStateException(
+              "Import record has no variant linked for variant product");
+        }
+
+        StockMovementType type = diff > 0 ? StockMovementType.IN : StockMovementType.OUT;
+        productVariantService.adjustStock(
+            StockAdjustmentRequest.builder()
+                .variantId(importRecord.getVariant().getId())
+                .movementType(type)
+                .quantity(Math.abs(diff))
+                .referenceType("IMPORT_UPDATE")
+                .note("Import record #" + id + " updated")
+                .build());
+
+      } else {
+        // ── Simple product path — unchanged ───────────────────
+        Stock stock =
+            stockRepository
+                .findByProductId(productId)
+                .orElseThrow(
+                    () -> new IllegalStateException("Stock not found for product " + productId));
+
+        int newStock = stock.getQuantity() + diff;
+        if (newStock < 0) {
+          log.warn("Stock is negative");
+          throw new IllegalStateException("Stock cannot be negative");
+        }
+
+        stock.setQuantity(newStock);
+        stockRepository.save(stock);
       }
-
-      stock.setQuantity(newStock);
-      stockRepository.save(stock);
     }
     // Update import fields
     importRecord.setQuantity(newQty);
