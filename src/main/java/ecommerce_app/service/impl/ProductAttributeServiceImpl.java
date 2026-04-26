@@ -1,15 +1,15 @@
 package ecommerce_app.service.impl;
 
-import ecommerce_app.dto.request.ProductAttributeDefinitionRequest;
+import ecommerce_app.dto.request.ProductAttributeRequest;
 import ecommerce_app.dto.request.ProductAttributeValueRequest;
-import ecommerce_app.dto.response.ProductAttributeDefinitionResponse;
+import ecommerce_app.dto.response.ProductAttributeResponse;
 import ecommerce_app.dto.response.ProductAttributeValueResponse;
-import ecommerce_app.entity.ProductAttributeDefinition;
+import ecommerce_app.entity.ProductAttribute;
 import ecommerce_app.entity.ProductAttributeValue;
 import ecommerce_app.exception.DuplicateResourceException;
 import ecommerce_app.exception.ResourceNotFoundException;
 import ecommerce_app.mapper.ProductAttributeMapper;
-import ecommerce_app.repository.ProductAttributeDefinitionRepository;
+import ecommerce_app.repository.ProductAttributeRepository;
 import ecommerce_app.repository.ProductAttributeValueRepository;
 import ecommerce_app.service.ProductAttributeService;
 import lombok.RequiredArgsConstructor;
@@ -27,26 +27,26 @@ import java.util.List;
 @Transactional(readOnly = true)
 public class ProductAttributeServiceImpl implements ProductAttributeService {
 
-  private final ProductAttributeDefinitionRepository definitionRepository;
+  private final ProductAttributeRepository definitionRepository;
   private final ProductAttributeValueRepository valueRepository;
   private final ProductAttributeMapper attributeMapper;
 
   // ==================== Attribute Definitions ====================
 
   @Override
-  public List<ProductAttributeDefinitionResponse> getAllDefinitions() {
+  public List<ProductAttributeResponse> getAllProductAttributes() {
     log.debug("Fetching all attribute definitions");
     return definitionRepository.findAll().stream().map(attributeMapper::toResponse).toList();
   }
 
   @Override
-  public Page<ProductAttributeDefinitionResponse> getDefinitions(Pageable pageable) {
+  public Page<ProductAttributeResponse> getProductAttributes(Pageable pageable) {
     log.debug("Fetching attribute definitions with pagination: {}", pageable);
     return definitionRepository.findAll(pageable).map(attributeMapper::toResponse);
   }
 
   @Override
-  public List<ProductAttributeDefinitionResponse> getActiveDefinitions() {
+  public List<ProductAttributeResponse> getActiveProductAttributes() {
     log.debug("Fetching active attribute definitions");
     return definitionRepository.findByIsActiveTrue().stream()
         .map(attributeMapper::toResponse)
@@ -54,7 +54,7 @@ public class ProductAttributeServiceImpl implements ProductAttributeService {
   }
 
   @Override
-  public ProductAttributeDefinitionResponse getDefinitionById(Long definitionId) {
+  public ProductAttributeResponse getProductAttributeById(Long definitionId) {
     log.debug("Fetching attribute definition by ID: {}", definitionId);
     return definitionRepository
         .findById(definitionId)
@@ -64,8 +64,8 @@ public class ProductAttributeServiceImpl implements ProductAttributeService {
 
   @Override
   @Transactional
-  public ProductAttributeDefinitionResponse createDefinition(
-      ProductAttributeDefinitionRequest request) {
+  public ProductAttributeResponse createProductAttribute(
+      ProductAttributeRequest request) {
     log.info("Creating new attribute definition: {}", request.getName());
 
     // Check for duplicate name
@@ -73,10 +73,10 @@ public class ProductAttributeServiceImpl implements ProductAttributeService {
       throw new DuplicateResourceException("AttributeDefinition", "name", request.getName());
     }
 
-    ProductAttributeDefinition entity = attributeMapper.toEntity(request);
+    ProductAttribute entity = attributeMapper.toEntity(request);
     entity.setIsActive(true);
 
-    ProductAttributeDefinition saved = definitionRepository.save(entity);
+    ProductAttribute saved = definitionRepository.save(entity);
     log.info("Attribute definition created with ID: {}", saved.getId());
 
     return attributeMapper.toResponse(saved);
@@ -84,11 +84,11 @@ public class ProductAttributeServiceImpl implements ProductAttributeService {
 
   @Override
   @Transactional
-  public ProductAttributeDefinitionResponse updateDefinition(
-      Long definitionId, ProductAttributeDefinitionRequest request) {
+  public ProductAttributeResponse updateProductAttribute(
+      Long definitionId, ProductAttributeRequest request) {
     log.info("Updating attribute definition with ID: {}", definitionId);
 
-    ProductAttributeDefinition existing =
+    ProductAttribute existing =
         definitionRepository
             .findById(definitionId)
             .orElseThrow(() -> new ResourceNotFoundException("AttributeDefinition", definitionId));
@@ -102,7 +102,7 @@ public class ProductAttributeServiceImpl implements ProductAttributeService {
 
     attributeMapper.updateEntity(existing, request);
 
-    ProductAttributeDefinition updated = definitionRepository.save(existing);
+    ProductAttribute updated = definitionRepository.save(existing);
     log.info("Attribute definition updated: {}", updated.getId());
 
     return attributeMapper.toResponse(updated);
@@ -110,10 +110,10 @@ public class ProductAttributeServiceImpl implements ProductAttributeService {
 
   @Override
   @Transactional
-  public void deactivateDefinition(Long definitionId) {
+  public void deactivateProductAttribute(Long definitionId) {
     log.info("Deactivating attribute definition with ID: {}", definitionId);
 
-    ProductAttributeDefinition definition =
+    ProductAttribute definition =
         definitionRepository
             .findById(definitionId)
             .orElseThrow(() -> new ResourceNotFoundException("AttributeDefinition", definitionId));
@@ -125,10 +125,10 @@ public class ProductAttributeServiceImpl implements ProductAttributeService {
 
   @Override
   @Transactional
-  public void activateDefinition(Long definitionId) {
+  public void activateProductAttribute(Long definitionId) {
     log.info("Activating attribute definition with ID: {}", definitionId);
 
-    ProductAttributeDefinition definition =
+    ProductAttribute definition =
         definitionRepository
             .findById(definitionId)
             .orElseThrow(() -> new ResourceNotFoundException("AttributeDefinition", definitionId));
@@ -143,12 +143,12 @@ public class ProductAttributeServiceImpl implements ProductAttributeService {
   public void deleteDefinition(Long definitionId) {
     log.info("Permanently deleting attribute definition with ID: {}", definitionId);
 
-    ProductAttributeDefinition definition =
+    ProductAttribute definition =
         definitionRepository
             .findById(definitionId)
             .orElseThrow(() -> new ResourceNotFoundException("AttributeDefinition", definitionId));
 
-    long valueCount = valueRepository.countByDefinitionId(definitionId);
+    long valueCount = valueRepository.countByProductAttributeId(definitionId);
     if (valueCount > 0) {
       log.warn(
           "Deleting definition with {} associated values. Values will also be deleted due to cascade.",
@@ -162,7 +162,7 @@ public class ProductAttributeServiceImpl implements ProductAttributeService {
   // ==================== Attribute Values ====================
 
   @Override
-  public List<ProductAttributeValueResponse> getValuesByDefinition(Long definitionId) {
+  public List<ProductAttributeValueResponse> getValuesByProductAttribute(Long definitionId) {
     log.debug("Fetching all values for definition ID: {}", definitionId);
 
     // Verify definition exists
@@ -170,13 +170,13 @@ public class ProductAttributeServiceImpl implements ProductAttributeService {
       throw new ResourceNotFoundException("AttributeDefinition", definitionId);
     }
 
-    return valueRepository.findByDefinitionIdOrderByDisplayOrderAsc(definitionId).stream()
+    return valueRepository.findByProductAttributeIdOrderByDisplayOrderAsc(definitionId).stream()
         .map(attributeMapper::toValueResponse)
         .toList();
   }
 
   @Override
-  public List<ProductAttributeValueResponse> getActiveValuesByDefinition(Long definitionId) {
+  public List<ProductAttributeValueResponse> getActiveValuesByProductAttribute(Long definitionId) {
     log.debug("Fetching active values for definition ID: {}", definitionId);
 
     // Verify definition exists
@@ -185,7 +185,7 @@ public class ProductAttributeServiceImpl implements ProductAttributeService {
     }
 
     return valueRepository
-        .findByDefinitionIdAndIsActiveTrueOrderByDisplayOrderAsc(definitionId)
+        .findByProductAttributeIdAndIsActiveTrueOrderByDisplayOrderAsc(definitionId)
         .stream()
         .map(attributeMapper::toValueResponse)
         .toList();
@@ -206,22 +206,22 @@ public class ProductAttributeServiceImpl implements ProductAttributeService {
       Long definitionId, ProductAttributeValueRequest request) {
     log.info("Creating new attribute value for definition ID: {}", definitionId);
 
-    ProductAttributeDefinition definition =
+    ProductAttribute definition =
         definitionRepository
             .findById(definitionId)
             .orElseThrow(() -> new ResourceNotFoundException("AttributeDefinition", definitionId));
 
     // Check for duplicate value under same definition
-    if (valueRepository.existsByDefinitionIdAndValueIgnoreCase(definitionId, request.getValue())) {
+    if (valueRepository.existsByProductAttributeIdAndValueIgnoreCase(definitionId, request.getValue())) {
       throw new DuplicateResourceException("AttributeValue", "value", request.getValue());
     }
 
     ProductAttributeValue entity = attributeMapper.toValueEntity(request);
-    entity.setDefinition(definition);
+    entity.setProductAttribute(definition);
     entity.setIsActive(true);
 
     // Set display order (append to end)
-    int maxOrder = valueRepository.findMaxDisplayOrderByDefinitionId(definitionId);
+    int maxOrder = valueRepository.findMaxDisplayOrderByProductAttributeId(definitionId);
     if (entity.getDisplayOrder() == null || entity.getDisplayOrder() == 0) {
       entity.setDisplayOrder(maxOrder + 1);
     }
@@ -249,8 +249,8 @@ public class ProductAttributeServiceImpl implements ProductAttributeService {
     // Check for duplicate value under same definition (excluding self)
     if (request.getValue() != null
         && !request.getValue().equals(existing.getValue())
-        && valueRepository.existsByDefinitionIdAndValueIgnoreCase(
-            existing.getDefinition().getId(), request.getValue())) {
+        && valueRepository.existsByProductAttributeIdAndValueIgnoreCase(
+            existing.getProductAttribute().getId(), request.getValue())) {
       throw new DuplicateResourceException("AttributeValue", "value", request.getValue());
     }
 
@@ -332,7 +332,7 @@ public class ProductAttributeServiceImpl implements ProductAttributeService {
               .orElseThrow(() -> new ResourceNotFoundException("AttributeValue", valueId));
 
       // Ensure value belongs to the specified definition
-      if (!value.getDefinition().getId().equals(definitionId)) {
+      if (!value.getProductAttribute().getId().equals(definitionId)) {
         throw new IllegalArgumentException(
             "Value " + valueId + " does not belong to definition " + definitionId);
       }

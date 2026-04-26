@@ -12,9 +12,9 @@ import java.util.List;
     name = "product_attribute_values",
     uniqueConstraints =
         @UniqueConstraint(
-            name = "uq_attr_def_value",
-            columnNames = {"attribute_definition_id", "value"}),
-    indexes = @Index(name = "idx_attr_value_def", columnList = "attribute_definition_id"))
+            name = "uq_attr_value",
+            columnNames = {"product_attribute_id", "value"}),
+    indexes = @Index(name = "idx_attr_value", columnList = "product_attribute_id"))
 @Getter
 @Setter
 @Builder
@@ -27,8 +27,8 @@ public class ProductAttributeValue extends TimeAuditableEntity {
   private Long id;
 
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
-  @JoinColumn(name = "attribute_definition_id", nullable = false)
-  private ProductAttributeDefinition definition;
+  @JoinColumn(name = "product_attribute_id", nullable = false)
+  private ProductAttribute productAttribute;
 
   @Column(nullable = false, length = 100)
   private String value; // "Red", "XL", "Blue"

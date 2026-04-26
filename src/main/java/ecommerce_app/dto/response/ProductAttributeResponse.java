@@ -13,7 +13,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ProductAttributeDefinitionResponse {
+public class ProductAttributeResponse {
   private Long id;
   private String name;
   private String displayName;

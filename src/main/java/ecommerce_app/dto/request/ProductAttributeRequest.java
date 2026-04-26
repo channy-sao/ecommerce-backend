@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ProductAttributeDefinitionRequest {
+public class ProductAttributeRequest {
 
   private Long id;
 

@@ -13,7 +13,7 @@ import ecommerce_app.core.io.service.StorageConfig;
 import ecommerce_app.entity.Banner;
 import ecommerce_app.entity.Brand;
 import ecommerce_app.entity.Coupon;
-import ecommerce_app.entity.ProductAttributeDefinition;
+import ecommerce_app.entity.ProductAttribute;
 import ecommerce_app.entity.ProductAttributeValue;
 import ecommerce_app.entity.ProductVariant;
 import ecommerce_app.entity.Promotion;
@@ -21,12 +21,11 @@ import ecommerce_app.entity.VariantStockMovement;
 import ecommerce_app.exception.BadRequestException;
 import ecommerce_app.exception.ResourceNotFoundException;
 import ecommerce_app.entity.Address;
-import ecommerce_app.property.StorageConfigProperty;
 import ecommerce_app.repository.AddressRepository;
 import ecommerce_app.repository.BannerRepository;
 import ecommerce_app.repository.BrandRepository;
 import ecommerce_app.repository.CouponRepository;
-import ecommerce_app.repository.ProductAttributeDefinitionRepository;
+import ecommerce_app.repository.ProductAttributeRepository;
 import ecommerce_app.repository.ProductAttributeValueRepository;
 import ecommerce_app.repository.ProductVariantRepository;
 import ecommerce_app.repository.PromotionRepository;
@@ -67,7 +66,6 @@ import ecommerce_app.util.ImageDownloadUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -91,7 +89,7 @@ public class DummyService {
   private final BannerRepository bannerRepository;
   private final BrandRepository brandRepository;
   private final CouponRepository couponRepository;
-  private final ProductAttributeDefinitionRepository attributeDefinitionRepository;
+  private final ProductAttributeRepository attributeDefinitionRepository;
   private final ProductAttributeValueRepository attributeValueRepository;
   private final ProductVariantRepository variantRepository;
   private final VariantStockMovementRepository stockMovementRepository;
@@ -971,7 +969,7 @@ public class DummyService {
 
     int order = 0;
     for (Map.Entry<String, List<String>> entry : schema.entrySet()) {
-      ProductAttributeDefinition def = ProductAttributeDefinition.builder()
+      ProductAttribute def = ProductAttribute.builder()
               .name(entry.getKey())
               .displayName(entry.getKey())
               .isActive(true)
@@ -981,7 +979,7 @@ public class DummyService {
       int valOrder = 0;
       for (String val : entry.getValue()) {
         ProductAttributeValue attrVal = ProductAttributeValue.builder()
-                .definition(def)
+                .productAttribute(def)
                 .value(val)
                 .displayOrder(valOrder++)
                 .isActive(true)
@@ -1012,9 +1010,9 @@ public class DummyService {
     }
 
     List<Product> products = productRepository.findAll();
-    List<ProductAttributeValue> colorValues    = attributeValueRepository.findByDefinitionName("Color");
-    List<ProductAttributeValue> sizeValues     = attributeValueRepository.findByDefinitionName("Size");
-    List<ProductAttributeValue> storageValues  = attributeValueRepository.findByDefinitionName("Storage");
+    List<ProductAttributeValue> colorValues    = attributeValueRepository.findByProductAttributeName("Color");
+    List<ProductAttributeValue> sizeValues     = attributeValueRepository.findByProductAttributeName("Size");
+    List<ProductAttributeValue> storageValues  = attributeValueRepository.findByProductAttributeName("Storage");
 
     if (colorValues.isEmpty() || sizeValues.isEmpty()) {
       throw new IllegalStateException("Run dummyAttributeDefinitions first.");

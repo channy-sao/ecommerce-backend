@@ -1,11 +1,11 @@
 package ecommerce_app.mapper;
 
-import ecommerce_app.dto.request.ProductAttributeDefinitionRequest;
+import ecommerce_app.dto.request.ProductAttributeRequest;
 import ecommerce_app.dto.request.ProductAttributeValueRequest;
 import ecommerce_app.dto.response.AuditUserDto;
-import ecommerce_app.dto.response.ProductAttributeDefinitionResponse;
+import ecommerce_app.dto.response.ProductAttributeResponse;
 import ecommerce_app.dto.response.ProductAttributeValueResponse;
-import ecommerce_app.entity.ProductAttributeDefinition;
+import ecommerce_app.entity.ProductAttribute;
 import ecommerce_app.entity.ProductAttributeValue;
 import ecommerce_app.util.AuditUserResolver;
 import lombok.RequiredArgsConstructor;
@@ -25,13 +25,13 @@ public class ProductAttributeMapper {
   // ==================== Definition Mappings ====================
 
   /** Convert entity to response DTO */
-  public ProductAttributeDefinitionResponse toResponse(ProductAttributeDefinition entity) {
+  public ProductAttributeResponse toResponse(ProductAttribute entity) {
     if (entity == null) {
       return null;
     }
     Map<Long, AuditUserDto> auditUserDtoMap =
         resolver.resolve(List.of(entity.getCreatedBy(), entity.getUpdatedBy()));
-    return ProductAttributeDefinitionResponse.builder()
+    return ProductAttributeResponse.builder()
         .id(entity.getId())
         .name(entity.getName())
         .displayName(entity.getDisplayName())
@@ -45,12 +45,12 @@ public class ProductAttributeMapper {
   }
 
   /** Convert request DTO to entity */
-  public ProductAttributeDefinition toEntity(ProductAttributeDefinitionRequest request) {
+  public ProductAttribute toEntity(ProductAttributeRequest request) {
     if (request == null) {
       return null;
     }
 
-    return ProductAttributeDefinition.builder()
+    return ProductAttribute.builder()
         .id(request.getId())
         .name(request.getName())
         .displayName(request.getDisplayName())
@@ -60,7 +60,7 @@ public class ProductAttributeMapper {
 
   /** Update existing entity from request DTO */
   public void updateEntity(
-      ProductAttributeDefinition entity, ProductAttributeDefinitionRequest request) {
+          ProductAttribute entity, ProductAttributeRequest request) {
     if (request == null || entity == null) {
       return;
     }
@@ -77,8 +77,8 @@ public class ProductAttributeMapper {
   }
 
   /** Convert list of entities to list of response DTOs */
-  public List<ProductAttributeDefinitionResponse> toResponseList(
-      List<ProductAttributeDefinition> entities) {
+  public List<ProductAttributeResponse> toResponseList(
+      List<ProductAttribute> entities) {
     if (entities == null) {
       return Collections.emptyList();
     }
@@ -96,9 +96,9 @@ public class ProductAttributeMapper {
     return ProductAttributeValueResponse.builder()
         .id(entity.getId())
         .attributeDefinitionId(
-            entity.getDefinition() != null ? entity.getDefinition().getId() : null)
+            entity.getProductAttribute() != null ? entity.getProductAttribute().getId() : null)
         .attributeDefinitionName(
-            entity.getDefinition() != null ? entity.getDefinition().getName() : null)
+            entity.getProductAttribute() != null ? entity.getProductAttribute().getName() : null)
         .value(entity.getValue())
         .displayOrder(entity.getDisplayOrder())
         .isActive(entity.getIsActive())
@@ -152,7 +152,7 @@ public class ProductAttributeMapper {
 
   /** Convert request DTOs to entities with definition association */
   public List<ProductAttributeValue> toValueEntities(
-      List<ProductAttributeValueRequest> requests, ProductAttributeDefinition definition) {
+      List<ProductAttributeValueRequest> requests, ProductAttribute definition) {
 
     if (requests == null) {
       return Collections.emptyList();
@@ -162,7 +162,7 @@ public class ProductAttributeMapper {
         .map(
             request -> {
               ProductAttributeValue value = toValueEntity(request);
-              value.setDefinition(definition);
+              value.setProductAttribute(definition);
               return value;
             })
         .collect(Collectors.toList());

@@ -1,8 +1,8 @@
 package ecommerce_app.service;
 
-import ecommerce_app.dto.request.ProductAttributeDefinitionRequest;
+import ecommerce_app.dto.request.ProductAttributeRequest;
 import ecommerce_app.dto.request.ProductAttributeValueRequest;
-import ecommerce_app.dto.response.ProductAttributeDefinitionResponse;
+import ecommerce_app.dto.response.ProductAttributeResponse;
 import ecommerce_app.dto.response.ProductAttributeValueResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -19,7 +19,7 @@ public interface ProductAttributeService {
    *
    * @return list of attribute definition responses
    */
-  List<ProductAttributeDefinitionResponse> getAllDefinitions();
+  List<ProductAttributeResponse> getAllProductAttributes();
 
   /**
    * Get attribute definitions with pagination
@@ -27,14 +27,14 @@ public interface ProductAttributeService {
    * @param pageable pagination information
    * @return page of attribute definition responses
    */
-  Page<ProductAttributeDefinitionResponse> getDefinitions(Pageable pageable);
+  Page<ProductAttributeResponse> getProductAttributes(Pageable pageable);
 
   /**
    * Get active attribute definitions only
    *
    * @return list of active attribute definition responses
    */
-  List<ProductAttributeDefinitionResponse> getActiveDefinitions();
+  List<ProductAttributeResponse> getActiveProductAttributes();
 
   /**
    * Get attribute definition by ID
@@ -42,7 +42,7 @@ public interface ProductAttributeService {
    * @param definitionId the definition ID
    * @return attribute definition response
    */
-  ProductAttributeDefinitionResponse getDefinitionById(Long definitionId);
+  ProductAttributeResponse getProductAttributeById(Long definitionId);
 
   /**
    * Create a new attribute definition
@@ -50,7 +50,7 @@ public interface ProductAttributeService {
    * @param request the attribute definition request
    * @return created attribute definition response
    */
-  ProductAttributeDefinitionResponse createDefinition(ProductAttributeDefinitionRequest request);
+  ProductAttributeResponse createProductAttribute(ProductAttributeRequest request);
 
   /**
    * Update attribute definition
@@ -59,22 +59,22 @@ public interface ProductAttributeService {
    * @param request the updated definition data
    * @return updated attribute definition response
    */
-  ProductAttributeDefinitionResponse updateDefinition(
-      Long definitionId, ProductAttributeDefinitionRequest request);
+  ProductAttributeResponse updateProductAttribute(
+      Long definitionId, ProductAttributeRequest request);
 
   /**
    * Deactivate attribute definition (soft delete)
    *
    * @param definitionId the definition ID
    */
-  void deactivateDefinition(Long definitionId);
+  void deactivateProductAttribute(Long definitionId);
 
   /**
    * Activate attribute definition
    *
    * @param definitionId the definition ID
    */
-  void activateDefinition(Long definitionId);
+  void activateProductAttribute(Long definitionId);
 
   /**
    * Delete attribute definition permanently
@@ -91,7 +91,7 @@ public interface ProductAttributeService {
    * @param definitionId the definition ID
    * @return list of attribute value responses
    */
-  List<ProductAttributeValueResponse> getValuesByDefinition(Long definitionId);
+  List<ProductAttributeValueResponse> getValuesByProductAttribute(Long definitionId);
 
   /**
    * Get active values for an attribute definition
@@ -99,7 +99,7 @@ public interface ProductAttributeService {
    * @param definitionId the definition ID
    * @return list of active attribute value responses
    */
-  List<ProductAttributeValueResponse> getActiveValuesByDefinition(Long definitionId);
+  List<ProductAttributeValueResponse> getActiveValuesByProductAttribute(Long definitionId);
 
   /**
    * Get attribute value by ID

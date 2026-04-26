@@ -1,9 +1,9 @@
 package ecommerce_app.controller.admin;
 
-import ecommerce_app.dto.request.ProductAttributeDefinitionRequest;
+import ecommerce_app.dto.request.ProductAttributeRequest;
 import ecommerce_app.dto.request.ProductAttributeValueRequest;
 import ecommerce_app.dto.response.BaseBodyResponse;
-import ecommerce_app.dto.response.ProductAttributeDefinitionResponse;
+import ecommerce_app.dto.response.ProductAttributeResponse;
 import ecommerce_app.dto.response.ProductAttributeValueResponse;
 import ecommerce_app.service.ProductAttributeService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -26,7 +26,7 @@ import java.util.List;
 @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'SUPER_ADMIN')")
 @Tag(
     name = "Product Attributes",
-    description = "Manage attribute definitions (Color, Size…) and their values")
+    description = "Manage product attribute (Color, Size…) and their values")
 public class ProductAttributeController {
 
   private final ProductAttributeService attributeService;
@@ -34,114 +34,114 @@ public class ProductAttributeController {
   // ── Definitions ───────────────────────────────────────────────────────────
 
   @GetMapping
-  @Operation(summary = "List all attribute definitions")
-  public ResponseEntity<BaseBodyResponse<List<ProductAttributeDefinitionResponse>>>
-      getDefinitions() {
-    return BaseBodyResponse.success(attributeService.getAllDefinitions(), "OK");
+  @Operation(summary = "List all product attributes")
+  public ResponseEntity<BaseBodyResponse<List<ProductAttributeResponse>>>
+      getProductAttributes() {
+    return BaseBodyResponse.success(attributeService.getAllProductAttributes(), "OK");
   }
 
   @GetMapping("/paged")
-  @Operation(summary = "List attribute definitions with pagination")
-  public ResponseEntity<BaseBodyResponse<Page<ProductAttributeDefinitionResponse>>>
-      getDefinitionsPaged(
-          @RequestParam(defaultValue = "0") int page,
-          @RequestParam(defaultValue = "10") int size,
+  @Operation(summary = "List product attribute with pagination")
+  public ResponseEntity<BaseBodyResponse<Page<ProductAttributeResponse>>>
+      getProductAttributePaged(
+          @RequestParam(defaultValue = "1") int page,
+          @RequestParam(defaultValue = "10") int pageSize,
           @RequestParam(defaultValue = "id") String sortBy,
           @RequestParam(defaultValue = "ASC") String direction) {
 
     Sort.Direction sortDirection = Sort.Direction.fromString(direction.toUpperCase());
-    Pageable pageable = PageRequest.of(page, size, Sort.by(sortDirection, sortBy));
-    return BaseBodyResponse.success(attributeService.getDefinitions(pageable), "OK");
+    Pageable pageable = PageRequest.of(page-1, pageSize, Sort.by(sortDirection, sortBy));
+    return BaseBodyResponse.success(attributeService.getProductAttributes(pageable), "OK");
   }
 
   @GetMapping("/active")
-  @Operation(summary = "List active attribute definitions only")
-  public ResponseEntity<BaseBodyResponse<List<ProductAttributeDefinitionResponse>>>
-      getActiveDefinitions() {
-    return BaseBodyResponse.success(attributeService.getActiveDefinitions(), "OK");
+  @Operation(summary = "List active product attributes only")
+  public ResponseEntity<BaseBodyResponse<List<ProductAttributeResponse>>>
+      getActiveProductAttributes() {
+    return BaseBodyResponse.success(attributeService.getActiveProductAttributes(), "OK");
   }
 
-  @GetMapping("/{definitionId}")
-  @Operation(summary = "Get attribute definition by ID")
-  public ResponseEntity<BaseBodyResponse<ProductAttributeDefinitionResponse>> getDefinitionById(
-      @PathVariable Long definitionId) {
-    return BaseBodyResponse.success(attributeService.getDefinitionById(definitionId), "OK");
+  @GetMapping("/{attributeId}")
+  @Operation(summary = "Get product attribute by ID")
+  public ResponseEntity<BaseBodyResponse<ProductAttributeResponse>> getProductAttributeById(
+      @PathVariable Long attributeId) {
+    return BaseBodyResponse.success(attributeService.getProductAttributeById(attributeId), "OK");
   }
 
   @PostMapping
-  @Operation(summary = "Create an attribute definition (e.g. Color, Size)")
-  public ResponseEntity<BaseBodyResponse<ProductAttributeDefinitionResponse>> createDefinition(
-      @RequestBody @Valid ProductAttributeDefinitionRequest request) {
+  @Operation(summary = "Create an product attribute (e.g. Color, Size)")
+  public ResponseEntity<BaseBodyResponse<ProductAttributeResponse>> createProductAttribute(
+      @RequestBody @Valid ProductAttributeRequest request) {
     return BaseBodyResponse.success(
-        attributeService.createDefinition(request), "Attribute created");
+        attributeService.createProductAttribute(request), "Product Attribute created");
   }
 
-  @PutMapping("/{definitionId}")
-  @Operation(summary = "Update an attribute definition")
-  public ResponseEntity<BaseBodyResponse<ProductAttributeDefinitionResponse>> updateDefinition(
-      @PathVariable Long definitionId,
-      @RequestBody @Valid ProductAttributeDefinitionRequest request) {
+  @PutMapping("/{attributeId}")
+  @Operation(summary = "Update an product attribute definition")
+  public ResponseEntity<BaseBodyResponse<ProductAttributeResponse>> updateProductAttribute(
+      @PathVariable Long attributeId,
+      @RequestBody @Valid ProductAttributeRequest request) {
     return BaseBodyResponse.success(
-        attributeService.updateDefinition(definitionId, request), "Attribute updated");
+        attributeService.updateProductAttribute(attributeId, request), "Product Attribute updated");
   }
 
-  @PatchMapping("/{definitionId}/deactivate")
-  @Operation(summary = "Deactivate an attribute definition")
-  public ResponseEntity<BaseBodyResponse<Void>> deactivateDefinition(
-      @PathVariable Long definitionId) {
-    attributeService.deactivateDefinition(definitionId);
-    return BaseBodyResponse.success("Attribute deactivated");
+  @PatchMapping("/{attributeId}/deactivate")
+  @Operation(summary = "Deactivate a product attribute")
+  public ResponseEntity<BaseBodyResponse<Void>> deactivateProductAttribute(
+      @PathVariable Long attributeId) {
+    attributeService.deactivateProductAttribute(attributeId);
+    return BaseBodyResponse.success("Product Attribute toggle status changed");
   }
 
-  @PatchMapping("/{definitionId}/activate")
-  @Operation(summary = "Activate an attribute definition")
-  public ResponseEntity<BaseBodyResponse<Void>> activateDefinition(
-      @PathVariable Long definitionId) {
-    attributeService.activateDefinition(definitionId);
-    return BaseBodyResponse.success("Attribute activated");
+  @PatchMapping("/{attributeId}/activate")
+  @Operation(summary = "Activate a product attribute")
+  public ResponseEntity<BaseBodyResponse<Void>> activateProductAttribute(
+      @PathVariable Long attributeId) {
+    attributeService.activateProductAttribute(attributeId);
+    return BaseBodyResponse.success("Product Attribute activated");
   }
 
-  @DeleteMapping("/{definitionId}")
-  @Operation(summary = "Permanently delete an attribute definition")
-  public ResponseEntity<BaseBodyResponse<Void>> deleteDefinition(@PathVariable Long definitionId) {
-    attributeService.deleteDefinition(definitionId);
-    return BaseBodyResponse.success("Attribute deleted");
+  @DeleteMapping("/{attributeId}")
+  @Operation(summary = "Permanently delete a product attribute")
+  public ResponseEntity<BaseBodyResponse<Void>> deleteDefinition(@PathVariable Long attributeId) {
+    attributeService.deleteDefinition(attributeId);
+    return BaseBodyResponse.success("Product Attribute deleted");
   }
 
   // ── Values under a definition ─────────────────────────────────────────────
 
-  @GetMapping("/{definitionId}/values")
-  @Operation(summary = "List all values for an attribute definition")
+  @GetMapping("/{attributeId}/values")
+  @Operation(summary = "List all values for a product attribute")
   public ResponseEntity<BaseBodyResponse<List<ProductAttributeValueResponse>>> getValues(
-      @PathVariable Long definitionId) {
-    return BaseBodyResponse.success(attributeService.getValuesByDefinition(definitionId), "OK");
+      @PathVariable Long attributeId) {
+    return BaseBodyResponse.success(attributeService.getValuesByProductAttribute(attributeId), "OK");
   }
 
-  @GetMapping("/{definitionId}/values/active")
-  @Operation(summary = "List active values for an attribute definition")
+  @GetMapping("/{attributeId}/values/active")
+  @Operation(summary = "List active values for an product attribute")
   public ResponseEntity<BaseBodyResponse<List<ProductAttributeValueResponse>>> getActiveValues(
-      @PathVariable Long definitionId) {
+      @PathVariable Long attributeId) {
     return BaseBodyResponse.success(
-        attributeService.getActiveValuesByDefinition(definitionId), "OK");
+        attributeService.getActiveValuesByProductAttribute(attributeId), "OK");
   }
 
   @GetMapping("/values/{valueId}")
-  @Operation(summary = "Get attribute value by ID")
+  @Operation(summary = "Get product attribute value by ID")
   public ResponseEntity<BaseBodyResponse<ProductAttributeValueResponse>> getValueById(
       @PathVariable Long valueId) {
     return BaseBodyResponse.success(attributeService.getValueById(valueId), "OK");
   }
 
-  @PostMapping("/{definitionId}/values")
-  @Operation(summary = "Add a value to an attribute definition (e.g. Red, XL)")
+  @PostMapping("/{attributeId}/values")
+  @Operation(summary = "Add a value to a product attribute (e.g. Red, XL)")
   public ResponseEntity<BaseBodyResponse<ProductAttributeValueResponse>> createValue(
-      @PathVariable Long definitionId, @RequestBody @Valid ProductAttributeValueRequest request) {
+      @PathVariable Long attributeId, @RequestBody @Valid ProductAttributeValueRequest request) {
     return BaseBodyResponse.success(
-        attributeService.createValue(definitionId, request), "Value created");
+        attributeService.createValue(attributeId, request), "Value created");
   }
 
   @PutMapping("/values/{valueId}")
-  @Operation(summary = "Update an attribute value")
+  @Operation(summary = "Update a product attribute value")
   public ResponseEntity<BaseBodyResponse<ProductAttributeValueResponse>> updateValue(
       @PathVariable Long valueId, @RequestBody @Valid ProductAttributeValueRequest request) {
     return BaseBodyResponse.success(
@@ -169,11 +169,11 @@ public class ProductAttributeController {
     return BaseBodyResponse.success("Value deleted");
   }
 
-  @PostMapping("/{definitionId}/values/reorder")
+  @PostMapping("/{attributeId}/values/reorder")
   @Operation(summary = "Reorder attribute values")
   public ResponseEntity<BaseBodyResponse<Void>> reorderValues(
-      @PathVariable Long definitionId, @RequestBody List<Long> orderedValueIds) {
-    attributeService.reorderValues(definitionId, orderedValueIds);
+      @PathVariable Long attributeId, @RequestBody List<Long> orderedValueIds) {
+    attributeService.reorderValues(attributeId, orderedValueIds);
     return BaseBodyResponse.success("Values reordered");
   }
 }

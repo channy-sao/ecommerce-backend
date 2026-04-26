@@ -12,19 +12,19 @@ public interface ProductAttributeValueRepository
     extends JpaRepository<ProductAttributeValue, Long> {
 
 
-  List<ProductAttributeValue> findByDefinitionIdOrderByDisplayOrderAsc(Long definitionId);
+  List<ProductAttributeValue> findByProductAttributeIdOrderByDisplayOrderAsc(Long attributeId);
 
-  List<ProductAttributeValue> findByDefinitionIdAndIsActiveTrueOrderByDisplayOrderAsc(
-      Long definitionId);
+  List<ProductAttributeValue> findByProductAttributeIdAndIsActiveTrueOrderByDisplayOrderAsc(
+      Long attributeId);
 
-  boolean existsByDefinitionIdAndValueIgnoreCase(Long definitionId, String value);
+  boolean existsByProductAttributeIdAndValueIgnoreCase(Long attributeId, String value);
 
-  long countByDefinitionId(Long definitionId);
+  long countByProductAttributeId(Long attributeId);
 
   @Query(
-      "SELECT COALESCE(MAX(v.displayOrder), 0) FROM ProductAttributeValue v WHERE v.definition.id = :definitionId")
-  int findMaxDisplayOrderByDefinitionId(@Param("definitionId") Long definitionId);
+      "SELECT COALESCE(MAX(v.displayOrder), 0) FROM ProductAttributeValue v WHERE v.productAttribute.id = :attributeId")
+  int findMaxDisplayOrderByProductAttributeId(@Param("attributeId") Long attributeId);
 
-  @Query("SELECT v FROM ProductAttributeValue v WHERE v.definition.name = :definitionName AND v.isActive = true")
-  List<ProductAttributeValue> findByDefinitionName(@Param("definitionName") String definitionName);
+  @Query("SELECT v FROM ProductAttributeValue v WHERE v.productAttribute.name = :attributeName AND v.isActive = true")
+  List<ProductAttributeValue> findByProductAttributeName(@Param("attributeName") String attributeName);
 }

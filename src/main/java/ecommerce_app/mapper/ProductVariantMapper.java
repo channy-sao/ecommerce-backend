@@ -71,10 +71,10 @@ public class ProductVariantMapper {
     private ProductVariantResponse.AttributeValueDto toAttributeValueDto(ProductAttributeValue value) {
         return ProductVariantResponse.AttributeValueDto.builder()
                 .id(value.getId())
-                .attribute(value.getDefinition() != null
-                    ? value.getDefinition().getDisplayName() != null
-                        ? value.getDefinition().getDisplayName()
-                        : value.getDefinition().getName()
+                .attribute(value.getProductAttribute() != null
+                    ? value.getProductAttribute().getDisplayName() != null
+                        ? value.getProductAttribute().getDisplayName()
+                        : value.getProductAttribute().getName()
                     : null)
                 .value(value.getValue())
                 .build();
