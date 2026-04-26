@@ -42,7 +42,7 @@ public class ProductAttributeController {
 
   @GetMapping("/paged")
   @Operation(summary = "List product attribute with pagination")
-  public ResponseEntity<BaseBodyResponse<Page<ProductAttributeResponse>>>
+  public ResponseEntity<BaseBodyResponse<List<ProductAttributeResponse>>>
       getProductAttributePaged(
           @RequestParam(defaultValue = "1") int page,
           @RequestParam(defaultValue = "10") int pageSize,
@@ -51,7 +51,7 @@ public class ProductAttributeController {
 
     Sort.Direction sortDirection = Sort.Direction.fromString(direction.toUpperCase());
     Pageable pageable = PageRequest.of(page-1, pageSize, Sort.by(sortDirection, sortBy));
-    return BaseBodyResponse.success(attributeService.getProductAttributes(pageable), "OK");
+    return BaseBodyResponse.pageSuccess(attributeService.getProductAttributes(pageable), "OK");
   }
 
   @GetMapping("/active")
