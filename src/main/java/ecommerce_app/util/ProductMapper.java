@@ -43,7 +43,7 @@ public class ProductMapper {
   }
 
   public static ProductResponse toProductResponse(Product product) {
-    ProductResponse response = modelMapper.map(product, ProductResponse.class);
+    ProductResponse response = new ProductResponse();
 
     final var discountPrice =
         PromotionCalculator.calculateDiscountedPrice(product.getPrice(), product.getPromotions());
@@ -52,6 +52,13 @@ public class ProductMapper {
     final var promotionBadge =
         PromotionCalculator.buildPromotionBadge(
             product.getPrice(), product.getPromotions(), discountPercentage);
+    response.setId(product.getId());
+    response.setName(product.getName());
+    response.setCode(product.getCode());
+    response.setUuid(product.getUuid());
+    response.setPrice(product.getPrice());
+    response.setDescription(product.getDescription());
+    response.setIsFeature(product.getIsFeature());
 
     // Resolve each raw filename → full URL, sorted by sortOrder
     // This is the ONLY place URL resolution happens
@@ -131,7 +138,13 @@ public class ProductMapper {
   }
 
   public static SimpleProductResponse toSimpleProductResponse(Product product) {
-    SimpleProductResponse response = modelMapper.map(product, SimpleProductResponse.class);
+    SimpleProductResponse response = new SimpleProductResponse();
+
+    response.setId(product.getId());
+    response.setName(product.getName());
+    response.setCode(product.getCode());
+    response.setUuid(product.getUuid());
+    response.setPrice(product.getPrice());
 
     List<ProductImageResponse> imageDtos =
         product.getImages().stream()

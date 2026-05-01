@@ -117,11 +117,17 @@ public class ProductVariantServiceImpl implements ProductVariantService {
 
     // Replace attribute values if provided
     if (request.getAttributeValueIds() != null) {
-      variant.setAttributeValues(resolveAttrValues(request.getAttributeValueIds()));
+      // Clear existing attributes
+      variant.getAttributeValues().clear();
+
+      // Add new attributes
+      List<ProductAttributeValue> newAttributes = resolveAttrValues(request.getAttributeValueIds());
+      variant.getAttributeValues().addAll(newAttributes);
     }
 
     log.info("Updated variant {}", variantId);
-    return variantMapper.toResponse(variantRepository.save(variant));
+    ProductVariant saved = variantRepository.save(variant);
+    return variantMapper.toResponse(saved);
   }
 
   // ── DELETE (soft) ─────────────────────────────────────────────────────────

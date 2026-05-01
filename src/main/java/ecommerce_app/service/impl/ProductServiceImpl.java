@@ -34,6 +34,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -79,8 +80,13 @@ public class ProductServiceImpl implements ProductService {
       if (productRepository.existsByName(productName)) {
         throw new DuplicateResourceException("Product", "name", productName);
       }
-      Product product = modelMapper.map(productRequest, Product.class);
+//      Product product = modelMapper.map(productRequest, Product.class);
+      Product product = new Product();
       product.setName(productName);
+      product.setPrice(productRequest.getPrice());
+      product.setDescription(productRequest.getDescription());
+      product.setIsFeature(productRequest.getIsFeature());
+      product.setUuid(UUID.randomUUID());
       product.setCode("TEMP");
       if (productRequest.getBrandId() != null) {
         product.setBrand(

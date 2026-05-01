@@ -2,14 +2,16 @@ package ecommerce_app.config;
 
 import ecommerce_app.core.io.service.FileManagerService;
 import ecommerce_app.core.io.service.StorageConfig;
+import ecommerce_app.dto.request.ProductRequest;
+import ecommerce_app.dto.response.UserResponse;
+import ecommerce_app.entity.Product;
+import ecommerce_app.entity.User;
 import ecommerce_app.mapper.ProductVariantMapper;
 import ecommerce_app.property.StorageConfigProperty;
-import ecommerce_app.dto.request.ProductRequest;
-import ecommerce_app.entity.Product;
-import ecommerce_app.dto.response.UserResponse;
-import ecommerce_app.entity.User;
 import ecommerce_app.util.AuditUserResolver;
 import ecommerce_app.util.ProductMapper;
+import java.util.HashSet;
+import java.util.Set;
 import org.modelmapper.Conditions;
 import org.modelmapper.Converter;
 import org.modelmapper.ModelMapper;
@@ -17,22 +19,28 @@ import org.modelmapper.convention.MatchingStrategies;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import java.util.HashSet;
-import java.util.Set;
-
 @Configuration
 public class ModelMapperConfig {
+
   @Bean
   public ModelMapper modelMapper(
-          FileManagerService fileManagerService,
-          StorageConfigProperty storageConfigProperty,
-          StorageConfig storageConfig,
-          AuditUserResolver auditUserResolver, ProductVariantMapper variantMapper) {
+      FileManagerService fileManagerService,
+      StorageConfigProperty storageConfigProperty,
+      StorageConfig storageConfig,
+      AuditUserResolver auditUserResolver,
+      ProductVariantMapper variantMapper) {
     ModelMapper modelMapper = new ModelMapper();
+
     ProductMapper.setProperties(
-        modelMapper, fileManagerService, storageConfigProperty, storageConfig, auditUserResolver, variantMapper);
+        modelMapper,
+        fileManagerService,
+        storageConfigProperty,
+        storageConfig,
+        auditUserResolver,
+        variantMapper);
 
     modelMapper.getConfiguration().setMatchingStrategy(MatchingStrategies.STRICT);
+
     // Converter to prepend full path
     Converter<String, String> avatarPathConverter =
         ctx ->
@@ -73,7 +81,7 @@ public class ModelMapperConfig {
         .setMatchingStrategy(MatchingStrategies.STRICT)
         .setPropertyCondition(Conditions.isNotNull())
         .setSkipNullEnabled(true)
-        .setCollectionsMergeEnabled(false) // ← IMPORTANT: Disable collection merging
+        .setCollectionsMergeEnabled(false)
         .setAmbiguityIgnored(true);
 
     return modelMapper;

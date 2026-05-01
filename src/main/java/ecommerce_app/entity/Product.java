@@ -91,6 +91,7 @@ public class Product extends SoftDeletableEntity {
   private List<OrderItem> orderItems;
 
   @Column(nullable = false, unique = true, name = "uuid")
+  @Builder.Default
   private UUID uuid = UUID.randomUUID();
 
   @OneToMany(
@@ -172,8 +173,6 @@ public class Product extends SoftDeletableEntity {
 
   @OneToMany(
           mappedBy = "product",
-          cascade = CascadeType.ALL,
-          orphanRemoval = true,
           fetch = FetchType.LAZY)
   @JsonIgnore
   @Builder.Default

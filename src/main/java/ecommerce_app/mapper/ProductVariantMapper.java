@@ -55,7 +55,7 @@ public class ProductVariantMapper {
     }
 
     // ── Apply update from request to existing entity ─────────────────
-    public void updateEntity(ProductVariant variant, ProductVariantRequest request) {
+public void updateEntity(ProductVariant variant, ProductVariantRequest request) {
         if (variant == null || request == null) return;
 
         variant.setSku(request.getSku());
