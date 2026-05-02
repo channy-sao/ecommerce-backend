@@ -33,6 +33,7 @@ public class ProductVariantMapper {
                 .stockStatus(variant.getStockStatus().name())
                 .isActive(variant.getIsActive())
                 .attributeValues(attrDtos)
+                .isDefault(variant.getIsDefault())
                 .build();
     }
 

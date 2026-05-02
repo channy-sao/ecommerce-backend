@@ -15,6 +15,7 @@ import ecommerce_app.entity.Category;
 import ecommerce_app.entity.Product;
 import ecommerce_app.entity.ProductImage;
 import ecommerce_app.entity.ProductSpec;
+import ecommerce_app.entity.ProductVariant;
 import ecommerce_app.exception.BadRequestException;
 import ecommerce_app.exception.DuplicateResourceException;
 import ecommerce_app.exception.ResourceNotFoundException;
@@ -80,7 +81,7 @@ public class ProductServiceImpl implements ProductService {
       if (productRepository.existsByName(productName)) {
         throw new DuplicateResourceException("Product", "name", productName);
       }
-//      Product product = modelMapper.map(productRequest, Product.class);
+      //      Product product = modelMapper.map(productRequest, Product.class);
       Product product = new Product();
       product.setName(productName);
       product.setPrice(productRequest.getPrice());
@@ -123,19 +124,49 @@ public class ProductServiceImpl implements ProductService {
       saved.setCode(code);
 
       // set variant
+      // In saveProduct() - variant creation section
       if (Boolean.TRUE.equals(productRequest.getHasVariants())
-              && productRequest.getVariants() != null
-              && !productRequest.getVariants().isEmpty()) {
+          && productRequest.getVariants() != null
+          && !productRequest.getVariants().isEmpty()) {
 
+        // Product with explicit variants
         saved.setHasVariants(true);
         productRepository.save(saved);
 
-        for (ProductVariantRequest varReq : productRequest.getVariants()) {
+        boolean hasExplicitDefault =
+            productRequest.getVariants().stream()
+                .anyMatch(v -> Boolean.TRUE.equals(v.getIsDefault()));
+
+        for (int i = 0; i < productRequest.getVariants().size(); i++) {
+          ProductVariantRequest varReq = productRequest.getVariants().get(i);
+
+          // First variant is default if none explicitly set
+          if (!hasExplicitDefault && i == 0) {
+            varReq.setIsDefault(true);
+          }
+
           variantService.createVariant(saved.getId(), varReq);
         }
-        // re fetch product
+
+        // Refresh product to get variants
+        Product finalSaved1 = saved;
+        saved =
+            productRepository
+                .findById(saved.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Product", finalSaved1.getId()));
+
+      } else {
+        // Simple product: Create default variant
+        saved.setHasVariants(false);
+        productRepository.save(saved);
+
+        createDefaultVariant(saved);
+
+        // Refresh product
         Product finalSaved = saved;
-        saved = productRepository.findById(saved.getId())
+        saved =
+            productRepository
+                .findById(saved.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Product", finalSaved.getId()));
       }
 
@@ -145,6 +176,27 @@ public class ProductServiceImpl implements ProductService {
       log.error("Data integrity violation: {}", e.getMessage());
       throw new BadRequestException("Data integrity violation");
     }
+  }
+
+  /**
+   * Creates a default variant for simple products (no explicit variants). This ensures every
+   * product has at least one variant for stock management.
+   */
+  private void createDefaultVariant(Product product) {
+    ProductVariant defaultVariant =
+        ProductVariant.builder()
+            .product(product)
+            .sku(product.getCode()) // Use product code as SKU
+            .price(product.getPrice()) // Same price as product
+            .stockQuantity(0)
+            .lowStockThreshold(10)
+            .isActive(true)
+            .isDefault(true) // ← This is the default
+            .build();
+
+    variantRepository.save(defaultVariant);
+    log.info(
+        "Created default variant for product {} (SKU: {})", product.getId(), product.getCode());
   }
 
   // -------------------------------------------------------------------------
@@ -204,39 +256,61 @@ public class ProductServiceImpl implements ProductService {
   }
 
   /**
-   * Three scenarios:
-   * 1. variants = null           → no change (user didn't touch variants)
-   * 2. hasVariants switched to false → deactivate all existing variants
-   * 3. variants = [...] provided → update existing, add new ones
+   * Three scenarios: 1. variants = null → no change (user didn't touch variants) 2. hasVariants
+   * switched to false → deactivate all existing variants 3. variants = [...] provided → update
+   * existing, add new ones
    */
   private void handleVariantUpdate(ProductRequest request, Product product) {
     // null = no change intended — skip entirely
     if (request.getVariants() == null && request.getHasVariants() == null) return;
 
     // Switching hasVariants flag
+    boolean wasVariantProduct = Boolean.TRUE.equals(product.getHasVariants());
     if (request.getHasVariants() != null) {
       product.setHasVariants(request.getHasVariants());
     }
 
-    // Turned OFF variants → deactivate all existing variants
+    // CASE 1: Turned OFF variants → deactivate all explicit variants, create default
     if (!Boolean.TRUE.equals(product.getHasVariants())) {
-      variantRepository.findByProductId(product.getId())
-              .forEach(v -> {
+      // Deactivate all existing variants
+      variantRepository
+          .findByProductId(product.getId())
+          .forEach(
+              v -> {
                 v.setIsActive(false);
                 variantRepository.save(v);
               });
+
+      // Create a single default variant if none exists
+      if (variantRepository.findByProductIdAndIsDefaultTrue(product.getId()).isEmpty()) {
+        createDefaultVariant(product);
+      }
       return;
     }
 
-    // No variant list sent → nothing to add or update
+    // CASE 2: Turning ON variants (was simple product, now has variants)
+    if (!wasVariantProduct && Boolean.TRUE.equals(product.getHasVariants())) {
+      // Deactivate the old default variant
+      variantRepository
+          .findByProductIdAndIsDefaultTrue(product.getId())
+          .ifPresent(
+              defaultVariant -> {
+                defaultVariant.setIsActive(false);
+                defaultVariant.setIsDefault(false);
+                variantRepository.save(defaultVariant);
+              });
+    }
+
+    // CASE 3: No variant list sent → nothing to update
     if (request.getVariants() == null || request.getVariants().isEmpty()) return;
 
+    // CASE 4: Update/create explicit variants
     for (ProductVariantRequest varReq : request.getVariants()) {
       if (varReq.getId() != null) {
-        // ── Update existing variant ───────────────────────────
+        // Update existing variant
         variantService.updateVariant(varReq.getId(), varReq);
       } else {
-        // ── Add new variant ───────────────────────────────────
+        // Add new variant
         variantService.createVariant(product.getId(), varReq);
       }
     }

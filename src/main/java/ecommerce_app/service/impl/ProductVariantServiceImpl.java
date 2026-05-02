@@ -71,6 +71,23 @@ public class ProductVariantServiceImpl implements ProductVariantService {
       throw new DuplicateResourceException("ProductVariant", "sku", sku);
     }
 
+    // If this variant is set as default, unset any existing default
+    if (Boolean.TRUE.equals(request.getIsDefault())) {
+      variantRepository
+          .findByProductIdAndIsDefaultTrue(productId)
+          .ifPresent(
+              existingDefault -> {
+                existingDefault.setIsDefault(false);
+                variantRepository.save(existingDefault);
+              });
+    } else {
+      // If this is the first variant, make it default automatically
+      long variantCount = variantRepository.countByProductId(productId);
+      if (variantCount == 0) {
+        request.setIsDefault(true);
+      }
+    }
+
     List<ProductAttributeValue> attrValues = resolveAttrValues(request.getAttributeValueIds());
 
     ProductVariant variant = variantMapper.toEntity(request);
@@ -78,6 +95,8 @@ public class ProductVariantServiceImpl implements ProductVariantService {
     variant.setProduct(product);
     variant.setAttributeValues(attrValues);
     variant.setStockMovements(new ArrayList<>());
+    variant.setIsActive(true);
+    variant.setIsDefault(request.getIsDefault() != null ? request.getIsDefault() : false);
 
     ProductVariant saved = variantRepository.save(variant);
 
@@ -94,7 +113,11 @@ public class ProductVariantServiceImpl implements ProductVariantService {
           "Initial stock on variant creation");
     }
 
-    log.info("Created variant SKU='{}' for product {}", saved.getSku(), productId);
+    log.info(
+        "Created variant SKU='{}' for product {} (default={})",
+        saved.getSku(),
+        productId,
+        saved.getIsDefault());
     return variantMapper.toResponse(saved);
   }
 
@@ -111,21 +134,43 @@ public class ProductVariantServiceImpl implements ProductVariantService {
       throw new DuplicateResourceException("ProductVariant", "sku", newSku);
     }
 
-    // Update scalar fields via mapper (SKU, price, lowStockThreshold)
+    // Handle default variant changes
+    if (Boolean.TRUE.equals(request.getIsDefault())
+        && !Boolean.TRUE.equals(variant.getIsDefault())) {
+      // Unset any existing default for this product
+      variantRepository
+          .findByProductIdAndIsDefaultTrue(variant.getProduct().getId())
+          .ifPresent(
+              existingDefault -> {
+                if (!existingDefault.getId().equals(variantId)) {
+                  existingDefault.setIsDefault(false);
+                  variantRepository.save(existingDefault);
+                }
+              });
+    } else if (Boolean.FALSE.equals(request.getIsDefault())
+        && Boolean.TRUE.equals(variant.getIsDefault())) {
+      // Don't allow unsetting the only default variant
+      long defaultCount =
+          variantRepository.countByProductIdAndIsDefaultTrue(variant.getProduct().getId());
+      if (defaultCount <= 1) {
+        throw new BadRequestException("Cannot remove default status from the only default variant");
+      }
+    }
+
+    // Update scalar fields via mapper (SKU, price, lowStockThreshold, isDefault)
     variantMapper.updateEntity(variant, request);
     variant.setSku(newSku);
+    variant.setIsDefault(
+        request.getIsDefault() != null ? request.getIsDefault() : variant.getIsDefault());
 
     // Replace attribute values if provided
     if (request.getAttributeValueIds() != null) {
-      // Clear existing attributes
       variant.getAttributeValues().clear();
-
-      // Add new attributes
       List<ProductAttributeValue> newAttributes = resolveAttrValues(request.getAttributeValueIds());
       variant.getAttributeValues().addAll(newAttributes);
     }
 
-    log.info("Updated variant {}", variantId);
+    log.info("Updated variant {} (default={})", variantId, variant.getIsDefault());
     ProductVariant saved = variantRepository.save(variant);
     return variantMapper.toResponse(saved);
   }
@@ -201,23 +246,21 @@ public class ProductVariantServiceImpl implements ProductVariantService {
 
   @Transactional(rollbackFor = Exception.class)
   @Override
-  public List<ProductVariantResponse> createVariants(Long productId, List<ProductVariantRequest> requests) {
+  public List<ProductVariantResponse> createVariants(
+      Long productId, List<ProductVariantRequest> requests) {
     if (requests == null || requests.isEmpty()) {
       throw new BadRequestException("At least one variant is required");
     }
-    return requests.stream()
-            .map(request -> createVariant(productId, request))
-            .toList();
+    return requests.stream().map(request -> createVariant(productId, request)).toList();
   }
 
-// ── Stock history ─────────────────────────────────────────────────────────
+  // ── Stock history ─────────────────────────────────────────────────────────
 
   @Transactional(readOnly = true)
   @Override
   public List<VariantStockMovement> getStockHistory(Long variantId) {
     findVariantById(variantId); // ensure variant exists
-    return stockMovementRepository
-            .findByVariantIdOrderByCreatedAtDesc(variantId);
+    return stockMovementRepository.findByVariantIdOrderByCreatedAtDesc(variantId);
   }
 
   // ── Private helpers ───────────────────────────────────────────────────────

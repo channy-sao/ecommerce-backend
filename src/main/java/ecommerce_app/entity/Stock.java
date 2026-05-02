@@ -1,6 +1,7 @@
 package ecommerce_app.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import ecommerce_app.constant.enums.StockStatus;
 import ecommerce_app.entity.base.UserAuditableEntity;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -13,6 +14,7 @@ import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -46,5 +48,17 @@ public class Stock extends UserAuditableEntity {
   private Product product;
 
   @Column(nullable = false, name = "quantity")
-  private int quantity;
+  @Builder.Default
+  private int quantity = 0;
+
+  @Column(name = "low_stock_threshold", nullable = false)
+  @Builder.Default
+  private int lowStockThreshold = 10;
+
+  @Transient
+  public StockStatus getStockStatus() {
+    if (quantity <= 0) return StockStatus.OUT_OF_STOCK;
+    if (quantity <= lowStockThreshold) return StockStatus.LOW_STOCK;
+    return StockStatus.IN_STOCK;
+  }
 }

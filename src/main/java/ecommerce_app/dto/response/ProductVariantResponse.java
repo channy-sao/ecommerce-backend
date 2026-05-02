@@ -1,5 +1,6 @@
 package ecommerce_app.dto.response;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -22,6 +23,8 @@ public class ProductVariantResponse {
   private String stockStatus;
   private Boolean isActive;
   private List<AttributeValueDto> attributeValues;
+  @Schema(description = "Whether this variant is the default for the product", example = "true")
+  private Boolean isDefault;
 
   @Data
   @Builder

@@ -2,52 +2,20 @@ package ecommerce_app.service.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.nimbusds.oauth2.sdk.util.StringUtils;
-import ecommerce_app.constant.enums.OrderStatus;
-import ecommerce_app.constant.enums.PaymentGateway;
-import ecommerce_app.constant.enums.PaymentMethod;
-import ecommerce_app.constant.enums.PaymentStatus;
-import ecommerce_app.constant.enums.ShippingMethod;
+import ecommerce_app.constant.enums.*;
 import ecommerce_app.dto.request.POSOrderItemRequest;
 import ecommerce_app.dto.request.POSOrderRequest;
-import ecommerce_app.dto.response.POSOrderItemResponse;
-import ecommerce_app.dto.response.POSOrderResponse;
-import ecommerce_app.entity.OrderItem;
-import ecommerce_app.entity.Payment;
-import ecommerce_app.entity.PaymentTransaction;
-import ecommerce_app.entity.Product;
-import ecommerce_app.entity.Stock;
-import ecommerce_app.entity.User;
+import ecommerce_app.dto.request.StockAdjustmentRequest;
+import ecommerce_app.dto.response.*;
+import ecommerce_app.entity.*;
 import ecommerce_app.exception.BadRequestException;
 import ecommerce_app.exception.ResourceNotFoundException;
 import ecommerce_app.mapper.OrderMapper;
 import ecommerce_app.mapper.OrderStatusHistoryMapper;
-import ecommerce_app.dto.response.OrderDetailResponse;
-import ecommerce_app.dto.response.OrderResponse;
-import ecommerce_app.dto.response.OrderStatusHistoryResponse;
-import ecommerce_app.entity.Order;
-import ecommerce_app.entity.OrderStatusHistory;
-import ecommerce_app.repository.OrderItemRepository;
-import ecommerce_app.repository.OrderRepository;
-import ecommerce_app.repository.OrderStatusHistoryRepository;
-import ecommerce_app.repository.PaymentRepository;
-import ecommerce_app.repository.PaymentTransactionRepository;
-import ecommerce_app.repository.ProductRepository;
-import ecommerce_app.repository.StockRepository;
-import ecommerce_app.repository.UserRepository;
+import ecommerce_app.repository.*;
 import ecommerce_app.service.AdminManageOrderService;
+import ecommerce_app.service.StockManagementService;
 import ecommerce_app.specification.OrderSpecification;
-
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
 import ecommerce_app.util.JsonUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -59,10 +27,19 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class AdminManageOrderServiceImpl implements AdminManageOrderService {
+
   private final OrderRepository orderRepository;
   private final OrderStatusHistoryRepository orderStatusHistoryRepository;
   private final OrderStatusHistoryMapper orderStatusHistoryMapper;
@@ -71,10 +48,13 @@ public class AdminManageOrderServiceImpl implements AdminManageOrderService {
   private final PaymentTransactionRepository transactionRepository;
   private final ProductRepository productRepository;
   private final PaymentRepository paymentRepository;
-  private final StockRepository stockRepository;
   private final OrderItemRepository orderItemRepository;
   private final FinancialService financialService;
   private final OrderNumberGenerator orderNumberGenerator;
+
+  // ✅ REPLACED StockRepository with these two
+  private final ProductVariantRepository variantRepository;
+  private final StockManagementService stockManagementService;
 
   @Transactional(rollbackFor = Exception.class)
   @Override
@@ -85,17 +65,16 @@ public class AdminManageOrderServiceImpl implements AdminManageOrderService {
             .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
 
     OrderStatus currentStatus = order.getOrderStatus();
-
     validateTransition(currentStatus, newStatus);
 
-    // Update order
     order.setOrderStatus(newStatus);
+    orderRepository.save(order); // ✅ Save the order!
 
-    // Save history
     OrderStatusHistory history =
         OrderStatusHistory.builder().order(order).status(newStatus).build();
-
     orderStatusHistoryRepository.save(history);
+
+    log.info("Order #{} status changed: {} → {}", order.getOrderNumber(), currentStatus, newStatus);
   }
 
   @Override
@@ -109,30 +88,22 @@ public class AdminManageOrderServiceImpl implements AdminManageOrderService {
             .findById(staffUserId)
             .orElseThrow(() -> new ResourceNotFoundException("Staff not found"));
 
-    // Create order with ALL required fields
+    // Create order
     Order order = new Order();
     order.setOrderNumber(orderNumberGenerator.generatePOSOrderNumber());
     order.setOrderDate(LocalDateTime.now());
     order.setOrderStatus(OrderStatus.COMPLETED);
     order.setPaymentStatus(PaymentStatus.PAID);
     order.setPaymentMethod(PaymentMethod.valueOf(request.getPaymentMethod()));
-
-    // ✅ CRITICAL: Set the user (staff) for the order
     order.setUser(staff);
-
-    // ✅ Set all numeric fields with default values
     order.setSubtotalAmount(BigDecimal.ZERO);
     order.setDiscountAmount(BigDecimal.ZERO);
     order.setShippingCost(BigDecimal.ZERO);
     order.setTotalAmount(BigDecimal.ZERO);
-
-    // ✅ Set default shipping method for POS
     order.setShippingMethod(ShippingMethod.STANDARD);
-
-    // ✅ Set cart to NULL for POS orders (no shopping cart involved)
     order.setCart(null);
 
-    // Set customer info (optional)
+    // Set customer info
     if (StringUtils.isNotBlank(request.getCustomerName())) {
       Map<String, String> customerInfo = new HashMap<>();
       customerInfo.put("customerName", truncate(request.getCustomerName(), 255));
@@ -145,19 +116,16 @@ public class AdminManageOrderServiceImpl implements AdminManageOrderService {
       }
       order.setShippingAddressSnapshot(snapshot);
     } else {
-      // If shipping_address_snapshot has NOT NULL constraint, set empty JSON
       order.setShippingAddressSnapshot("{}");
     }
 
-    // Set notes if provided
     if (StringUtils.isNotBlank(request.getNotes())) {
       order.setNotes(truncate(request.getNotes(), 500));
     }
 
     Order savedOrder = orderRepository.save(order);
-    log.info("Saved order with ID: {}", savedOrder.getId());
 
-    // Process items and calculate totals
+    // Process items
     BigDecimal subtotal = BigDecimal.ZERO;
     List<OrderItem> orderItems = new ArrayList<>();
 
@@ -170,25 +138,38 @@ public class AdminManageOrderServiceImpl implements AdminManageOrderService {
                       new ResourceNotFoundException(
                           "Product not found: " + itemReq.getProductId()));
 
-      // Check stock
-      Stock stock =
-          stockRepository
-              .findByProductId(product.getId())
-              .orElseThrow(
-                  () ->
-                      new ResourceNotFoundException(
-                          "Stock not found for product: " + product.getName()));
+      // ✅ Resolve variant - use provided variantId or default variant
+      ProductVariant variant = resolveVariant(product, itemReq.getVariantId());
 
-      if (stock.getQuantity() < itemReq.getQuantity()) {
-        throw new BadRequestException("Insufficient stock for product: " + product.getName());
+      // ✅ Validate stock on variant
+      if (variant.getStockQuantity() < itemReq.getQuantity()) {
+        throw new BadRequestException(
+            String.format(
+                "Insufficient stock for '%s' (%s). Available: %d, Requested: %d",
+                product.getName(),
+                variant.getSku(),
+                variant.getStockQuantity(),
+                itemReq.getQuantity()));
       }
 
-      // Deduct stock
-      stock.setQuantity(stock.getQuantity() - itemReq.getQuantity());
-      stockRepository.save(stock);
+      // ✅ Deduct stock via StockManagementService
+      stockManagementService.adjustStock(
+          StockAdjustmentRequest.builder()
+              .productId(product.getId())
+              .variantId(variant.getId())
+              .movementType(StockMovementType.OUT)
+              .quantity(itemReq.getQuantity())
+              .referenceType("POS_ORDER")
+              .referenceId(savedOrder.getId())
+              .note("POS Order #" + savedOrder.getOrderNumber())
+              .build(),
+          staffUserId);
 
       BigDecimal unitPrice =
-          itemReq.getUnitPrice() != null ? itemReq.getUnitPrice() : product.getPrice();
+          itemReq.getUnitPrice() != null
+              ? itemReq.getUnitPrice()
+              : variant.getPrice() != null ? variant.getPrice() : product.getPrice();
+
       BigDecimal itemTotal = unitPrice.multiply(BigDecimal.valueOf(itemReq.getQuantity()));
       subtotal = subtotal.add(itemTotal);
 
@@ -196,6 +177,7 @@ public class AdminManageOrderServiceImpl implements AdminManageOrderService {
           OrderItem.builder()
               .order(savedOrder)
               .product(product)
+              .variant(variant) // ✅ Carry variant reference
               .quantity(itemReq.getQuantity())
               .originalPrice(unitPrice)
               .subtotal(itemTotal)
@@ -207,10 +189,8 @@ public class AdminManageOrderServiceImpl implements AdminManageOrderService {
       orderItems.add(orderItem);
     }
 
-    // ✅ FIX: Save order items and update collection without replacing
     orderItemRepository.saveAll(orderItems);
 
-    // Properly add items to existing collection
     if (savedOrder.getOrderItems() == null) {
       savedOrder.setOrderItems(new ArrayList<>());
     }
@@ -225,12 +205,9 @@ public class AdminManageOrderServiceImpl implements AdminManageOrderService {
     savedOrder.setDiscountAmount(discount);
     savedOrder.setTotalAmount(total);
 
-    // Save updated order
     Order finalOrder = orderRepository.save(savedOrder);
-    log.info(
-        "Updated order with totals: subtotal={}, discount={}, total={}", subtotal, discount, total);
 
-    // ── Cash change logic ──────────────────────────────────────
+    // Cash change logic
     BigDecimal cashReceived = null;
     BigDecimal changeAmount = null;
     String paymentNote = null;
@@ -251,7 +228,6 @@ public class AdminManageOrderServiceImpl implements AdminManageOrderService {
         paymentNote = "Cash received: " + cashReceived + ", Change: " + changeAmount;
       }
     }
-    // ────────────────────────────────────────────────────────────
 
     // Create payment record
     Payment payment =
@@ -267,7 +243,6 @@ public class AdminManageOrderServiceImpl implements AdminManageOrderService {
             .build();
 
     paymentRepository.save(payment);
-    log.info("Payment record created for order: {}", finalOrder.getOrderNumber());
 
     // Record transaction
     String staffName = staff.getFullName() != null ? staff.getFullName() : staff.getEmail();
@@ -283,7 +258,23 @@ public class AdminManageOrderServiceImpl implements AdminManageOrderService {
     return buildPOSResponse(finalOrder, transaction, staffName, cashReceived, changeAmount);
   }
 
-  // Helper method to truncate strings
+  /**
+   * ✅ Resolve variant for POS item. If variantId provided, use it. Otherwise, use default variant.
+   */
+  private ProductVariant resolveVariant(Product product, Long variantId) {
+    if (variantId != null) {
+      return variantRepository
+          .findById(variantId)
+          .orElseThrow(() -> new ResourceNotFoundException("Variant", variantId));
+    }
+    // Simple product - use default variant
+    return variantRepository
+        .findByProductIdAndIsDefaultTrue(product.getId())
+        .orElseThrow(
+            () ->
+                new ResourceNotFoundException("Default variant for product: " + product.getName()));
+  }
+
   private String truncate(String value, int maxLength) {
     if (value == null) return null;
     if (value.length() <= maxLength) return value;
@@ -301,7 +292,6 @@ public class AdminManageOrderServiceImpl implements AdminManageOrderService {
     PaymentTransaction transaction =
         transactionRepository.findByOrderId(orderId).stream().findFirst().orElse(null);
 
-    // Recover cash context from payment record if available
     Payment payment = paymentRepository.findByOrderId(orderId).orElse(null);
     BigDecimal cashReceived = payment != null ? payment.getCashReceived() : null;
     BigDecimal changeAmount = payment != null ? payment.getChangeAmount() : null;
@@ -321,16 +311,10 @@ public class AdminManageOrderServiceImpl implements AdminManageOrderService {
 
     if (orders.isEmpty()) return List.of();
 
-    // Single bulk query instead of one per order
     List<Long> orderIds = orders.stream().map(Order::getId).toList();
     Map<Long, PaymentTransaction> transactionByOrderId =
         transactionRepository.findByOrderIdIn(orderIds).stream()
-            .collect(
-                Collectors.toMap(
-                    t -> t.getOrder().getId(),
-                    Function.identity(),
-                    (a, b) -> a // keep first if duplicates
-                    ));
+            .collect(Collectors.toMap(t -> t.getOrder().getId(), Function.identity(), (a, b) -> a));
 
     return orders.stream()
         .map(order -> buildPOSResponse(order, transactionByOrderId.get(order.getId())))
@@ -357,18 +341,20 @@ public class AdminManageOrderServiceImpl implements AdminManageOrderService {
       int pageSize,
       String sortBy,
       Sort.Direction sortDirection) {
+
     Specification<Order> specification =
-        OrderSpecification.filter(orderNumber,orderStatus, paymentStatus, fromDate, toDate);
+        OrderSpecification.filter(orderNumber, orderStatus, paymentStatus, fromDate, toDate);
     Sort sort = Sort.by(sortDirection, sortBy);
+
     if (!isPaged) {
-      final List<Order> productList = orderRepository.findAll(specification, sort);
-      final List<OrderResponse> productResponseList =
+      List<Order> productList = orderRepository.findAll(specification, sort);
+      List<OrderResponse> productResponseList =
           productList.stream().map(orderMapper::toSimpleResponse).toList();
       return new PageImpl<>(productResponseList);
     }
-    // page start from 0
-    final var pageable = PageRequest.of(page - 1, pageSize, sort);
-    final Page<Order> productPage = orderRepository.findAll(specification, pageable);
+
+    PageRequest pageable = PageRequest.of(page - 1, pageSize, sort);
+    Page<Order> productPage = orderRepository.findAll(specification, pageable);
     return productPage.map(orderMapper::toSimpleResponse);
   }
 
@@ -381,10 +367,8 @@ public class AdminManageOrderServiceImpl implements AdminManageOrderService {
             .orElseThrow(
                 () -> new ResourceNotFoundException("Order not found with ID: " + orderId));
 
-    // Map order entity → detail DTO
     OrderDetailResponse response = orderMapper.toDetailResponse(order);
 
-    // Load status history (sorted by createdAt asc)
     List<OrderStatusHistoryResponse> histories =
         orderStatusHistoryRepository.findByOrderIdOrderByCreatedAtAsc(orderId).stream()
             .map(orderStatusHistoryMapper::toResponse)
@@ -398,36 +382,21 @@ public class AdminManageOrderServiceImpl implements AdminManageOrderService {
   @Override
   public Page<OrderResponse> getOrdersReadyForCollection(
       PaymentMethod paymentMethod, int page, int size, boolean includePaid) {
-    PageRequest pageRequest =
-        PageRequest.of(
-            page - 1, size, Sort.by(Sort.Direction.DESC, "orderDate") // Show newest first
-            );
 
-    List<PaymentMethod> methods;
-    if (paymentMethod != null) {
-      methods = List.of(paymentMethod);
-    } else {
-      methods = List.of(PaymentMethod.COD, PaymentMethod.CASH_IN_SHOP, PaymentMethod.CASH);
-    }
+    PageRequest pageRequest =
+        PageRequest.of(page - 1, size, Sort.by(Sort.Direction.DESC, "orderDate"));
+
+    List<PaymentMethod> methods = getPaymentMethods(paymentMethod);
 
     Page<Order> orders;
-
     if (includePaid) {
-      // For collected history - ONLY PAID orders
       orders =
           orderRepository.findByPaymentMethodInAndPaymentStatusAndOrderStatusNot(
-              methods,
-              PaymentStatus.PAID, // Only PAID
-              OrderStatus.CANCELLED,
-              pageRequest);
+              methods, PaymentStatus.PAID, OrderStatus.CANCELLED, pageRequest);
     } else {
-      // For pending collection - exclude PAID and CANCELLED
       orders =
           orderRepository.findByPaymentMethodInAndPaymentStatusNotAndOrderStatusNot(
-              methods,
-              PaymentStatus.PAID, // Exclude PAID
-              OrderStatus.CANCELLED,
-              pageRequest);
+              methods, PaymentStatus.PAID, OrderStatus.CANCELLED, pageRequest);
     }
 
     return orders.map(orderMapper::toSimpleResponse);
@@ -445,9 +414,8 @@ public class AdminManageOrderServiceImpl implements AdminManageOrderService {
       PaymentTransaction transaction,
       String staffName,
       BigDecimal cashReceived,
-      BigDecimal changeAmount) { // ← new params
+      BigDecimal changeAmount) {
 
-    // resolve cashierName
     String cashierName = staffName;
     if (cashierName == null) {
       cashierName =
@@ -481,13 +449,12 @@ public class AdminManageOrderServiceImpl implements AdminManageOrderService {
         .orderStatus(order.getOrderStatus().name())
         .receiptNumber(transaction != null ? transaction.getReferenceNumber() : null)
         .cashierName(cashierName)
-        .cashReceived(cashReceived) // ← new
-        .changeAmount(changeAmount) // ← new
+        .cashReceived(cashReceived)
+        .changeAmount(changeAmount)
         .items(items)
         .build();
   }
 
-  // 2-arg overload used by getTodayPOSOrders and getPOSOrder (no cash context needed)
   private POSOrderResponse buildPOSResponse(Order order, PaymentTransaction transaction) {
     return buildPOSResponse(order, transaction, null, null, null);
   }

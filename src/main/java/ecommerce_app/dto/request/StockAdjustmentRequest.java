@@ -13,16 +13,20 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class StockAdjustmentRequest {
-    @NotNull
-    private Long variantId;
 
-    @NotNull
-    private StockMovementType movementType;  // IN, OUT, ADJUSTMENT, RETURN
+  @NotNull(message = "Product ID is required")
+  private Long productId;
 
-    @NotNull @Min(1)
-    private Integer quantity;
+  private Long variantId; // Optional - required only for variant products
 
-    private Long referenceId;
-    private String referenceType;
-    private String note;
+  @NotNull(message = "Movement type is required")
+  private StockMovementType movementType; // IN, OUT, ADJUSTMENT, RETURN
+
+  @NotNull(message = "Quantity is required")
+  @Min(value = 1, message = "Quantity must be at least 1")
+  private Integer quantity;
+
+  private Long referenceId;
+  private String referenceType;
+  private String note;
 }

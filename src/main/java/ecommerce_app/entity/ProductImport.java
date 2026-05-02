@@ -35,15 +35,14 @@ import lombok.Setter;
 public class ProductImport extends UserAuditableEntity {
 
   @Id
-  @GeneratedValue(strategy = GenerationType.AUTO)
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
   @ManyToOne(
       fetch = FetchType.LAZY,
       optional = false,
-      targetEntity = Product.class,
-      cascade = CascadeType.ALL)
-  @JoinColumn(name = "product_id", referencedColumnName = "id")
+      targetEntity = Product.class)
+  @JoinColumn(name = "product_id", referencedColumnName = "id", nullable = false)
   @JsonIgnore
   private Product product;
 
@@ -62,7 +61,7 @@ public class ProductImport extends UserAuditableEntity {
   @Column(name = "supplier_address")
   private String supplierAddress;
 
-  @Column(name = "supplier phone")
+  @Column(name = "supplier_phone")
   private String supplierPhone;
 
   @Column(name = "remark")

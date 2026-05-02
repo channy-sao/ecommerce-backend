@@ -9,7 +9,7 @@ import org.springframework.data.domain.Page;
 import java.util.List;
 
 public interface ProductImportService {
-  void importProduct(ProductImportRequest productImportRequest);
+  void importProduct(ProductImportRequest productImportRequest, Long userId);
 
   void updateImportProduct(Long id, ProductImportRequest productImportRequest);
 
@@ -20,4 +20,7 @@ public interface ProductImportService {
   ProductImportHistoryByProductResponse getProductImportHistoryByProductId(Long productId);
 
   Page<ProductImportResponse> getImportListing(ProductImportFilterRequest filter);
+
+  ProductImportResponse getImportById(Long id);
+  void deleteImport(Long id);
 }

@@ -444,7 +444,7 @@ public class DummyService {
         productImportRequest.setSupplierName(faker.company().name());
         productImportRequest.setSupplierPhone(faker.phoneNumber().phoneNumber());
         productImportRequest.setSupplierAddress(faker.address().fullAddress());
-        productImportService.importProduct(productImportRequest);
+        productImportService.importProduct(productImportRequest, 1L);
         log.info("Import product {} {} units successful", product.getName(), quantity);
       }
     }

@@ -103,14 +103,6 @@ public class Product extends SoftDeletableEntity {
   @JsonIgnore
   private List<ProductImport> productImports;
 
-  @OneToOne(
-      cascade = {CascadeType.MERGE, CascadeType.PERSIST},
-      targetEntity = Stock.class,
-      mappedBy = "product")
-  @OnDelete(action = OnDeleteAction.CASCADE)
-  @JsonIgnore
-  private Stock stock;
-
   @ManyToMany(mappedBy = "products")
   @JsonIgnore
   private List<Promotion> promotions;
@@ -172,31 +164,60 @@ public class Product extends SoftDeletableEntity {
   private Boolean hasVariants = false;
 
   @OneToMany(
-          mappedBy = "product",
-          fetch = FetchType.LAZY)
+      mappedBy = "product",
+      fetch = FetchType.LAZY,
+      cascade = CascadeType.ALL,
+      orphanRemoval = true)
   @JsonIgnore
   @Builder.Default
   private List<ProductVariant> variants = new ArrayList<>();
 
-  // Aggregate stock across all active variants
+  @Transient
+  public ProductVariant getDefaultVariant() {
+    if (variants != null && !variants.isEmpty()) {
+      return variants.stream()
+          .filter(ProductVariant::getIsDefault)
+          .findFirst()
+          .orElse(variants.getFirst());
+    }
+    return null;
+  }
+
+  @Transient
+  public int getTotalStock() {
+    if (variants == null || variants.isEmpty()) return 0;
+    return variants.stream()
+        .filter(ProductVariant::getIsActive)
+        .mapToInt(ProductVariant::getStockQuantity)
+        .sum();
+  }
+
   @Transient
   public int getTotalStockQuantity() {
-    if (!Boolean.TRUE.equals(hasVariants)) return getStockQuantity();
-    return variants.stream()
-            .filter(ProductVariant::getIsActive)
-            .mapToInt(ProductVariant::getStockQuantity)
-            .sum();
+    return getTotalStock(); // Always from variants now
+  }
+
+  @Transient
+  public int getStockQuantity() {
+    return getTotalStock(); // Always from variants now
+  }
+
+  @Transient
+  public Boolean getInStock() {
+    return getTotalStock() > 0;
+  }
+
+  @Transient
+  public StockStatus getStockStatus() {
+    int total = getTotalStock();
+    if (total <= 0) return StockStatus.OUT_OF_STOCK;
+    if (total <= 10) return StockStatus.LOW_STOCK;
+    return StockStatus.IN_STOCK;
   }
 
   @Transient
   public StockStatus getAggregatedStockStatus() {
-    if (!Boolean.TRUE.equals(hasVariants)) return getStockStatus();
-    int total = getTotalStockQuantity();
-    if (total <= 0) return StockStatus.OUT_OF_STOCK;
-    boolean anyLow = variants.stream()
-            .filter(ProductVariant::getIsActive)
-            .anyMatch(v -> v.getStockStatus() == StockStatus.LOW_STOCK);
-    return anyLow ? StockStatus.LOW_STOCK : StockStatus.IN_STOCK;
+    return getStockStatus(); // Same thing now
   }
 
   @Transient
@@ -207,10 +228,6 @@ public class Product extends SoftDeletableEntity {
         .map(ProductSpec::getSpecText)
         .toList();
   }
-
-  // --- Transient helpers (raw filename only, no URL resolution) ---
-  // These are used ONLY by the service layer for file deletion logic.
-  // URL resolution is done in ProductMapper.
 
   @Transient
   public String getPrimaryImagePath() {
@@ -230,14 +247,6 @@ public class Product extends SoftDeletableEntity {
         .toList();
   }
 
-  // --- The unchanged transient methods below ---
-
-  @Transient
-  public int getStockQuantity() {
-    if (stock == null) return 0;
-    return stock.getQuantity();
-  }
-
   @Transient
   public String getShortDescription() {
     if (description == null || description.length() <= 100) return description;
@@ -245,24 +254,10 @@ public class Product extends SoftDeletableEntity {
   }
 
   @Transient
-  public Boolean getInStock() {
-    return getStockQuantity() > 0;
-  }
-
-  @Transient
-  public StockStatus getStockStatus() {
-    int quantity = getStockQuantity();
-    if (quantity <= 0) return StockStatus.OUT_OF_STOCK;
-    if (quantity <= 10) return StockStatus.LOW_STOCK;
-    return StockStatus.IN_STOCK;
-  }
-
-  @Transient
   public Boolean getHasPromotion() {
     return promotions != null
         && promotions.stream().anyMatch(p -> p.getActive() && p.isCurrentlyValid());
   }
-
 
   @Transient
   public Boolean getQuickAddAvailable() {

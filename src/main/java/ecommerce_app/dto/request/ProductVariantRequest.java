@@ -51,6 +51,13 @@ public class ProductVariantRequest {
   private Integer lowStockThreshold;
 
   @Schema(
+          description = "Whether this variant is the default one for the product. "
+                  + "If no variant is marked as default, the first variant will be used.",
+          example = "true")
+  @Builder.Default
+  private Boolean isDefault = false;
+
+  @Schema(
       description =
           "List of attribute value IDs associated with this variant (e.g., colorId, sizeId)",
       example = "[1, 2]",

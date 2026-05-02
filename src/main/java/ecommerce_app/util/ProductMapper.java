@@ -105,8 +105,6 @@ public class ProductMapper {
                 .map(variantMapper::toResponse) // ← needs variantMapper injected
                 .toList()
             : List.of());
-    response.setTotalStockQuantity(product.getTotalStockQuantity());
-    response.setAggregatedStockStatus(product.getAggregatedStockStatus());
     // warranty
     WarrantyResponse warrantyResponse = new WarrantyResponse();
     warrantyResponse.setType(product.getWarrantyType());

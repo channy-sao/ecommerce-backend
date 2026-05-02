@@ -79,7 +79,7 @@ public class ProductResponse {
   private AuditUserDto updatedBy;
 
   // Stock info
-  @Schema(name = "stockQuantity", description = "Available stock quantity", example = "50")
+  @Schema(name = "stockQuantity", description = "Total stock across all active variants", example = "50")
   private Integer stockQuantity;
 
   @Schema(name = "inStock", description = "Indicates if the product is in stock", example = "true")
@@ -125,10 +125,4 @@ public class ProductResponse {
 
   @Schema(description = "Variants of this product (only populated when hasVariants = true)")
   private List<ProductVariantResponse> variants;
-
-  @Schema(description = "Aggregated stock across all active variants", example = "38")
-  private Integer totalStockQuantity;
-
-  @Schema(description = "Aggregated stock status across all active variants")
-  private StockStatus aggregatedStockStatus;
 }

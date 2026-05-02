@@ -7,12 +7,14 @@ import ecommerce_app.constant.enums.PaymentGateway;
 import ecommerce_app.constant.enums.PaymentMethod;
 import ecommerce_app.constant.enums.PaymentStatus;
 import ecommerce_app.constant.enums.PromotionType;
+import ecommerce_app.constant.enums.StockMovementType;
 import ecommerce_app.core.SimpleTry;
 import ecommerce_app.dto.CheckoutSummary;
 import ecommerce_app.dto.request.ApplyCouponRequest;
 import ecommerce_app.dto.request.CheckoutRequest;
 import ecommerce_app.dto.request.InitiatePaymentRequest;
 import ecommerce_app.dto.request.NotificationRequest;
+import ecommerce_app.dto.request.StockAdjustmentRequest;
 import ecommerce_app.dto.response.ApplyCouponResponse;
 import ecommerce_app.dto.response.InitiatePaymentResponse;
 import ecommerce_app.dto.response.OrderDetailResponse;
@@ -28,7 +30,6 @@ import ecommerce_app.entity.Product;
 import ecommerce_app.entity.ProductVariant;
 import ecommerce_app.entity.Promotion;
 import ecommerce_app.entity.PromotionUsage;
-import ecommerce_app.entity.Stock;
 import ecommerce_app.entity.User;
 import ecommerce_app.exception.BadRequestException;
 import ecommerce_app.exception.ResourceNotFoundException;
@@ -41,12 +42,12 @@ import ecommerce_app.repository.OrderStatusHistoryRepository;
 import ecommerce_app.repository.PaymentRepository;
 import ecommerce_app.repository.ProductVariantRepository;
 import ecommerce_app.repository.PromotionUsageRepository;
-import ecommerce_app.repository.StockRepository;
 import ecommerce_app.repository.UserRepository;
 import ecommerce_app.service.CouponService;
 import ecommerce_app.service.NotificationService;
 import ecommerce_app.service.OrderService;
 import ecommerce_app.service.PaymentService;
+import ecommerce_app.service.StockManagementService;
 import ecommerce_app.service.facade.PromotionFacade;
 import ecommerce_app.util.JsonUtils;
 import ecommerce_app.util.SimpleShippingCalculator;
@@ -88,32 +89,33 @@ public class OrderServiceImpl implements OrderService {
   private final OrderStatusHistoryRepository orderStatusHistoryRepository;
   private final OrderMapper orderMapper;
   private final OrderNumberGenerator orderNumberGenerator;
-  private final StockRepository stockRepository;
   private final CouponService couponService;
   private final NotificationService notificationService;
   private final PaymentService paymentService;
   private final ProductVariantRepository variantRepository;
+  private final StockManagementService stockManagementService;
 
   // Use @Lazy on PaymentService to avoid circular dependency
   // OrderService → PaymentService → OrderRepository → fine
   // but PaymentService also uses OrderService indirectly via strategies
   public OrderServiceImpl(
-          OrderItemRepository orderItemRepository,
-          PromotionUsageRepository promotionUsageRepository,
-          OrderRepository orderRepository,
-          CartRepository cartRepository,
-          AddressRepository addressRepository,
-          PaymentRepository paymentRepository,
-          PromotionFacade promotionFacade,
-          SimpleShippingCalculator shippingCalculator,
-          UserRepository userRepository,
-          OrderStatusHistoryRepository orderStatusHistoryRepository,
-          OrderMapper orderMapper,
-          OrderNumberGenerator orderNumberGenerator,
-          StockRepository stockRepository,
-          CouponService couponService,
-          NotificationService notificationService,
-          @Lazy PaymentService paymentService, ProductVariantRepository variantRepository) {
+      OrderItemRepository orderItemRepository,
+      PromotionUsageRepository promotionUsageRepository,
+      OrderRepository orderRepository,
+      CartRepository cartRepository,
+      AddressRepository addressRepository,
+      PaymentRepository paymentRepository,
+      PromotionFacade promotionFacade,
+      SimpleShippingCalculator shippingCalculator,
+      UserRepository userRepository,
+      OrderStatusHistoryRepository orderStatusHistoryRepository,
+      OrderMapper orderMapper,
+      OrderNumberGenerator orderNumberGenerator,
+      CouponService couponService,
+      NotificationService notificationService,
+      @Lazy PaymentService paymentService,
+      ProductVariantRepository variantRepository,
+      StockManagementService stockManagementService) {
     this.orderItemRepository = orderItemRepository;
     this.promotionUsageRepository = promotionUsageRepository;
     this.orderRepository = orderRepository;
@@ -126,11 +128,11 @@ public class OrderServiceImpl implements OrderService {
     this.orderStatusHistoryRepository = orderStatusHistoryRepository;
     this.orderMapper = orderMapper;
     this.orderNumberGenerator = orderNumberGenerator;
-    this.stockRepository = stockRepository;
+    this.stockManagementService = stockManagementService;
     this.couponService = couponService;
     this.notificationService = notificationService;
     this.paymentService = paymentService;
-      this.variantRepository = variantRepository;
+    this.variantRepository = variantRepository;
   }
 
   @Transactional(rollbackFor = Exception.class)
@@ -142,7 +144,7 @@ public class OrderServiceImpl implements OrderService {
     Address shippingAddress = getShippingAddress(checkoutRequest, currentUser);
     Cart cart = retrieveCart(currentUser.getId());
     validateCart(cart);
-    validateStockAvailability(cart);  // ✅ pre-check before any writes
+    validateStockAvailability(cart); // ✅ pre-check before any writes
 
     BigDecimal shippingCost = calculateShippingCost(checkoutRequest, cart, shippingAddress);
     CheckoutSummary checkoutSummary =
@@ -198,7 +200,7 @@ public class OrderServiceImpl implements OrderService {
     orderItemRepository.saveAll(orderItems);
     log.info("Created {} order items", orderItems.size());
 
-    deductStock(cart);
+    deductStockForOrder(cart, savedOrder);
     log.info("Stock deducted for order: {}", savedOrder.getOrderNumber());
 
     recordPromotionUsageIfApplicable(checkoutSummary, savedOrder, currentUser);
@@ -276,11 +278,129 @@ public class OrderServiceImpl implements OrderService {
     orderRepository.save(order);
 
     saveOrderStatusHistory(order, OrderStatus.CANCELLED);
-    restoreStock(order);
+    restoreStockForOrder(order);
     log.info("Stock restored for order: {}", order.getOrderNumber());
 
     sendOrderCancelledNotification(order, order.getUser());
     log.info("Order {} cancelled successfully", order.getOrderNumber());
+  }
+
+  /**
+   * Deduct stock for all items in an order. Always uses variant-based stock through
+   * StockManagementService.
+   */
+  private void deductStockForOrder(Cart cart, Order order) {
+    for (CartItem cartItem : cart.getCartItems()) {
+      ProductVariant variant = resolveVariantForCartItem(cartItem);
+      int quantity = cartItem.getQuantity();
+
+      stockManagementService.adjustStock(
+          StockAdjustmentRequest.builder()
+              .productId(cartItem.getProduct().getId())
+              .variantId(variant.getId())
+              .movementType(StockMovementType.OUT)
+              .quantity(quantity)
+              .referenceType("ORDER")
+              .referenceId(order.getId())
+              .note("Order #" + order.getOrderNumber())
+              .build(),
+          order.getUser().getId());
+
+      log.info(
+          "Deducted {} units from variant {} for order #{}",
+          quantity,
+          variant.getSku(),
+          order.getOrderNumber());
+    }
+  }
+
+  /** Restore stock for all items in a cancelled order. */
+  private void restoreStockForOrder(Order order) {
+    for (OrderItem item : order.getOrderItems()) {
+      ProductVariant variant = resolveVariantForOrderItem(item);
+      int quantity = item.getQuantity();
+
+      stockManagementService.adjustStock(
+          StockAdjustmentRequest.builder()
+              .productId(item.getProduct().getId())
+              .variantId(variant.getId())
+              .movementType(StockMovementType.RETURN)
+              .quantity(quantity)
+              .referenceType("ORDER_CANCELLED")
+              .referenceId(order.getId())
+              .note("Stock restored from cancelled order #" + order.getOrderNumber())
+              .build(),
+          null // System action
+          );
+
+      log.info(
+          "Restored {} units to variant {} from cancelled order #{}",
+          quantity,
+          variant.getSku(),
+          order.getOrderNumber());
+    }
+  }
+
+  /** Validate stock availability for all cart items. Always checks variant stock. */
+  private void validateStockAvailability(Cart cart) {
+    List<String> insufficientItems = new ArrayList<>();
+
+    for (CartItem cartItem : cart.getCartItems()) {
+      ProductVariant variant = resolveVariantForCartItem(cartItem);
+      int requestedQty = cartItem.getQuantity();
+
+      if (!variant.getIsActive()) {
+        insufficientItems.add(
+            String.format("'%s' variant is no longer available", cartItem.getProduct().getName()));
+      } else if (variant.getStockQuantity() < requestedQty) {
+        insufficientItems.add(
+            String.format(
+                "'%s' (%s): available %d, requested %d",
+                cartItem.getProduct().getName(),
+                variant.getSku(),
+                variant.getStockQuantity(),
+                requestedQty));
+      }
+    }
+
+    if (!insufficientItems.isEmpty()) {
+      throw new BadRequestException(
+          "Insufficient stock for: " + String.join(", ", insufficientItems));
+    }
+  }
+
+  /**
+   * Resolve the variant for a cart item. If cart item has a variant, use it. Otherwise, use default
+   * variant.
+   */
+  private ProductVariant resolveVariantForCartItem(CartItem cartItem) {
+    if (cartItem.getVariant() != null) {
+      return cartItem.getVariant();
+    }
+    // Fall back to default variant
+    return variantRepository
+        .findByProductIdAndIsDefaultTrue(cartItem.getProduct().getId())
+        .orElseThrow(
+            () ->
+                new ResourceNotFoundException(
+                    "Default variant for product: " + cartItem.getProduct().getName()));
+  }
+
+  /**
+   * Resolve the variant for an order item. If order item has a variant, use it. Otherwise, use
+   * default variant.
+   */
+  private ProductVariant resolveVariantForOrderItem(OrderItem orderItem) {
+    if (orderItem.getVariant() != null) {
+      return orderItem.getVariant();
+    }
+    // Fall back to default variant
+    return variantRepository
+        .findByProductIdAndIsDefaultTrue(orderItem.getProduct().getId())
+        .orElseThrow(
+            () ->
+                new ResourceNotFoundException(
+                    "Default variant for product: " + orderItem.getProduct().getName()));
   }
 
   private void validateCancellable(Order order) {
@@ -292,33 +412,6 @@ public class OrderServiceImpl implements OrderService {
               + order.getOrderNumber()
               + " cannot be cancelled. Status: "
               + order.getOrderStatus());
-    }
-  }
-
-  private void restoreStock(Order order) {
-    for (OrderItem item : order.getOrderItems()) {
-      Product product = item.getProduct();
-      int qty = item.getQuantity();
-
-      if (item.getVariant() != null) {
-        // ── Restore variant stock ────────────────────────────────
-        ProductVariant variant = item.getVariant();
-        variant.setStockQuantity(variant.getStockQuantity() + qty);
-        variantRepository.save(variant);
-
-        log.info("Restored {} units to variant SKU='{}'", qty, variant.getSku());
-
-      } else {
-        // ── Restore simple product stock ─────────────────────────
-        Stock stock = stockRepository.findByProductId(product.getId())
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Stock not found for product: " + product.getName()));
-
-        stock.setQuantity(stock.getQuantity() + qty);
-        stockRepository.save(stock);
-
-        log.info("Restored {} units to product '{}'", qty, product.getName());
-      }
     }
   }
 
@@ -550,7 +643,8 @@ public class OrderServiceImpl implements OrderService {
       int quantity = cartItem.getQuantity();
 
       // Use variant price if available, otherwise product price
-      BigDecimal unitPrice = cartItem.getVariant() != null
+      BigDecimal unitPrice =
+          cartItem.getVariant() != null
               ? cartItem.getVariant().getEffectivePrice()
               : product.getPrice();
 
@@ -558,16 +652,19 @@ public class OrderServiceImpl implements OrderService {
       BigDecimal subtotal = unitPrice.multiply(BigDecimal.valueOf(quantity));
       BigDecimal totalPrice = subtotal.subtract(discountAmount).max(BigDecimal.ZERO);
 
-      orderItems.add(OrderItem.builder()
+      orderItems.add(
+          OrderItem.builder()
               .product(product)
-              .variant(cartItem.getVariant())  // ✅ carry variant
+              .variant(cartItem.getVariant()) // ✅ carry variant
               .quantity(quantity)
               .originalPrice(unitPrice)
               .subtotal(subtotal)
               .discountAmount(discountAmount)
               .totalPrice(totalPrice)
-              .promotionCode(summary.getAppliedPromotion() != null
-                      ? summary.getAppliedPromotion().getCode() : null)
+              .promotionCode(
+                  summary.getAppliedPromotion() != null
+                      ? summary.getAppliedPromotion().getCode()
+                      : null)
               .cart(cart)
               .order(order)
               .build());
@@ -582,41 +679,6 @@ public class OrderServiceImpl implements OrderService {
       discountAmount = summary.getItemDiscounts().getOrDefault(productId, BigDecimal.ZERO);
     }
     return discountAmount.min(unitPrice.multiply(BigDecimal.valueOf(quantity)));
-  }
-
-  private void validateStockAvailability(Cart cart) {
-    List<String> insufficientItems = new ArrayList<>();
-
-    for (CartItem cartItem : cart.getCartItems()) {
-      Product product = cartItem.getProduct();
-      int orderedQty = cartItem.getQuantity();
-
-      if (cartItem.getVariant() != null) {
-        ProductVariant variant = cartItem.getVariant();
-        if (!variant.getIsActive()) {
-          insufficientItems.add(String.format(
-                  "'%s' variant is no longer available", product.getName()));
-        } else if (variant.getStockQuantity() < orderedQty) {
-          insufficientItems.add(String.format(
-                  "'%s' (%s): available %d, requested %d",
-                  product.getName(), variant.getSku(),
-                  variant.getStockQuantity(), orderedQty));
-        }
-      } else {
-        stockRepository.findByProductId(product.getId()).ifPresent(stock -> {
-          if (stock.getQuantity() < orderedQty) {
-            insufficientItems.add(String.format(
-                    "'%s': available %d, requested %d",
-                    product.getName(), stock.getQuantity(), orderedQty));
-          }
-        });
-      }
-    }
-
-    if (!insufficientItems.isEmpty()) {
-      throw new BadRequestException(
-              "Insufficient stock for: " + String.join(", ", insufficientItems));
-    }
   }
 
   private void recordPromotionUsageIfApplicable(CheckoutSummary summary, Order order, User user) {
@@ -637,59 +699,6 @@ public class OrderServiceImpl implements OrderService {
     cart.setStatus(CartStatus.CHECKED_OUT);
     cartRepository.save(cart);
     log.info("Updated cart {} status to CHECKED_OUT", cart.getId());
-  }
-
-  private void deductStock(Cart cart) {
-    for (CartItem cartItem : cart.getCartItems()) {
-      Product product = cartItem.getProduct();
-      int orderedQty = cartItem.getQuantity();
-
-      if (cartItem.getVariant() != null) {
-        // ── Variant product ──────────────────────────────────────
-        ProductVariant variant = cartItem.getVariant();
-
-        if (!variant.getIsActive()) {
-          throw new BadRequestException(
-                  "Variant is no longer available for: " + product.getName());
-        }
-
-        if (variant.getStockQuantity() < orderedQty) {
-          throw new BadRequestException(String.format(
-                  "Insufficient stock for '%s' (%s). Available: %d, Requested: %d",
-                  product.getName(),
-                  variant.getSku(),
-                  variant.getStockQuantity(),
-                  orderedQty
-          ));
-        }
-
-        variant.setStockQuantity(variant.getStockQuantity() - orderedQty);
-        variantRepository.save(variant);
-
-        log.info("Deducted {} units from variant SKU='{}'. Remaining: {}",
-                orderedQty, variant.getSku(), variant.getStockQuantity());
-
-      } else {
-        // ── Simple product ───────────────────────────────────────
-        Stock stock = stockRepository.findByProductId(product.getId())
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Stock not found for product: " + product.getName()));
-
-        int newQty = stock.getQuantity() - orderedQty;
-        if (newQty < 0) {
-          throw new BadRequestException(String.format(
-                  "Insufficient stock for '%s'. Available: %d, Requested: %d",
-                  product.getName(), stock.getQuantity(), orderedQty
-          ));
-        }
-
-        stock.setQuantity(newQty);
-        stockRepository.save(stock);
-
-        log.info("Deducted {} units from '{}'. Remaining: {}",
-                orderedQty, product.getName(), newQty);
-      }
-    }
   }
 
   private Address getShippingAddress(CheckoutRequest request, User user) {

@@ -17,19 +17,17 @@ import java.util.UUID;
 @Repository
 public interface ProductRepository
     extends JpaRepository<Product, Long>, JpaSpecificationExecutor<Product> {
+
   Optional<Product> findByName(String name);
 
   Optional<Product> findByUuid(UUID uuid);
 
   Optional<Product> findByCode(String code);
 
-  /** Find featured products */
   Page<Product> findByIsFeatureTrue(Pageable pageable);
 
-  /** Find products by category ID */
   Page<Product> findByCategoryId(Long categoryId, Pageable pageable);
 
-  /** Search products by name or description (case-insensitive) */
   Page<Product> findByNameContainingIgnoreCaseOrDescriptionContainingIgnoreCase(
       String name, String description, Pageable pageable);
 
@@ -37,10 +35,6 @@ public interface ProductRepository
   @Query("UPDATE Product p SET p.code = :code WHERE p.id = :id")
   void updateCode(Long id, String code);
 
-  /**
-   * Find products with active promotions Uses custom query to join promotions and filter by active
-   * status
-   */
   @Query(
       "SELECT DISTINCT p FROM Product p "
           + "LEFT JOIN p.promotions promo "
@@ -49,65 +43,58 @@ public interface ProductRepository
           + "AND (promo.endAt IS NULL OR promo.endAt >= CURRENT_TIMESTAMP)")
   Page<Product> findProductsWithActivePromotions(Pageable pageable);
 
-  /** Find products by category and featured status */
   Page<Product> findByCategoryIdAndIsFeatureTrue(Long categoryId, Pageable pageable);
 
-  /** Count products by category */
   long countByCategoryId(Long categoryId);
 
-  /** Check if product exists by name (for validation) */
   boolean existsByName(String name);
 
-  /** Check if product exists by name excluding specific ID (for updates) */
   @Query(
       "SELECT CASE WHEN COUNT(p) > 0 THEN true ELSE false END FROM Product p "
           + "WHERE p.name = :name AND p.id != :id")
   boolean existsByNameAndIdNot(@Param("name") String name, @Param("id") Long id);
 
+  // ════════════════════════════════════════════════════════════════
+  // ✅ FIXED: All stock queries now use variants
+  // ════════════════════════════════════════════════════════════════
+
   @Query(
-      """
-       SELECT p FROM Product p
-       JOIN p.stock s
-       WHERE s.quantity > 0
-       AND s.quantity <= :threshold
-       """)
+      "SELECT DISTINCT p FROM Product p JOIN p.variants v "
+          + "WHERE v.stockQuantity > 0 "
+          + "AND v.stockQuantity <= :threshold "
+          + "AND v.isActive = true")
   Page<Product> findLowStockProducts(@Param("threshold") int threshold, Pageable pageable);
 
-  // Find products where stock quantity > 0 AND quantity <= threshold
   @Query(
-      """
-        SELECT p FROM Product p
-        JOIN FETCH p.stock s
-        JOIN FETCH p.category c
-        WHERE p.deleted = false
-        AND s.quantity > 0
-        AND s.quantity <= :threshold
-        ORDER BY s.quantity ASC
-    """)
+      "SELECT DISTINCT p FROM Product p "
+          + "JOIN FETCH p.variants v "
+          + "JOIN FETCH p.category c "
+          + "WHERE p.deleted = false "
+          + "AND v.stockQuantity > 0 "
+          + "AND v.stockQuantity <= :threshold "
+          + "AND v.isActive = true "
+          + "ORDER BY v.stockQuantity ASC")
   List<Product> findNearEmptyStockProducts(@Param("threshold") int threshold);
 
-  // Count for admin dashboard badge
   @Query(
-      """
-        SELECT COUNT(p) FROM Product p
-        JOIN p.stock s
-        WHERE p.deleted = false
-        AND s.quantity > 0
-        AND s.quantity <= :threshold
-    """)
+      "SELECT COUNT(DISTINCT p) FROM Product p "
+          + "JOIN p.variants v "
+          + "WHERE p.deleted = false "
+          + "AND v.stockQuantity > 0 "
+          + "AND v.stockQuantity <= :threshold "
+          + "AND v.isActive = true")
   long countNearEmptyStockProducts(@Param("threshold") int threshold);
 
   @Query(
-      """
-  SELECT p FROM Product p
-  JOIN p.stock s
-  WHERE p.category.id = :categoryId
-  AND p.id != :excludeId
-  AND s.quantity > 0
-  ORDER BY
-    CASE WHEN (:brandId IS NOT NULL AND p.brand.id = :brandId) THEN 0 ELSE 1 END,
-    p.createdAt DESC
-  """)
+      "SELECT DISTINCT p FROM Product p "
+          + "JOIN p.variants v "
+          + "WHERE p.category.id = :categoryId "
+          + "AND p.id != :excludeId "
+          + "AND v.stockQuantity > 0 "
+          + "AND v.isActive = true "
+          + "ORDER BY "
+          + "  CASE WHEN (:brandId IS NOT NULL AND p.brand.id = :brandId) THEN 0 ELSE 1 END, "
+          + "  p.createdAt DESC")
   Page<Product> findRelatedProducts(
       @Param("categoryId") Long categoryId,
       @Param("brandId") Long brandId,
@@ -115,58 +102,52 @@ public interface ProductRepository
       Pageable pageable);
 
   @Query(
-      """
-    SELECT p FROM Product p
-    JOIN p.stock s
-    WHERE s.quantity > 0
-    ORDER BY p.favoritesCount DESC, p.createdAt DESC
-    """)
+      "SELECT DISTINCT p FROM Product p "
+          + "JOIN p.variants v "
+          + "WHERE v.stockQuantity > 0 "
+          + "AND v.isActive = true "
+          + "ORDER BY p.favoritesCount DESC, p.createdAt DESC")
   Page<Product> findPopularProducts(Pageable pageable);
 
-  // Recommend from categories user likes, exclude seen products
   @Query(
-      """
-    SELECT p FROM Product p
-    JOIN p.stock s
-    WHERE p.category.id IN :categoryIds
-    AND p.id NOT IN :excludeIds
-    AND s.quantity > 0
-    ORDER BY p.favoritesCount DESC, p.createdAt DESC
-    """)
+      "SELECT DISTINCT p FROM Product p "
+          + "JOIN p.variants v "
+          + "WHERE p.category.id IN :categoryIds "
+          + "AND p.id NOT IN :excludeIds "
+          + "AND v.stockQuantity > 0 "
+          + "AND v.isActive = true "
+          + "ORDER BY p.favoritesCount DESC, p.createdAt DESC")
   Page<Product> findRecommendedProducts(
       @Param("categoryIds") List<Long> categoryIds,
       @Param("excludeIds") List<Long> excludeIds,
       Pageable pageable);
 
   @Query(
-      """
-          SELECT DISTINCT p.name FROM Product p
-          WHERE LOWER(p.name) LIKE LOWER(CONCAT('%', :q, '%'))
-          ORDER BY p.name
-          LIMIT 8
-          """)
+      "SELECT DISTINCT p.name FROM Product p "
+          + "WHERE LOWER(p.name) LIKE LOWER(CONCAT('%', :q, '%')) "
+          + "ORDER BY p.name "
+          + "LIMIT 8")
   List<String> findSuggestions(@Param("q") String q);
 
   @Query(
-      """
-          SELECT p FROM Product p
-          JOIN p.stock s
-          WHERE p.brand.id = :brandId
-          AND (:search IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%')))
-          AND s.quantity > 0
-          ORDER BY p.createdAt DESC
-          """)
+      "SELECT DISTINCT p FROM Product p "
+          + "JOIN p.variants v "
+          + "WHERE p.brand.id = :brandId "
+          + "AND (:search IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%'))) "
+          + "AND v.stockQuantity > 0 "
+          + "AND v.isActive = true "
+          + "ORDER BY p.createdAt DESC")
   Page<Product> findByBrandId(
       @Param("brandId") Long brandId, @Param("search") String search, Pageable pageable);
 
   @Query(
-      """
-    SELECT p FROM Product p
-    LEFT JOIN p.stock s
-    WHERE p.brand.id = :brandId
-    AND (:search IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%')))
-    ORDER BY p.createdAt DESC
-    """)
+      "SELECT DISTINCT p FROM Product p "
+          + "JOIN p.variants v "
+          + "WHERE p.brand.id = :brandId "
+          + "AND (:search IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%'))) "
+          + "AND v.stockQuantity > 0 "
+          + "AND v.isActive = true "
+          + "ORDER BY p.createdAt DESC")
   Page<Product> findByBrandIdForAdmin(
       @Param("brandId") Long brandId, @Param("search") String search, Pageable pageable);
 }

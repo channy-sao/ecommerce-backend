@@ -54,6 +54,10 @@ public class ProductVariant extends UserAuditableEntity {
     @Builder.Default
     private Boolean isActive = true;
 
+    @Column(name = "is_default", nullable = false)
+    @Builder.Default
+    private Boolean isDefault = Boolean.TRUE;
+
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
         name = "variant_attribute_values",
