@@ -19,7 +19,7 @@ public class ProductVariantResponse {
   private BigDecimal price;
   private BigDecimal effectivePrice;
   private Integer stockQuantity;
-  private Integer lowStockThreshold; // ✅ add this
+  private Integer lowStockThreshold;
   private String stockStatus;
   private Boolean isActive;
   private List<AttributeValueDto> attributeValues;
