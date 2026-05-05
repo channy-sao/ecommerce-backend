@@ -192,6 +192,14 @@
             <version>25.1.0</version>
         </dependency>
 
+        <!-- Source: https://mvnrepository.com/artifact/kh.gov.nbc.bakong_khqr/sdk-java -->
+        <dependency>
+            <groupId>kh.gov.nbc.bakong_khqr</groupId>
+            <artifactId>sdk-java</artifactId>
+            <version>1.0.0.17</version>
+            <scope>compile</scope>
+        </dependency>
+
         <!-- pom.xml -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

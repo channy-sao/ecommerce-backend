@@ -339,6 +339,20 @@ bakong:
     icon-url: https://yourapp.com/icon.png
     name: Channy Shop
 
+khqr:
+  bakong-account-id: "yourshop@devb"
+  merchant-id: "MERCHANT001"
+  acquiring-bank: "ABA Bank"
+  merchant-name: "My Shop"
+  merchant-city: "PHNOM PENH"
+  merchant-category-code: "5999"
+  merchant-name-khmer: "ហាងរបស់ខ្ញុំ"
+  merchant-city-khmer: "ភ្នំពេញ"
+  default-expiry-minutes: 15
+  deep-link-api-url: "https://bakong.nbc.gov.kh/deeplink/"
+  merchant-secret: "your-merchant-secret-key"
+  currency: "USD"
+
 # Stripe
 stripe:
   secret-key: sk_test_XXXXXXXXXXXXXXXXXXXX         # Replace with your key
