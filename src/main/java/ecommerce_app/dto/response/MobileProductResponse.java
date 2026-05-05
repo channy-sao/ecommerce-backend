@@ -74,6 +74,19 @@ public class MobileProductResponse {
   @Schema(description = "Stock status of the product: OUT_OF_STOCK, LOW_STOCK, IN_STOCK")
   private StockStatus stockStatus;
 
+  // Variants
+  @Schema(description = "Whether product has variants")
+  private Boolean hasVariants;
+
+  @Schema(description = "Number of active variants")
+  private Integer activeVariantCount;
+
+  @Schema(description = "Default variant ID (pre-selected for quick add)")
+  private Long defaultVariantId;
+
+  @Schema(description = "All available variants with full details")
+  private List<MobileVariantResponse> variants;
+
   @Schema(description = "Indicates if the product currently has an active promotion")
   private Boolean hasPromotion;
 
@@ -94,6 +107,67 @@ public class MobileProductResponse {
 
   @Schema(description = "Timestamp when the product was last updated")
   private LocalDateTime updatedAt;
+
+
+  @Data
+  @Builder
+  @NoArgsConstructor
+  @AllArgsConstructor
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  @Schema(description = "Mobile variant detail response")
+  public static class MobileVariantResponse {
+
+    @Schema(description = "Variant ID")
+    private Long id;
+
+    @Schema(description = "Variant SKU")
+    private String sku;
+
+    @Schema(description = "Variant-specific price (null = use product price)")
+    private BigDecimal price;
+
+    @Schema(description = "Resolved effective price")
+    private BigDecimal effectivePrice;
+
+    @Schema(description = "Available stock for this variant")
+    private Integer stockQuantity;
+
+    @Schema(description = "Whether this variant is in stock")
+    private Boolean inStock;
+
+    @Schema(description = "Stock status for this variant")
+    private StockStatus stockStatus;
+
+    @Schema(description = "Whether this is the default variant")
+    private Boolean isDefault;
+
+    @Schema(description = "Whether this variant is active")
+    private Boolean isActive;
+
+    @Schema(description = "Low stock threshold for alerts")
+    private Integer lowStockThreshold;
+
+    @Schema(description = "Attribute values (e.g., Color: Red, Size: M)")
+    private List<AttributeValueDto> attributeValues;
+  }
+
+  @Data
+  @Builder
+  @NoArgsConstructor
+  @AllArgsConstructor
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  @Schema(description = "Attribute value for variant")
+  public static class AttributeValueDto {
+
+    @Schema(description = "Attribute value ID")
+    private Long id;
+
+    @Schema(description = "Attribute name (e.g., Color)")
+    private String attribute;
+
+    @Schema(description = "Attribute value (e.g., Red)")
+    private String value;
+  }
 
   @Data
   @Builder

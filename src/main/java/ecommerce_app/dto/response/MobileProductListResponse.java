@@ -9,6 +9,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -76,6 +77,28 @@ public class MobileProductListResponse {
   @Schema(description = "Stock status", example = "IN_STOCK")
   private StockStatus stockStatus;
 
+  // Variants
+  @Schema(description = "Whether product has multiple variants", example = "true")
+  private Boolean hasVariants;
+
+  @Schema(description = "Number of active variants", example = "4")
+  private Integer activeVariantCount;
+
+  @Schema(description = "Lowest variant price", example = "19.99")
+  private BigDecimal minPrice;
+
+  @Schema(description = "Highest variant price", example = "29.99")
+  private BigDecimal maxPrice;
+
+  @Schema(description = "Default variant SKU for quick add to cart", example = "TSHIRT-RED-M")
+  private String defaultVariantSku;
+
+  @Schema(description = "Default variant ID for quick add to cart", example = "100")
+  private Long defaultVariantId;
+
+  @Schema(description = "Grouped variant options for mobile selector UI (e.g., Color: [Red, Blue])")
+  private List<VariantOptionGroup> variantOptions;
+
   @Schema(description = "Whether product has active promotion", example = "true")
   private Boolean hasPromotion;
 
@@ -84,4 +107,35 @@ public class MobileProductListResponse {
 
   @Schema(description = "Quick add to cart availability", example = "true")
   private Boolean quickAddAvailable;
+
+
+  @Data
+  @Builder
+  @NoArgsConstructor
+  @AllArgsConstructor
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  @Schema(description = "Grouped variant options for mobile UI")
+  public static class VariantOptionGroup {
+
+    @Schema(description = "Attribute name (e.g., Color, Size)", example = "Color")
+    private String name;
+
+    @Schema(description = "Available values with stock info", example = "[{\"value\": \"Red\", \"inStock\": true}, {\"value\": \"Blue\", \"inStock\": false}]")
+    private List<VariantOptionValue> values;
+  }
+
+  @Data
+  @Builder
+  @NoArgsConstructor
+  @AllArgsConstructor
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  @Schema(description = "Individual variant option value")
+  public static class VariantOptionValue {
+
+    @Schema(description = "Attribute value", example = "Red")
+    private String value;
+
+    @Schema(description = "Whether any variant with this value is in stock", example = "true")
+    private Boolean inStock;
+  }
 }
